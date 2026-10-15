@@ -4,7 +4,7 @@ Primeiro passo na Unity: testar se o Quest 2 aceita **controle na mão direita +
 
 ## 1. Instalar (só uma vez)
 1. **Unity Hub**: https://unity.com/download (precisa de uma conta Unity, que é grátis).
-2. No Hub, em **Installs > Install Editor**, instale a versão **Unity 6 LTS** mais recente. O SDK da Meta exige no mínimo 6000.0.66f2.
+2. No Hub, em **Installs > Install Editor**, instale o **Unity 6.3 LTS (6000.3.26f1)**. O SDK da Meta exige no mínimo 6000.0.66f2; evite a 6.6 (não é LTS).
    - Marque o módulo **Android Build Support**, junto com **OpenJDK** e **Android SDK & NDK Tools**.
 3. **Modo desenvolvedor no Quest**:
    - Crie uma organização em https://developer.oculus.com/manage/organizations/create/ (é grátis).
