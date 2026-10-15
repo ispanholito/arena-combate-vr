@@ -17,10 +17,11 @@ Primeiro passo na Unity: testar se o Quest 2 aceita **controle na mão direita +
 3. Se aparecer um aviso sobre o *Input System* ou para reiniciar o editor: aceite (**Yes**).
 
 ## 3. Configurar (menu Arena no topo)
-1. **Arena > 1 - Configurar projeto para Quest**.
-2. **Meta > Tools > Project Setup Tool** → aba **Android** → **Fix All** e depois **Apply All**. Repita até não sobrar nada vermelho.
-3. **Edit > Project Settings > XR Plug-in Management** → aba **Android** (ícone do robô) → marque **OpenXR** e, se aparecer, **Meta XR Feature Group**.
-4. **Arena > 2 - Criar cena de teste multimodal**.
+> Já feito neste repositório em 2026-10-15. Só repita se clonar do zero.
+
+1. **Arena > 1 - Configurar projeto para Quest**: troca para Android, IL2CPP/ARM64, cor Linear, Input System, hand tracking "mãos + controles" e liga o OpenXR com os recursos da Meta e do XR Hands (Android e PC/Link). Se ele pedir, reinicie o editor.
+2. **Meta > Tools > Project Setup Tool** → aba **Android** → **Fix All** (o Meta XR Simulator é opcional e pode falhar sem problema).
+3. **Arena > 2 - Criar cena de teste multimodal**.
 
 ## 4. Testar no Quest
 - Ligue o Quest no PC pelo cabo USB-C e aceite "Permitir depuração USB" dentro do óculos.
@@ -28,6 +29,10 @@ Primeiro passo na Unity: testar se o Quest 2 aceita **controle na mão direita +
 - Dentro do óculos aparece um painel. Segure o controle **direito** e **solte o esquerdo** (deixe-o parado na mesa).
   - **MULTIMODAL: FUNCIONANDO** → deu certo.
   - Teste as poses da mão esquerda: **apontar** (aparece um laser), **punho** batendo para baixo, **mão aberta** em movimento rápido.
+
+## Problemas já resolvidos
+- **Safe Mode com erro CS1069 "AssetBundle" no Meta SDK**: na Unity 6.3 o AssetBundle virou módulo. O `manifest.json` já inclui `com.unity.modules.assetbundle`.
+- **Instalador da Unity/Android termina sem fazer nada (código 2)**: falta espaço no disco do TEMP. Aponte TEMP/TMP para um disco com espaço e rode o instalador de novo.
 
 ## Se der erro
 Tire uma foto ou print do erro (Console do Unity, em vermelho) e mande na conversa.

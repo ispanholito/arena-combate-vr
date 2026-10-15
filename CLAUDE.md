@@ -76,19 +76,22 @@ Slime (se divide ao morrer), Goblin (ataque anunciado com clava, pode ser aparad
 
 ### Unity — pasta `unity/`
 - **Unity 6.3 LTS (6000.3.26f1)** — versão escolhida (mínimo 6000.0.66f2, exigido pelo Meta XR Core SDK 207.0.0). Evitar 6.6: não é LTS.
-- Pacotes (`unity/Packages/manifest.json`): `com.meta.xr.sdk.core` 207.0.0 (registro `https://npm.developer.oculus.com`), OpenXR 1.17.1, XR Management 4.6.1, XR Hands 1.8.1, Input System 1.19.0.
+- Pacotes (`unity/Packages/manifest.json`): `com.meta.xr.sdk.core` 207.0.0 (registro `https://npm.developer.oculus.com`), OpenXR 1.17.1, XR Management 4.6.1, XR Hands 1.8.1, Input System 1.19.0, `com.unity.pipeline` (controle pelo CLI).
+- **Unity 6.3 separou o AssetBundle num módulo**: sem `com.unity.modules.assetbundle` no manifest o Meta SDK não compila (CS1069 em OVRResources/OVRSceneLoader) e o projeto abre em Safe Mode.
 - `Assets/Arena/Editor/ArenaSetup.cs`: menu **Arena > 1 - Configurar projeto para Quest** (Android, IL2CPP, ARM64, API 32, Linear, hand tracking "ControllersAndHands" via reflexão, features OpenXR) e **Arena > 2 - Criar cena de teste multimodal** (OVRCameraRig, liga "concurrent hands and controllers" no OVRManager via SerializedObject).
 - `Assets/Arena/Scripts/ArenaMultimodalTest.cs`: painel de diagnóstico (controles, mãos, pose da mão esquerda, laser de teste) usando OVRInput + XR Hands.
-- **Nada disso foi compilado ainda** (escrito sem acesso à Unity). Esperar ajustes na primeira abertura.
+- **Compila e roda no editor (2026-10-15).** Arena 1 e Arena 2 executados: target Android, IL2CPP/ARM64, API 32, Linear, OpenXR como loader (Android e Standalone) com Meta XR Feature, Meta Quest Support, XR Hands (HandTracking + MetaHandTrackingAim) e perfil Oculus Touch; `handTrackingSupport = ControllersAndHands`; cena `Assets/Arena/Scenes/TesteMultimodal.unity` com OVRManager "simultaneous hands and controllers" ligado. Project Setup Tool da Meta sem pendência obrigatória.
+- `ArenaSetup.ConfigureProjectNoDialog()` e `ArenaSetup.CreateTestSceneNoDialog()` fazem o mesmo que os menus sem abrir diálogos — use-os pelo CLI (`unity command eval --code 'return ArenaSetup.ConfigureProjectNoDialog();'`). Diálogos modais travam a main thread e fazem os comandos do CLI expirarem ("Main thread operation timed out").
 - Multimodal (mão + controle simultâneos): suportado oficialmente pela Meta no Quest 2/Pro/3/3S com Core SDK v74+. Ressalvas: o sistema pode achar que o controle foi largado quando o rastreamento falha; incompatível com body tracking.
 
 ## Ferramentas instaladas no PC do Pablo (Windows)
+- **Disco C: está lotado — use só o E:.** Repositório em `E:\projects\arena-combate-vr`; Unity e Hub em `E:\Nova pasta\`. Variáveis de usuário apontam tudo para `E:\UnityCache`: `TEMP`/`TMP` (`temp`), `UPM_CACHE_ROOT` (`upm`), `UPM_NPM_CACHE_PATH` (`npm`), `GRADLE_USER_HOME` (`gradle`). Instaladores NSIS elevados leem o TEMP do registro; com C: cheio eles abortam com código 2 sem mensagem.
 - **Unity CLI v1.0.0-beta.13** (comando `unity`), com a skill instalada no Claude Code (`unity skill install claude-code`). Use `unity skill show` para o guia completo.
 - Comandos úteis: `unity status` (editores abertos), `unity open unity` (abre o projeto), `unity recompile` (recompila e lista erros de compilação), `unity command ...` (executa comandos no editor aberto), `unity test`, `unity build`.
 - Para o agente controlar o editor aberto é preciso o pacote experimental **com.unity.pipeline** no projeto (ver `unity pipeline --help`). Instale-o assim que o projeto abrir pela primeira vez.
 
 ## Próximos passos
-1. Instalar Unity e abrir `unity/` (passo a passo em `unity/LEIA-ME.md`).
+1. ~~Instalar Unity e abrir `unity/`~~ (feito).
 2. Rodar o teste multimodal no Quest 2 → precisa aparecer **MULTIMODAL: FUNCIONANDO**.
 3. Portar o combate do protótipo web para Unity com física real (sugestão: avaliar Auto Hand / Hurricane VR para física de mãos e armas).
 4. Portar classes, árvore, poderes da mão, inimigos e chefe.
