@@ -1,32 +1,27 @@
-# Arena de Combate VR — protótipo v0.1
+# Arena de Combate VR — protótipo v0.2
 
-Protótipo de combate físico para Meta Quest (WebXR) e PC. Feito em Three.js, num único arquivo, sem build.
+Protótipo de RPG de combate físico para Meta Quest (WebXR) e PC. Three.js, arquivo único, sem build.
 
-## Jogar
-- **Quest:** abra o link do GitHub Pages no navegador do Quest e toque em **ENTER VR**.
-- **PC:** abra o mesmo link no Chrome/Edge e clique em **Jogar no PC**.
+**Jogar:** https://ispanholito.github.io/arena-combate-vr/
+
+## Novidades da v0.2
+- Duas classes: **Lâmina** (espada/machado) e **Elementalista** (cajado)
+- Árvore de habilidades por classe (1 ponto por nível)
+- Lâmina: Investida Perfurante (aponte a espada + A), Turbilhão, Lâmina de Vento
+- Elementalista: Bola de Fogo (segurar e arremessar), Lança de Gelo, Rajada de Vento
+- Chefe **Rei Goblin** após 12 abates, com 2ª fase (fúria, golpe em área, invoca slimes)
 
 ## Controles
-| Ação | PC | Quest |
+| Ação | Quest | PC |
 |---|---|---|
-| Andar | WASD | analógico esquerdo |
-| Girar | mouse | analógico direito (giro em passos) |
-| Golpe | clique esquerdo | balance o braço direito |
-| Aparar | segurar clique direito | coloque a arma na frente da clava, em movimento |
-| Esquiva | Shift | A ou clique no analógico esquerdo |
-| Arremessar / chamar arma | E | B arremessa · gatilho direito chama de volta |
-| Trocar espada/machado | Q | X |
-| +1 nível (teste) | L | Y |
-
-## O que está sendo testado
-- Peso da arma (machado "atrasa" na mão com Força baixa)
-- Aparo + barra de postura dos inimigos
-- Esquiva rápida com vinheta
-- Slime que se divide, goblin com ataque anunciado
-- XP/nível até 10; morrer perde só o XP do nível atual
-
-## Rodar localmente (opcional)
-```
-npx serve .
-```
-WebXR no Quest exige HTTPS — por isso o GitHub Pages.
+| Andar / girar | analógicos | WASD + mouse |
+| Golpe | balance o braço | clique esquerdo |
+| Aparar | arma na frente da clava, em movimento | segurar clique direito |
+| Esquiva | X | Shift |
+| Habilidade de mira | A (aponte a arma para frente) | 1 / 2 |
+| Habilidade por gesto | gatilho direito + golpe/arremesso | 2 / 3 / 1 |
+| Rajada de Vento (mago) | gatilho esquerdo + empurrar a mão | 3 |
+| Árvore de habilidades | Y (aponte e use o gatilho) | Tab |
+| Arremessar / chamar arma | B / gatilho | E |
+| Trocar arma (Lâmina) | clique no analógico esquerdo | Q |
+| +1 nível (teste) | botão na árvore | L |
