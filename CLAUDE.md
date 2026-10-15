@@ -75,12 +75,17 @@ Slime (se divide ao morrer), Goblin (ataque anunciado com clava, pode ser aparad
 - O protótipo web cumpriu o papel; o desenvolvimento segue na Unity.
 
 ### Unity — pasta `unity/`
-- **Unity 6 LTS** (mínimo **6000.0.66f2**, exigido pelo Meta XR Core SDK 207.0.0).
+- **Unity 6.3 LTS (6000.3.26f1)** — versão escolhida (mínimo 6000.0.66f2, exigido pelo Meta XR Core SDK 207.0.0). Evitar 6.6: não é LTS.
 - Pacotes (`unity/Packages/manifest.json`): `com.meta.xr.sdk.core` 207.0.0 (registro `https://npm.developer.oculus.com`), OpenXR 1.17.1, XR Management 4.6.1, XR Hands 1.8.1, Input System 1.19.0.
 - `Assets/Arena/Editor/ArenaSetup.cs`: menu **Arena > 1 - Configurar projeto para Quest** (Android, IL2CPP, ARM64, API 32, Linear, hand tracking "ControllersAndHands" via reflexão, features OpenXR) e **Arena > 2 - Criar cena de teste multimodal** (OVRCameraRig, liga "concurrent hands and controllers" no OVRManager via SerializedObject).
 - `Assets/Arena/Scripts/ArenaMultimodalTest.cs`: painel de diagnóstico (controles, mãos, pose da mão esquerda, laser de teste) usando OVRInput + XR Hands.
 - **Nada disso foi compilado ainda** (escrito sem acesso à Unity). Esperar ajustes na primeira abertura.
 - Multimodal (mão + controle simultâneos): suportado oficialmente pela Meta no Quest 2/Pro/3/3S com Core SDK v74+. Ressalvas: o sistema pode achar que o controle foi largado quando o rastreamento falha; incompatível com body tracking.
+
+## Ferramentas instaladas no PC do Pablo (Windows)
+- **Unity CLI v1.0.0-beta.13** (comando `unity`), com a skill instalada no Claude Code (`unity skill install claude-code`). Use `unity skill show` para o guia completo.
+- Comandos úteis: `unity status` (editores abertos), `unity open unity` (abre o projeto), `unity recompile` (recompila e lista erros de compilação), `unity command ...` (executa comandos no editor aberto), `unity test`, `unity build`.
+- Para o agente controlar o editor aberto é preciso o pacote experimental **com.unity.pipeline** no projeto (ver `unity pipeline --help`). Instale-o assim que o projeto abrir pela primeira vez.
 
 ## Próximos passos
 1. Instalar Unity e abrir `unity/` (passo a passo em `unity/LEIA-ME.md`).
