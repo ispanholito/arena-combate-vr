@@ -84,6 +84,17 @@ Slime (se divide ao morrer), Goblin (ataque anunciado com clava, pode ser aparad
 - `ArenaSetup.ConfigureProjectNoDialog()` e `ArenaSetup.CreateTestSceneNoDialog()` fazem o mesmo que os menus sem abrir diálogos — use-os pelo CLI (`unity command eval --code 'return ArenaSetup.ConfigureProjectNoDialog();'`). Diálogos modais travam a main thread e fazem os comandos do CLI expirarem ("Main thread operation timed out").
 - Multimodal (mão + controle simultâneos): suportado oficialmente pela Meta no Quest 2/Pro/3/3S com Core SDK v74+. Ressalvas: o sistema pode achar que o controle foi largado quando o rastreamento falha; incompatível com body tracking.
 
+### Arena jogável na Unity (2026-10-15) — porte do protótipo web
+Três camadas em `unity/Assets/Arena/`:
+- **`Core/` (asmdef `Arena.Core`, C# puro, sem UnityEngine)**: toda a regra do jogo, testável. `PlayerState` (classe, nível/XP, vida/estamina/mana, árvore, recargas, contra, cargas de vento, poderes da mão), `Progression` (XP = 40 + 30·nível, morte perde só o XP do nível, MVP nível 10), `ClassProfile` (força/vida/estamina/mana por nível e classe), `SkillTree` (habilidade inicial grátis, pré-requisitos, nível mínimo, respec), `WeaponDef` (peso → `FollowRate`), `Combat`/`Guard` (dano por velocidade da ponta e alinhamento do fio, aparo/bloqueio/contra), `Posture`, `EnemyDef`/`EnemyState` (Slime, Goblin, Rei Goblin), `WaveDirector`, `Geometry` (varredura lâmina × corpo). Números do protótipo v0.3, com duas mudanças propostas (revisar com o Pablo): vida/estamina/mana por nível agora dependem da classe (Lâmina +14 vida/nível, Elementalista +10, antes +12 para todos), e o dano corpo a corpo cai até 40% quando o golpe não é de fio (pilar "dano pelo ângulo do golpe"; estocada conta como fio).
+- **`Tests/Editor/` (asmdef `Arena.Core.Tests`)**: 47 testes EditMode. Rodar: `unity command run_tests --mode EditMode --filter Arena.Core.Tests --filter_type assembly`.
+- **`Runtime/` (asmdef `Arena.Runtime`)**: componentes da Unity. `ArenaPlayer` (OVRCameraRig, locomoção, esquiva, Investida), `PlayerWeapon` (segue a mão com atraso pelo peso, golpe por varredura, arremessar/chamar de volta; `VrGripPitch` = inclinação da lâmina no controle, **ajustar no Quest**), `SkillCaster` (habilidades das 2 classes), `LeftHandPowers` (laser/soco/palma pela mão rastreada), inimigos em `Enemies/`, `ArenaGame` (ondas, chefe aos 12 abates, fogueira cura, morte), `ArenaHud`, `SkillTreeMenu`. Modelos e efeitos são primitivas criadas em código (placeholder).
+- **Menu Arena > 3 - Criar cena da arena** (`ArenaSceneBuilder`, ou `ArenaSceneBuilder.CreateArenaSceneNoDialog()` pelo CLI) gera `Assets/Arena/Scenes/Arena.unity` (primeira cena do build).
+- **Modo desktop** (Play sem headset): WASD anda, mouse olha (clique trava o cursor, Esc solta), botão esq = golpe, botão dir segurado = aparo, Shift/Espaço = esquiva, 1/2/3 = habilidades (2 e 3 seguram para Bola de Fogo/Raízes), G arremessa a arma, Q troca arma, Tab = árvore (Enter/E libera, R respec na fogueira, L = +1 nível de teste), Z/X/C = laser/soco/palma da mão esquerda.
+- **VR** (mão esquerda livre): analógico direito move, clique curto = esquiva, segurar = árvore; A/B/gatilho/grip = habilidades da classe (como no protótipo). Com dois controles: analógico esquerdo move, X esquiva, Y árvore, clique esquerdo troca arma, direito gira 30°.
+- **Verificado no editor (desktop)**: golpe tira vida e postura; goblin ataca, bloqueio/aparo/contra-ataque funcionam; Investida atravessa vários; slime se divide; Rei Goblin chega, entra em fúria (<50%), invoca slimes e faz o golpe em área; Bola de Fogo com QUEIMA em enraizados; Lança de Gelo perfura; Raízes prendem; morte volta à fogueira. **Ainda não testado no Quest.**
+- Testar no editor pelo CLI: antes do Play rode `unity command set_autotick` e, já no Play, `eval "UnityEngine.Application.runInBackground = true;"` (senão o jogo congela no frame 1 com o editor sem foco). Teclas simuladas com `simulate_key` só funcionam para teclas seguradas (WASD); toques únicos (1/2/3) não chegam com o editor sem foco — teste habilidades chamando os métodos por reflexão.
+
 ## Ferramentas instaladas no PC do Pablo (Windows)
 - **Disco C: está lotado — use só o E:.** Repositório em `E:\projects\arena-combate-vr`; Unity e Hub em `E:\Nova pasta\`. Variáveis de usuário apontam tudo para `E:\UnityCache`: `TEMP`/`TMP` (`temp`), `UPM_CACHE_ROOT` (`upm`), `UPM_NPM_CACHE_PATH` (`npm`), `GRADLE_USER_HOME` (`gradle`). Instaladores NSIS elevados leem o TEMP do registro; com C: cheio eles abortam com código 2 sem mensagem.
 - **Unity CLI v1.0.0-beta.13** (comando `unity`), com a skill instalada no Claude Code (`unity skill install claude-code`). Use `unity skill show` para o guia completo.
@@ -93,9 +104,10 @@ Slime (se divide ao morrer), Goblin (ataque anunciado com clava, pode ser aparad
 ## Próximos passos
 1. ~~Instalar Unity e abrir `unity/`~~ (feito).
 2. Rodar o teste multimodal no Quest 2 → precisa aparecer **MULTIMODAL: FUNCIONANDO**.
-3. Portar o combate do protótipo web para Unity com física real (sugestão: avaliar Auto Hand / Hurricane VR para física de mãos e armas).
-4. Portar classes, árvore, poderes da mão, inimigos e chefe.
-5. Rumo ao MVP: Lâmina + Elementalista, santuário simples, 1 dungeon com 2 andares + chefe, 4 inimigos, 6 armas, nível até 10, sem IA companheira e sem online.
+3. ~~Portar classes, árvore, poderes da mão, inimigos e chefe~~ (feito na arena, ver acima). **Testar a arena no Quest** e ajustar: `VrGripPitch`, posição do HUD (hoje preso à cabeça; o protótipo usava o pulso), alcance/dano.
+4. Física real de mãos e armas (a arma ainda atravessa os inimigos). Decisão pendente do Pablo: Auto Hand / Hurricane VR (pagos) ou Meta Interaction SDK (grátis, mais trabalho nosso). O `Arena.Core` não depende dessa escolha.
+5. Trocar primitivas por modelos/animações e adicionar som (o protótipo web tinha sons sintetizados).
+6. Rumo ao MVP: Lâmina + Elementalista, santuário simples, 1 dungeon com 2 andares + chefe, 4 inimigos, 6 armas, nível até 10, sem IA companheira e sem online.
 
 ## Fluxo de testes
 - Rápido: **Quest Link** (cabo ou Air Link) + Play no editor, sem build.

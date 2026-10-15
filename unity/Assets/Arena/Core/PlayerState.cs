@@ -135,6 +135,20 @@ namespace Arena.Core
             return true;
         }
 
+        // Poderes da mão: soco no chão e corte da palma (recarga + mana).
+        public SkillCastResult TryHandPower(string id)
+        {
+            float cd = id == HandPowers.Slam ? HandPowers.SlamCooldown : HandPowers.PalmCooldown;
+            float cost = id == HandPowers.Slam ? HandPowers.SlamCost : HandPowers.PalmCost;
+            if (CooldownLeft(id) > 0f) return SkillCastResult.Cooldown;
+            if (!Mana.TrySpend(cost, 0.6f)) return SkillCastResult.NoMana;
+            cooldowns[id] = cd;
+            return SkillCastResult.Ok;
+        }
+
+        // Laser contínuo: drena mana enquanto apontar. Retorna false quando acabou a mana.
+        public bool DrainLaser(float dt) => Mana.TrySpend(HandPowers.LaserManaPerSecond * dt, 0.3f);
+
         // Esquiva = dash. Retorna false se não houver estamina.
         public bool TryDash()
         {

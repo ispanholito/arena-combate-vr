@@ -40,7 +40,20 @@ namespace Arena.Core
 
         public static float DashCost(bool passoLeve) => passoLeve ? 15f : 25f;
         public static float ChargeLength(bool cadeia) => cadeia ? 6.3f : 4.5f;
-        public const float ChargeDamage = 30f;
+        public const float ChargeDamage = 40f, ChargeDuration = 0.24f, ChargeInvulnerable = 0.4f;
+        public const float DashDuration = 0.16f, DashSpeed = 16f, MoveSpeed = 2.6f;
+        public const float ArenaHalfSize = 8.6f;
+    }
+
+    // Poderes da mão esquerda livre (hand tracking). Gastam mana, qualquer classe.
+    public static class HandPowers
+    {
+        public const string Slam = "mao_soco", Palm = "mao_palma";
+        public const float LaserManaPerSecond = 14f, LaserDps = 35f, LaserTick = 10f, LaserRange = 15f, LaserPosture = 0.5f;
+        public const float SlamCooldown = 6f, SlamCost = 25f, SlamRadius = 3f, SlamStun = 1.8f, SlamDamage = 12f, SlamPosture = 2.5f;
+        public const float PalmCooldown = 1.2f, PalmCost = 15f, PalmDamage = 20f;
+        // Gestos
+        public const float SlamMinDownSpeed = 3f, SlamMaxHandHeight = 1.05f, PalmMinSpeed = 3.2f, PoseHoldSeconds = 0.12f;
     }
 
     public enum GuardResult { None, Parry, Block, GuardBroken, Counter }

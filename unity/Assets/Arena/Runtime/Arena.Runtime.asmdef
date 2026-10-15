@@ -1,0 +1,19 @@
+{
+    "name": "Arena.Runtime",
+    "rootNamespace": "Arena",
+    "references": [
+        "Arena.Core",
+        "Unity.InputSystem",
+        "Unity.XR.Hands",
+        "Oculus.VR"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -126,6 +126,18 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void HandPowers_UseManaAndCooldown()
+        {
+            var p = new PlayerState(ClassId.Lamina);
+            Assert.AreEqual(SkillCastResult.Ok, p.TryHandPower(HandPowers.Slam));
+            Assert.AreEqual(75f, p.Mana.Current, 1e-3);
+            Assert.AreEqual(SkillCastResult.Cooldown, p.TryHandPower(HandPowers.Slam));
+            Assert.AreEqual(SkillCastResult.Ok, p.TryHandPower(HandPowers.Palm));
+            for (int i = 0; i < 100; i++) p.DrainLaser(0.1f);
+            Assert.IsFalse(p.DrainLaser(0.1f), "sem mana o laser para");
+        }
+
+        [Test]
         public void LevelUp_RaisesMaxHp()
         {
             var p = new PlayerState(ClassId.Lamina);
