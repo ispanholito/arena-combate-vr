@@ -155,7 +155,9 @@ function makeSword() {
 function makeAxe() {
   const g = new THREE.Group();
   const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.15, 8), new THREE.MeshLambertMaterial({ color: 0x5a3a1e })); handle.rotation.x = Math.PI / 2; handle.position.z = -0.45; g.add(handle);
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.06, 0.26), new THREE.MeshLambertMaterial({ color: 0x9aa0aa, emissive: 0x111215 })); head.position.set(0.15, 0, -0.92); g.add(head);
+  const steel = new THREE.MeshLambertMaterial({ color: 0x9aa0aa, emissive: 0x111215 });
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.38, 0.26), steel); head.position.set(0, -0.13, -0.92); g.add(head);
+  const spike = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.1, 0.1), steel); spike.position.set(0, 0.06, -0.92); g.add(spike);
   return g;
 }
 const WEAPONS = [
