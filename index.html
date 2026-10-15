@@ -38,15 +38,16 @@
 </head>
 <body>
 <div id="menu"><div class="box">
-  <h1>Arena de Combate — v0.2</h1>
+  <h1>Arena de Combate — v0.3</h1>
   <p>Escolha a classe. Derrote ondas de slimes e goblins, suba de nível, libere habilidades na árvore e enfrente o <b>Rei Goblin</b> depois de 12 abates.</p>
   <div class="classes">
-    <button class="cls sel" data-cls="blade"><b>Lâmina</b><span>Espada e machado. Investida Perfurante, Turbilhão, Lâmina de Vento.</span></button>
-    <button class="cls" data-cls="mage"><b>Elementalista</b><span>Cajado. Bola de Fogo, Lança de Gelo, Rajada de Vento.</span></button>
+    <button class="cls sel" data-cls="blade"><b>Lâmina</b><span>Espada e machado. Investida Perfurante, Postura de Contra, Lâmina de Vento.</span></button>
+    <button class="cls" data-cls="mage"><b>Elementalista</b><span>Cajado. Bola de Fogo, Lança de Gelo, Raízes.</span></button>
   </div>
   <ul>
-    <li><b>VR:</b> analógico esq. anda · dir. gira · <b>X</b> esquiva · <b>Y</b> árvore de habilidades (aponte e use o gatilho) · <b>A</b> habilidade de mira (aponte a arma para frente) · <b>gatilho dir.</b> segurado + golpe/arremesso = habilidade · <b>B</b> arremessa a arma (gatilho chama de volta) · clique no analógico esq. troca arma</li>
-    <li><b>PC:</b> WASD · mouse · clique esq. golpe · clique dir. aparar · <b>Shift</b> esquiva · <b>1 2 3</b> habilidades · <b>Tab</b> árvore · <b>Q</b> troca arma · <b>E</b> arremessa/chama · <b>L</b> +1 nível (teste)</li>
+    <li><b>VR:</b> controle na mão direita (arma) + <b>mão esquerda livre</b> (rastreamento de mãos) ou controle esquerdo. A lista completa de comandos está no README do projeto.</li>
+    <li><b>Mão esquerda:</b> <b>apontar</b> = raio laser · <b>punho fechado</b> golpeando para baixo = atordoa em volta · <b>mão aberta</b> em movimento rápido = corte de vento</li>
+    <li><b>PC:</b> WASD · mouse · clique esq. golpe · clique dir. aparar · <b>Shift</b> esquiva · <b>1 2 3</b> habilidades · <b>Z</b> laser (segurar) · <b>X</b> soco no chão · <b>C</b> corte da palma · <b>Tab</b> árvore · <b>Q</b> troca arma · <b>E</b> arremessa/chama · <b>L</b> +1 nível</li>
   </ul>
   <button id="playPC">Jogar no PC</button>
   <p style="font-size:12px;margin-top:10px">Para VR: escolha a classe aqui e toque em “ENTER VR”.</p>
@@ -69,6 +70,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
+import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 
 // ================= BASE =================
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -76,7 +78,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.xr.enabled = true;
 document.body.appendChild(renderer.domElement);
-document.body.appendChild(VRButton.createButton(renderer));
+document.body.appendChild(VRButton.createButton(renderer, { optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'] }));
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b0a0d);
 scene.fog = new THREE.Fog(0x0b0a0d, 6, 22);
@@ -154,7 +156,7 @@ const spawnPoints = [V(-7.5, 0, -7.5), V(7.5, 0, -7.5), V(-7.5, 0, 0), V(7.5, 0,
 
 // ================= JOGADOR =================
 const P = { cls: null, hp: 100, maxHp: 100, sta: 100, maxSta: 100, mana: 100, maxMana: 100, level: 1, xp: 0, points: 0, kills: 0,
-  invuln: 0, dashT: 0, dashDir: V(), hurtCd: 0, regenDelay: 0, chargeT: 0, chargeDir: V(), chargeHit: new Set(), chargeLen: 4.5 };
+  invuln: 0, dashT: 0, dashDir: V(), hurtCd: 0, regenDelay: 0, chargeT: 0, chargeDir: V(), chargeHit: new Set(), chargeLen: 4.5, counterT: 0, windCharges: 0, slashCd: 0 };
 const PROFILE = { blade: { str: (l) => 3 + l * 1.2 }, mage: { str: (l) => 2 + l * 0.5 } };
 const strength = () => PROFILE[P.cls || 'blade'].str(P.level);
 const xpNeed = () => 40 + P.level * 30;
@@ -166,8 +168,8 @@ function flatForward(out = V()) { camera.getWorldDirection(out); out.y = 0; retu
 const TREE = {
   blade: [
     { id: 'investida', key: 1, name: 'Investida Perfurante', desc: 'Aponte a espada para frente + A: avança atravessando vários inimigos', lvl: 1, req: [], start: true, x: 0, y: 0 },
-    { id: 'turbilhao', key: 2, name: 'Turbilhão', desc: 'Gatilho + golpe horizontal forte: corte em 360°', lvl: 2, req: ['investida'], x: 1, y: 0 },
-    { id: 'ventolam', key: 3, name: 'Lâmina de Vento', desc: 'Gatilho + golpe de cima para baixo: corte à distância', lvl: 4, req: ['turbilhao'], x: 2, y: 0 },
+    { id: 'contra', key: 2, name: 'Postura de Contra', desc: 'Gatilho: por 2 s, o próximo aparo vira um contra-ataque devastador', lvl: 2, req: ['investida'], x: 1, y: 0 },
+    { id: 'ventolam', key: 3, name: 'Lâmina de Vento', desc: 'Botão B: os próximos 2 golpes de espada lançam cortes de vento', lvl: 4, req: ['contra'], x: 2, y: 0 },
     { id: 'afiado', name: 'Fio Afiado', desc: '+25% de dano corpo a corpo', lvl: 2, req: ['investida'], x: 0, y: 1 },
     { id: 'leve', name: 'Passo Leve', desc: 'Esquiva custa 40% menos estamina', lvl: 3, req: ['afiado'], x: 1, y: 1 },
     { id: 'cadeia', name: 'Investida em Cadeia', desc: 'Investida recarrega 2x mais rápido e vai 40% mais longe', lvl: 5, req: ['leve'], x: 2, y: 1 },
@@ -175,15 +177,15 @@ const TREE = {
   mage: [
     { id: 'fogo', key: 1, name: 'Bola de Fogo', desc: 'Segure o gatilho e arremesse: explode em área', lvl: 1, req: [], start: true, x: 0, y: 0 },
     { id: 'gelo', key: 2, name: 'Lança de Gelo', desc: 'Aponte o cajado + A: perfura e deixa lento', lvl: 2, req: ['fogo'], x: 1, y: 0 },
-    { id: 'rajada', key: 3, name: 'Rajada de Vento', desc: 'Gatilho esq. + empurrar a mão: arremessa inimigos', lvl: 4, req: ['gelo'], x: 2, y: 0 },
+    { id: 'raizes', key: 3, name: 'Raízes', desc: 'Segure B, mire no chão e solte: raízes prendem os inimigos por 3 s', lvl: 4, req: ['gelo'], x: 2, y: 0 },
     { id: 'combustao', name: 'Combustão', desc: 'Explosão da Bola de Fogo 60% maior', lvl: 2, req: ['fogo'], x: 0, y: 1 },
     { id: 'fonte', name: 'Fonte Arcana', desc: 'Mana regenera 2x mais rápido', lvl: 3, req: ['combustao'], x: 1, y: 1 },
     { id: 'profundo', name: 'Gelo Profundo', desc: 'Lança de Gelo congela totalmente por 1,5 s', lvl: 5, req: ['fonte'], x: 2, y: 1 },
   ],
 };
 const SKILL = {
-  investida: { cd: 5, cost: 25, res: 'sta' }, turbilhao: { cd: 4, cost: 30, res: 'sta' }, ventolam: { cd: 2.5, cost: 20, res: 'sta' },
-  fogo: { cd: 1.0, cost: 20, res: 'mana' }, gelo: { cd: 1.8, cost: 15, res: 'mana' }, rajada: { cd: 5, cost: 25, res: 'mana' },
+  investida: { cd: 5, cost: 25, res: 'sta' }, contra: { cd: 6, cost: 20, res: 'sta' }, ventolam: { cd: 3, cost: 20, res: 'sta' },
+  fogo: { cd: 1.0, cost: 20, res: 'mana' }, gelo: { cd: 1.8, cost: 15, res: 'mana' }, raizes: { cd: 7, cost: 30, res: 'mana' },
 };
 const unlocked = new Set();
 const cds = {};
@@ -249,7 +251,6 @@ function setClass(c) {
   P.cls = c; unlocked.clear(); TREE[c].filter((n) => n.start).forEach((n) => unlocked.add(n.id));
   P.points = P.level - 1; for (const k in cds) cds[k] = 0;
   wIdx = 0; equip(LOADOUT[c][0]);
-  $('mpwrap').style.display = c === 'mage' ? 'block' : 'none';
   drawTree(); updateHUD();
 }
 
@@ -262,10 +263,27 @@ const wrist = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.109), new THREE.Mes
 wrist.position.set(0, 0.03, 0.06); wrist.rotation.x = -Math.PI / 2.4;
 for (let i = 0; i < 2; i++) {
   const grip = renderer.xr.getControllerGrip(i);
-  grip.addEventListener('connected', (e) => { grips[e.data.handedness] = grip; if (e.data.handedness === 'left') grip.add(wrist); });
-  grip.addEventListener('disconnected', (e) => { if (grips[e.data.handedness] === grip) delete grips[e.data.handedness]; });
-  grip.add(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.04, 0.1), handMat));
+  const box = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.04, 0.1), handMat); grip.add(box);
+  grip.addEventListener('connected', (e) => {
+    grip.userData.side = e.data.handedness; grip.userData.isHand = !!e.data.hand; box.visible = !e.data.hand;
+    if (!e.data.hand) grips[e.data.handedness] = grip;
+  });
+  grip.addEventListener('disconnected', () => { const sd = grip.userData.side; if (grips[sd] === grip) delete grips[sd]; });
   rig.add(grip);
+}
+// Mãos rastreadas (hand tracking)
+const handFactory = new XRHandModelFactory();
+const hands = {};
+for (let i = 0; i < 2; i++) {
+  const hand = renderer.xr.getHand(i);
+  hand.add(handFactory.createHandModel(hand, 'spheres'));
+  hand.addEventListener('connected', (e) => { hand.userData.side = e.data.handedness; hands[e.data.handedness] = hand; if (e.data.handedness === 'left') showMsg('Mão esquerda detectada', 1200); });
+  hand.addEventListener('disconnected', () => { const sd = hand.userData.side; if (hands[sd] === hand) delete hands[sd]; });
+  rig.add(hand);
+}
+function placeWristHud(leftCtrl) {
+  if (leftCtrl && grips.left) { if (wrist.parent !== grips.left) { grips.left.add(wrist); wrist.position.set(0, 0.03, 0.06); wrist.rotation.set(-Math.PI / 2.4, 0, 0); wrist.scale.setScalar(1); } }
+  else if (wrist.parent !== camera) { camera.add(wrist); wrist.position.set(-0.13, -0.15, -0.42); wrist.rotation.set(0, 0.2, 0); wrist.scale.setScalar(0.9); }
 }
 const ray = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 1, 6), new THREE.MeshBasicMaterial({ color: 0xffe08a }));
 ray.visible = false; scene.add(ray);
@@ -275,7 +293,7 @@ function drawWrist() {
   g.fillStyle = '#ffd36b'; g.font = 'bold 20px sans-serif'; g.fillText(`Nv ${P.level}  Pts ${P.points}  Abates ${P.kills}`, 8, 24);
   const bar = (y, v, c) => { g.fillStyle = '#333'; g.fillRect(8, y, 240, 14); g.fillStyle = c; g.fillRect(8, y, 240 * Math.max(0, Math.min(1, v)), 14); };
   bar(34, P.hp / P.maxHp, '#c33'); bar(54, P.sta / P.maxSta, '#3a3');
-  if (P.cls === 'mage') bar(74, P.mana / P.maxMana, '#3a6fd8');
+  bar(74, P.mana / P.maxMana, '#3a6fd8');
   bar(94, P.xp / xpNeed(), '#d9a52b');
   g.font = '15px sans-serif';
   const sk = TREE[P.cls || 'blade'].filter((n) => n.key);
@@ -294,7 +312,6 @@ function haptic(hand, intensity, ms) {
 const prevBtn = { left: [], right: [] };
 function pressed(hand, gp, i) { const now = !!(gp.buttons[i] && gp.buttons[i].pressed); const was = !!prevBtn[hand][i]; prevBtn[hand][i] = now; return now && !was; }
 let snapReady = true;
-const leftPrev = V(), leftVel = V();
 
 // ================= MODO PC =================
 function lockPointer() { try { const r = renderer.domElement.requestPointerLock?.(); if (r && r.catch) r.catch(() => {}); } catch (e) { } }
@@ -314,6 +331,8 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyE') toggleThrow();
   if (e.code === 'KeyL') gainXP(xpNeed() - P.xp);
   if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') castByKey(+e.code.slice(5), true);
+  if (e.code === 'KeyX') castSlam();
+  if (e.code === 'KeyC') castPalm(playerPos().add(V(-0.25, -0.3, 0)), V(-flatForward().z, 0, flatForward().x));
 });
 addEventListener('keyup', (e) => { keys[e.code] = false; });
 addEventListener('mousemove', (e) => {
@@ -577,6 +596,7 @@ class Goblin extends Enemy {
     }
   }
   blocked() {
+    if (P.counterT > 0) { this.parried(); return; }
     sfx.hit(0.6); tone(600, 0.15, 'square', 0.08); haptic('right', 0.7, 70); burst(this.clubB.clone(), 0xffd090, 6, 2);
     if (P.sta >= 20) { P.sta -= 20; P.regenDelay = 1; this.posture += 12; this.postureRegen = 2; floatText('BLOQUEIO', this.clubB.clone(), '#cccccc', 0.9); damagePlayer(Math.round(this.dmg * 0.25), this.g.position); }
     else { floatText('GUARDA QUEBRADA', this.clubB.clone(), '#ff7070', 1); damagePlayer(this.dmg, this.g.position); }
@@ -587,7 +607,13 @@ class Goblin extends Enemy {
     floatText('APARO!', this.clubB.clone(), '#9fe0ff', 1.1);
     this.posture += 55; this.postureRegen = 2.5; this.stun = this.k > 1 ? 0.7 : 1.1; this.vel.add(this.g.position.clone().sub(playerPos()).setY(0).normalize().multiplyScalar(2));
     P.sta = Math.min(P.maxSta, P.sta + 10);
-    if (this.posture >= this.maxPosture) this.breakPosture(); drawBars(this);
+    if (P.counterT > 0) {
+      P.counterT = 0; this.posture = this.maxPosture; this.broken = 0; this.breakPosture();
+      floatText('CONTRA-ATAQUE!', this.center().add(V(0, 0.9 * this.k, 0)), '#ffd36b', 1.4);
+      this.applyDamage(40 * (has('afiado') ? 1.25 : 1), { dir: this.g.position.clone().sub(playerPos()), knock: 4, color: '#ffd36b' });
+      sfx.skill(); tone(160, 0.5, 'sawtooth', 0.25, 60); haptic('right', 1, 200); vigLevel = 0.5;
+    }
+    if (this.posture >= this.maxPosture && this.broken <= 0) this.breakPosture(); drawBars(this);
   }
 }
 let boss = null, bossesDefeated = 0;
@@ -658,14 +684,14 @@ function updateProjectiles(dt) {
 }
 function explode(pos, radius, dmg) {
   ring(pos, 0xff7a20, radius, 0.35); burst(pos, 0xff9a30, 24, 5, 2); sfx.fire();
-  for (const e of enemies) { if (e.dead) continue; const d = e.center().distanceTo(pos); if (d < radius + e.radius) e.applyDamage(dmg * (1 - 0.4 * Math.min(1, d / radius)), { dir: e.g.position.clone().sub(pos), knock: 4, color: '#ffb060', posture: 0.5 }); }
+  for (const e of enemies) { if (e.dead) continue; const d = e.center().distanceTo(pos); if (d < radius + e.radius) { const burn = e.rootT > 0; e.applyDamage(dmg * (1 - 0.4 * Math.min(1, d / radius)) * (burn ? 1.6 : 1), { dir: e.g.position.clone().sub(pos), knock: burn ? 0 : 4, color: burn ? '#ff5a20' : '#ffb060', posture: 0.5 }); if (burn) floatText('QUEIMA!', e.center().add(V(0, 0.6, 0)), '#ff7a30', 0.9); } }
 }
 
 // ================= HABILIDADES =================
 let fireCharge = 0, fireOrb = null;
 function castByKey(n, pc) {
   const node = TREE[P.cls].find((x) => x.key === n); if (!node) return;
-  const fn = { investida: () => castInvestida(pc), turbilhao: castTurbilhao, ventolam: castVentoLamina, fogo: () => castFireball(null), gelo: () => castGelo(pc), rajada: () => castRajada(null) }[node.id];
+  const fn = { investida: () => castInvestida(pc), contra: castContra, ventolam: castVentoLamina, fogo: () => castFireball(null), gelo: () => castGelo(pc), raizes: () => castRaizes(rootTarget(V(), true)) }[node.id];
   fn();
 }
 function castInvestida(pc) {
@@ -682,18 +708,30 @@ function castInvestida(pc) {
   P.chargeT = 0.24; P.chargeDir.copy(dir); P.chargeHit.clear(); P.invuln = 0.4; P.chargeLen = has('cadeia') ? 6.3 : 4.5;
   vigLevel = 0.8; sfx.skill(); sfx.dash(); haptic('right', 0.8, 200);
 }
-function castTurbilhao() {
-  if (!skillReady('turbilhao')) return; spend('turbilhao');
-  const pp = playerPos(); ring(pp, 0xbfe6ff, 2.2, 0.3); sfx.skill(); sfx.wind(); haptic('right', 1, 120);
-  for (const e of enemies) { if (e.dead) continue; const d = e.g.position.clone().setY(0).distanceTo(pp.clone().setY(0)); if (d < 2.0 + e.radius) e.applyDamage(26 * (has('afiado') ? 1.25 : 1), { dir: e.g.position.clone().sub(pp), knock: 5, color: '#bfe6ff' }); }
+function castContra() {
+  if (!weaponState.held) return;
+  if (!skillReady('contra')) return; spend('contra');
+  P.counterT = 2; sfx.skill(); haptic('right', 0.5, 80); showMsg('Postura de Contra!', 700);
+}
+function launchSlash(start, travel, sweep, dmg, color) {
+  const f = travel.clone().normalize();
+  let w = sweep.clone().addScaledVector(f, -sweep.dot(f)); if (w.lengthSq() < 1e-4) w = V(-f.z, 0, f.x); w.normalize();
+  const y = f.clone().cross(w).normalize();
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.05, 0.22), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 }));
+  mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(w, y, f)); mesh.position.copy(start);
+  addProjectile({ mesh, vel: f.clone().multiplyScalar(15), life: 0.8, r: 0.55, pierce: 99, onHit: (e) => e.applyDamage(dmg, { dir: f, knock: 2, color: '#cff4ff' }) });
+  sfx.whoosh(); noise(0.25, 0.2, 3000);
 }
 function castVentoLamina() {
   if (!skillReady('ventolam')) return; spend('ventolam');
-  const dir = flatForward(); const start = playerPos().add(V(0, -0.4, 0)).addScaledVector(dir, 0.6);
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.06, 0.25), new THREE.MeshBasicMaterial({ color: 0xcff4ff, transparent: true, opacity: 0.8 }));
-  mesh.position.copy(start); mesh.lookAt(start.clone().add(dir));
-  addProjectile({ mesh, vel: dir.clone().multiplyScalar(15), life: 0.7, r: 0.5, pierce: 99, onHit: (e) => e.applyDamage(24 * (has('afiado') ? 1.25 : 1), { dir, knock: 2, color: '#cff4ff' }) });
-  sfx.skill(); sfx.whoosh(); haptic('right', 0.7, 100);
+  P.windCharges = 2; sfx.skill(); haptic('right', 0.6, 100); showMsg('Lâmina carregada: 2 cortes', 900);
+}
+function swordWindRelease(dt) {
+  P.slashCd -= dt;
+  if (P.windCharges > 0 && weaponState.held && tipSpeed > 5 && P.slashCd <= 0) {
+    P.windCharges--; P.slashCd = 0.35;
+    launchSlash(tipNow.clone(), flatForward(), tipVel, 24 * (has('afiado') ? 1.25 : 1), 0xcff4ff); haptic('right', 0.8, 80);
+  }
 }
 function startFireCharge() {
   if (fireCharge > 0 || !skillReady('fogo')) return;
@@ -730,15 +768,98 @@ function castGelo(pc) {
   } });
   sfx.ice(); haptic('right', 0.5, 60);
 }
-function castRajada(pushDir) {
-  if (!skillReady('rajada')) return; spend('rajada');
-  const pp = playerPos(); const dir = (pushDir || flatForward()).clone().setY(0).normalize();
-  sfx.wind(); sfx.skill(); haptic('left', 1, 150);
-  for (let i = 0; i < 18; i++) { burst(pp.clone().addScaledVector(dir, 0.6).add(V(0, -0.3, 0)), 0xd8f0ff, 1, 0); sparks[sparks.length - 1].v.copy(dir).multiplyScalar(8).add(V((Math.random() - .5) * 3, Math.random(), (Math.random() - .5) * 3)); }
-  for (const e of enemies) {
-    if (e.dead) continue; const to = e.g.position.clone().sub(pp).setY(0); const d = to.length();
-    if (d < 4.5 && to.normalize().dot(dir) > 0.5) { e.applyDamage(10, { dir, knock: 9, color: '#d8f0ff', posture: 1.5 }); e.stun = Math.max(e.stun, 0.6); }
-  }
+// Raízes (Elementalista)
+const rootMarker = new THREE.Mesh(new THREE.RingGeometry(1.95, 2.2, 40), new THREE.MeshBasicMaterial({ color: 0x7ee36a, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
+rootMarker.rotation.x = -Math.PI / 2; rootMarker.visible = false; scene.add(rootMarker);
+let rootAim = false;
+const rootFx = [];
+const rootMat = new THREE.MeshLambertMaterial({ color: 0x5a3a1a, emissive: 0x1a2a08 });
+function rootTarget(out = V(), pc = false) {
+  const o = pc ? playerPos() : tipNow.clone(); const d = pc ? camera.getWorldDirection(V()) : bladeDir();
+  if (d.y < -0.05) { const t = -o.y / d.y; if (t < 14) out.copy(o).addScaledVector(d, t); else out.copy(o).addScaledVector(d, 14); }
+  else out.copy(playerPos()).addScaledVector(flatForward(), 6);
+  out.x = THREE.MathUtils.clamp(out.x, -8.3, 8.3); out.z = THREE.MathUtils.clamp(out.z, -8.3, 8.3); out.y = 0.03; return out;
+}
+function startRootAim() { if (!has('raizes')) { hint('Habilidade bloqueada — abra a árvore'); return; } rootAim = true; rootMarker.visible = true; }
+function castRaizes(pos) {
+  rootAim = false; rootMarker.visible = false;
+  if (!skillReady('raizes')) return; spend('raizes');
+  const g = new THREE.Group(); g.position.copy(pos).setY(0); scene.add(g);
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(2.2, 32), new THREE.MeshBasicMaterial({ color: 0x2f4a18, transparent: true, opacity: 0.55, depthWrite: false })); disc.rotation.x = -Math.PI / 2; disc.position.y = 0.02; g.add(disc);
+  for (let i = 0; i < 16; i++) { const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 2.1; const c = new THREE.Mesh(new THREE.ConeGeometry(0.06 + Math.random() * 0.05, 0.6 + Math.random() * 0.7, 5), rootMat); c.position.set(Math.cos(a) * r, 0, Math.sin(a) * r); c.rotation.set((Math.random() - .5) * 0.6, 0, (Math.random() - .5) * 0.6); g.add(c); }
+  rootFx.push({ g, t: 0 });
+  for (const e of enemies) { if (e.dead) continue; const d = e.g.position.clone().setY(0).distanceTo(pos.clone().setY(0)); if (d < 2.2 + e.radius) { e.rootT = 3; e.rootAcc = 0; e.applyDamage(8, { posture: 1.5, color: '#9be37a' }); } }
+  noise(0.5, 0.35, 600); tone(110, 0.4, 'triangle', 0.2, 70); haptic('right', 0.8, 150); burst(pos.clone().setY(0.3), 0x7ee36a, 20, 3);
+}
+function updateRoots(dt) {
+  if (rootAim) rootTarget(rootMarker.position);
+  for (let i = rootFx.length - 1; i >= 0; i--) { const r = rootFx[i]; r.t += dt; const k = Math.min(1, r.t / 0.2); r.g.children.forEach((c, j) => { if (j) c.scale.y = k * (r.t > 2.7 ? Math.max(0, (3 - r.t) / 0.3) : 1); }); if (r.t > 3) { scene.remove(r.g); rootFx.splice(i, 1); } }
+}
+
+// ================= PODERES DA MÃO =================
+const HANDP = { slam: { cd: 6, cost: 25 }, palm: { cd: 1.2, cost: 15 } };
+function handReady(id) { if ((cds[id] || 0) > 0) return false; if (P.mana < HANDP[id].cost) { hint('Sem mana'); return false; } return true; }
+const laserMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1, 6), new THREE.MeshBasicMaterial({ color: 0xff3030 }));
+const laserDot = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffb0a0 }));
+laserMesh.visible = laserDot.visible = false; scene.add(laserMesh, laserDot);
+let laserAcc = 0, laserSnd = 0;
+function updateLaser(dt, on, origin, dir) {
+  if (!on || !origin || P.mana < 1) { laserMesh.visible = laserDot.visible = false; if (on && P.mana < 1) hint('Sem mana'); return; }
+  P.mana -= 14 * dt;
+  const d = dir.clone().normalize(); const end = origin.clone().addScaledVector(d, 15);
+  let best = 15, target = null;
+  for (const e of enemies) { if (e.dead) continue; e.axis(); if (segSegDist(origin, end, _e1, _e2) < e.radius + 0.05) { const t = e.center().sub(origin).dot(d); if (t > 0 && t < best) { best = t; target = e; } } }
+  laserMesh.visible = laserDot.visible = true; laserMesh.scale.set(1, best, 1);
+  laserMesh.position.copy(origin).addScaledVector(d, best / 2); laserMesh.quaternion.setFromUnitVectors(V(0, 1, 0), d);
+  laserDot.position.copy(origin).addScaledVector(d, best);
+  if ((laserSnd -= dt) <= 0) { laserSnd = 0.2; tone(190, 0.22, 'sawtooth', 0.05, 170); }
+  if (target) { laserAcc += 35 * dt; if (laserAcc >= 10) { laserAcc -= 10; target.applyDamage(10, { posture: 0.5, color: '#ff8080' }); haptic('left', 0.3, 30); } }
+}
+function castSlam() {
+  if (!handReady('slam')) return; cds.slam = HANDP.slam.cd; P.mana -= HANDP.slam.cost;
+  const pp = playerPos().setY(0); ring(pp, 0xffd090, 3.2, 0.4); burst(pp.clone().setY(0.2), 0xb09070, 30, 4, 1.5);
+  noise(0.5, 0.5, 300); tone(55, 0.6, 'sawtooth', 0.3, 30); haptic('left', 1, 160); haptic('right', 0.6, 120);
+  let n = 0;
+  for (const e of enemies) { if (e.dead) continue; if (e.g.position.clone().setY(0).distanceTo(pp) < 3 + e.radius) { e.stun = Math.max(e.stun, 1.8); e.applyDamage(12, { posture: 2.5, color: '#ffd090' }); n++; } }
+  if (n) showMsg(`Atordoou ${n}!`, 800);
+}
+function castPalm(pos, sweep) {
+  if (!handReady('palm')) return; cds.palm = HANDP.palm.cd; P.mana -= HANDP.palm.cost;
+  launchSlash(pos.clone().addScaledVector(flatForward(), 0.3), flatForward(), sweep, 20, 0xffe6a8); haptic('left', 0.6, 60);
+}
+const LH = { pose: null, poseT: 0, prev: V(), vel: V(), has: false };
+const J = (hand, name, out = V()) => { const j = hand.joints && hand.joints[name]; return j && j.visible ? j.getWorldPosition(out) : null; };
+function fingerExt(hand, f) {
+  const w = J(hand, 'wrist'), tip = J(hand, f + '-finger-tip'), prox = J(hand, f + '-finger-phalanx-proximal');
+  if (!w || !tip || !prox) return null;
+  return tip.distanceTo(w) > prox.distanceTo(w) + 0.045;
+}
+function handPose(hand) {
+  const fs = ['index', 'middle', 'ring', 'pinky'].map((f) => fingerExt(hand, f));
+  if (fs.some((v) => v === null)) return null;
+  const [i, m, r, p] = fs;
+  if (i && m && r && p) return 'open';
+  if (!i && !m && !r && !p) return 'fist';
+  if (i && !m && !r) return 'point';
+  return 'other';
+}
+function readLeftHand(hand) {
+  const pos = J(hand, 'wrist'); if (!pos) return null;
+  const tip = J(hand, 'index-finger-tip'), base = J(hand, 'index-finger-metacarpal');
+  return { pose: handPose(hand), pos, origin: tip, dir: tip && base ? tip.clone().sub(base).normalize() : null, mode: 'hand' };
+}
+function readLeftController(grip, trig, gripBtn) {
+  const pos = grip.getWorldPosition(V()); const dir = V(0, 0, -1).applyQuaternion(grip.getWorldQuaternion(new THREE.Quaternion()));
+  return { pose: trig ? 'point' : gripBtn ? 'fist' : 'open', pos, origin: pos.clone().addScaledVector(dir, 0.06), dir, mode: 'controller' };
+}
+function handPowers(dt, st) {
+  if (st && st.pos) { if (LH.has && dt > 0) LH.vel.copy(st.pos).sub(LH.prev).divideScalar(dt); LH.prev.copy(st.pos); LH.has = true; } else LH.has = false;
+  const pose = st ? st.pose : null;
+  if (pose !== LH.pose) { LH.pose = pose; LH.poseT = 0; } else LH.poseT += dt;
+  updateLaser(dt, pose === 'point' && LH.poseT > 0.12, st && st.origin, st && st.dir);
+  if (!st || !LH.has) return;
+  if (pose === 'fist' && LH.vel.y < -3 && st.pos.y < 1.05) castSlam();
+  if (pose === 'open' && LH.vel.length() > 3.2 && LH.poseT > 0.1) castPalm(st.pos, LH.vel);
 }
 
 // ================= ÁRVORE (UI) =================
@@ -873,53 +994,71 @@ function updateHUD() {
   $('mp').firstChild.style.width = (100 * P.mana / P.maxMana) + '%';
   $('xp').firstChild.style.width = (100 * P.xp / xpNeed()) + '%';
   $('wpn').textContent = `Arma: ${W.name}${weaponFollowRate() < 20 ? ' — pesada demais para sua Força' : ''}`;
-  $('skills').innerHTML = TREE[cls].filter((n) => n.key).map((n) => { const cd = cds[n.id] || 0; return `<span style="color:${!has(n.id) ? '#777' : cd > 0 ? '#aaa' : '#9fe0ff'}">[${n.key}] ${n.name}: ${!has(n.id) ? 'bloqueada' : cd > 0 ? cd.toFixed(1) + 's' : 'pronta'}</span>`; }).join('<br>') + (P.points > 0 ? `<br><span style="color:#ffd36b">${P.points} ponto(s) — abra a árvore (Tab / Y)</span>` : '');
+  $('skills').innerHTML = TREE[cls].filter((n) => n.key).map((n) => { const cd = cds[n.id] || 0; return `<span style="color:${!has(n.id) ? '#777' : cd > 0 ? '#aaa' : '#9fe0ff'}">[${n.key}] ${n.name}: ${!has(n.id) ? 'bloqueada' : cd > 0 ? cd.toFixed(1) + 's' : 'pronta'}</span>`; }).join('<br>') + `<br><span style="color:#ffcf9a">Mão: laser (Z) · soco no chão ${(cds.slam || 0) > 0 ? cds.slam.toFixed(1) + 's' : 'pronto'} (X) · corte da palma ${(cds.palm || 0) > 0 ? cds.palm.toFixed(1) + 's' : 'pronto'} (C)</span>` + (P.counterT > 0 ? '<br><span style="color:#ffd36b">CONTRA ATIVO</span>' : '') + (P.windCharges > 0 ? `<br><span style="color:#9fe0ff">Cortes carregados: ${P.windCharges}</span>` : '') + (P.points > 0 ? `<br><span style="color:#ffd36b">${P.points} ponto(s) — abra a árvore (Tab / Y)</span>` : '');
   drawWrist();
 }
 
 // ================= LOOP =================
 const clock = new THREE.Clock();
-let rTrigHeld = false, gestureCd = 0;
+let rTrigHeld = false, rBHeld = false, gestureCd = 0, stickHoldT = 0, stickHoldFired = false;
+const held = (gp, i) => !!(gp.buttons[i] && gp.buttons[i].pressed);
 function step(dt) {
   if (renderer.xr.isPresenting) {
     const s = renderer.xr.getSession(); xrMove.set(0, 0);
-    if (grips.left) { const lp = grips.left.getWorldPosition(V()); if (dt > 0) leftVel.copy(lp).sub(leftPrev).divideScalar(dt); leftPrev.copy(lp); }
+    let leftGp = null, rightGp = null, leftHandSrc = null;
     for (const src of s.inputSources) {
-      const gp = src.gamepad; if (!gp) continue; const h = src.handedness;
-      const ax = gp.axes[2] || 0, ay = gp.axes[3] || 0;
-      if (h === 'left') {
-        const bX = pressed(h, gp, 4), bY = pressed(h, gp, 5), bStick = pressed(h, gp, 3);
-        const trig = !!(gp.buttons[0] && gp.buttons[0].pressed);
-        if (bY) toggleTree();
-        if (!treeOpen) {
-          if (Math.hypot(ax, ay) > 0.15) xrMove.set(ax, -ay);
-          if (bX) tryDash();
-          if (bStick) switchWeapon();
-          if (P.cls === 'mage' && trig && leftVel.length() > 2.5 && leftVel.clone().setY(0).normalize().dot(flatForward()) > 0.6 && has('rajada') && (cds.rajada || 0) <= 0 && gestureCd <= 0) { gestureCd = 0.5; castRajada(leftVel); }
-        }
-      } else if (h === 'right') {
-        if (Math.abs(ax) > 0.7 && snapReady) {
+      if (src.hand) { if (src.handedness === 'left') leftHandSrc = src; continue; }
+      if (!src.gamepad) continue;
+      if (src.handedness === 'left') leftGp = src.gamepad; else if (src.handedness === 'right') rightGp = src.gamepad;
+    }
+    const handMode = !leftGp;
+    placeWristHud(!!leftGp);
+    let lTrig = false, lGrip = false;
+    if (leftGp) {
+      const gp = leftGp, ax = gp.axes[2] || 0, ay = gp.axes[3] || 0;
+      const bX = pressed('left', gp, 4), bY = pressed('left', gp, 5), bStick = pressed('left', gp, 3);
+      lTrig = held(gp, 0); lGrip = held(gp, 1);
+      if (bY) toggleTree();
+      if (!treeOpen) { if (Math.hypot(ax, ay) > 0.15) xrMove.set(ax, -ay); if (bX) tryDash(); if (bStick) switchWeapon(); }
+    }
+    if (rightGp) {
+      const gp = rightGp, ax = gp.axes[2] || 0, ay = gp.axes[3] || 0;
+      const bA = pressed('right', gp, 4), bB = pressed('right', gp, 5), bT = pressed('right', gp, 0), bG = pressed('right', gp, 1);
+      const trig = held(gp, 0), bHeld = held(gp, 5), sHeld = held(gp, 3);
+      if (sHeld) { stickHoldT += dt; if (stickHoldT > 0.8 && !stickHoldFired) { stickHoldFired = true; toggleTree(); } }
+      else { if (stickHoldT > 0 && !stickHoldFired && handMode && !treeOpen) tryDash(); stickHoldT = 0; stickHoldFired = false; }
+      if (treeOpen) vrTreePointer(bT);
+      else {
+        if (handMode) { if (Math.hypot(ax, ay) > 0.15) xrMove.set(ax, -ay); }
+        else if (Math.abs(ax) > 0.7 && snapReady) {
           snapReady = false; const ang = -Math.sign(ax) * Math.PI / 6;
           const cp = playerPos(); rig.position.sub(cp).applyAxisAngle(V(0, 1, 0), ang).add(cp); rig.rotation.y += ang; rig.position.y = 0;
         } else if (Math.abs(ax) < 0.3) snapReady = true;
-        const bA = pressed(h, gp, 4), bB = pressed(h, gp, 5), bT = pressed(h, gp, 0);
-        const trig = !!(gp.buttons[0] && gp.buttons[0].pressed);
-        if (treeOpen) { vrTreePointer(bT); rTrigHeld = trig; continue; }
-        if (bA) { if (P.cls === 'blade') castInvestida(false); else castGelo(false); }
-        if (bB && weaponState.held) toggleThrow();
-        if (bT && !weaponState.held) { weaponState.recalling = true; weaponState.thrown = false; }
-        else if (P.cls === 'blade' && trig && weaponState.held && tipSpeed > 6 && gestureCd <= 0) {
-          const v = tipVel.clone().normalize();
-          if (Math.abs(v.y) < 0.45 && has('turbilhao') && (cds.turbilhao || 0) <= 0) { gestureCd = 0.6; castTurbilhao(); }
-          else if (v.y < -0.7 && has('ventolam') && (cds.ventolam || 0) <= 0) { gestureCd = 0.6; castVentoLamina(); }
-        } else if (P.cls === 'mage') {
+        if (P.cls === 'blade') {
+          if (bA) castInvestida(false);
+          if (bB) castVentoLamina();
+          if (bG && weaponState.held) toggleThrow();
+          if (bT) { if (!weaponState.held) { weaponState.recalling = true; weaponState.thrown = false; } else castContra(); }
+        } else {
+          if (bA) castGelo(false);
+          if (bB) startRootAim();
+          if (rBHeld && !bHeld && rootAim) castRaizes(rootTarget(V()));
           if (bT) startFireCharge();
           if (rTrigHeld && !trig && fireCharge > 0) castFireball(tipVel);
         }
-        rTrigHeld = trig;
       }
+      rTrigHeld = trig; rBHeld = bHeld;
     }
-  } else if (pcMode) camera.rotation.set(pitch, yaw, 0);
+    if (!treeOpen) {
+      let st = null;
+      if (leftHandSrc && hands.left) st = readLeftHand(hands.left);
+      else if (leftGp && grips.left) st = readLeftController(grips.left, lTrig, lGrip);
+      handPowers(dt, st);
+    } else updateLaser(dt, false);
+  } else if (pcMode) {
+    camera.rotation.set(pitch, yaw, 0);
+    if (!treeOpen) { const cd = camera.getWorldDirection(V()); updateLaser(dt, !!keys.KeyZ, playerPos().add(V(0, -0.25, 0)).addScaledVector(V(-cd.z, 0, cd.x).normalize(), -0.2), cd); } else updateLaser(dt, false);
+  }
 
   if (treeOpen) { updateFx(dt); return; }
   gestureCd -= dt; hintTimer -= dt; pcPointT -= dt;
@@ -949,11 +1088,19 @@ function step(dt) {
   P.mana = Math.min(P.maxMana, P.mana + (has('fonte') ? 14 : 7) * dt);
   if (pp.clone().setY(0).distanceTo(BONFIRE) < 1.8 && P.hp < P.maxHp) P.hp = Math.min(P.maxHp, P.hp + 25 * dt);
   // Arma, inimigos, projéteis
-  updateWeapon(dt);
+  updateWeapon(dt); swordWindRelease(dt); updateRoots(dt);
+  if (P.counterT > 0) P.counterT -= dt;
+  { const glow = P.counterT > 0 ? 0x8a6a00 : P.windCharges > 0 ? 0x2a6a8a : 0x15161a; WEAPONS.sword.mesh.children[0].material.emissive.setHex(glow); WEAPONS.axe.mesh.children[1].material.emissive.setHex(glow === 0x15161a ? 0x111215 : glow); }
   for (const e of enemies) {
     if (e.dead) continue;
     if (e.slow > 0) { e.slow -= dt; if (e.slow <= 0) { e.frozen = false; drawBars(e); } }
+    const px = e.g.position.x, pz = e.g.position.z;
     e.update(e.slow > 0 ? dt * (e.frozen ? 0.03 : 0.35) : dt);
+    if (e.rootT > 0 && !e.dead) {
+      e.rootT -= dt; e.g.position.x = px; e.g.position.z = pz; e.vel.set(0, 0, 0);
+      if (e instanceof Slime) { e.y = 0; e.vy = 0; e.g.position.y = 0; }
+      e.rootAcc = (e.rootAcc || 0) + dt; if (e.rootAcc >= 1) { e.rootAcc = 0; e.applyDamage(6, { posture: 0.5, color: '#9be37a' }); }
+    }
   }
   for (let i = enemies.length - 1; i >= 0; i--) if (enemies[i].dead) enemies.splice(i, 1);
   updateProjectiles(dt);
@@ -977,7 +1124,7 @@ W.mesh.visible = true; W.mesh.position.set(0.3, 1.2, -0.4);
 updateHUD(); drawTree();
 renderer.setAnimationLoop(() => { step(Math.min(clock.getDelta(), 0.05)); renderer.render(scene, camera); });
 window.__game = { P, enemies, W: () => W, weaponState, gainXP, damagePlayer, spawnOne, Goblin, Slime, Boss, scene, THREE, setClass, unlocked, cds, castByKey, toggleTree, treeActivate, TREE,
-  projectiles, getBoss: () => boss, isTreeOpen: () => treeOpen, setSwing: () => { swingT = 0; }, setLook: (y, p) => { yaw = y; pitch = p; }, step, renderer, rig };
+  projectiles, getBoss: () => boss, isTreeOpen: () => treeOpen, setSwing: () => { swingT = 0; }, setLook: (y, p) => { yaw = y; pitch = p; }, step, renderer, rig, castSlam, castPalm, castRaizes, rootTarget, castContra, castVentoLamina, handPowers, launchSlash, getLaser: () => laserMesh };
 </script>
 </body>
 </html>
