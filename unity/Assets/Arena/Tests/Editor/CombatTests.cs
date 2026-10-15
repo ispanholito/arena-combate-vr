@@ -1,0 +1,192 @@
+using NUnit.Framework;
+
+namespace Arena.Core.Tests
+{
+    public class CombatTests
+    {
+        [Test]
+        public void SlowSwing_DoesNoDamage()
+        {
+            Assert.AreEqual(0f, Combat.MeleeDamage(1f, WeaponDef.EspadaLonga, false, true));
+        }
+
+        [Test]
+        public void FasterSwing_HitsHarder_UpToCap()
+        {
+            float slow = Combat.MeleeDamage(3f, WeaponDef.EspadaLonga, false, true);
+            float fast = Combat.MeleeDamage(8f, WeaponDef.EspadaLonga, false, true);
+            float capped = Combat.MeleeDamage(20f, WeaponDef.EspadaLonga, false, true);
+            Assert.Greater(fast, slow);
+            Assert.AreEqual(Combat.MeleeDamage(9f, WeaponDef.EspadaLonga, false, true), capped, 1e-3);
+            Assert.AreEqual(30.5f, capped, 1e-3);
+        }
+
+        [Test]
+        public void Axe_HitsHarderThanSword()
+        {
+            Assert.Greater(Combat.MeleeDamage(6f, WeaponDef.MachadoPesado, false, true),
+                           Combat.MeleeDamage(6f, WeaponDef.EspadaLonga, false, true));
+        }
+
+        [Test]
+        public void SharpEdgeAndTiredness_Multiply()
+        {
+            float b = Combat.MeleeDamage(6f, WeaponDef.EspadaLonga, false, true);
+            Assert.AreEqual(b * 1.25f, Combat.MeleeDamage(6f, WeaponDef.EspadaLonga, true, true), 1e-3);
+            Assert.AreEqual(b * 0.4f, Combat.MeleeDamage(6f, WeaponDef.EspadaLonga, false, false), 1e-3);
+        }
+
+        [Test]
+        public void FlatHit_DoesLessThanEdgeHit()
+        {
+            Assert.Less(Combat.MeleeDamage(6f, WeaponDef.EspadaLonga, false, true, 0f),
+                        Combat.MeleeDamage(6f, WeaponDef.EspadaLonga, false, true, 1f));
+        }
+
+        [Test]
+        public void HeavyWeapon_LagsWithLowStrength()
+        {
+            float str = ClassProfile.Elementalista.Strength(1);
+            Assert.Less(WeaponDef.MachadoPesado.FollowRate(str), WeaponDef.EspadaLonga.FollowRate(str));
+            Assert.Less(WeaponDef.MachadoPesado.FollowRate(str), WeaponDef.MachadoPesado.FollowRate(ClassProfile.Lamina.Strength(10)));
+        }
+
+        [Test]
+        public void Fireball_FalloffAndBurn()
+        {
+            Assert.AreEqual(1f, Combat.ExplosionFalloff(0f, 2f), 1e-3);
+            Assert.AreEqual(0.6f, Combat.ExplosionFalloff(2f, 2f), 1e-3);
+            Assert.Greater(Combat.FireballRadius(1f, true), Combat.FireballRadius(1f, false));
+        }
+    }
+
+    public class GuardTests
+    {
+        [Test]
+        public void FastWeapon_Parries()
+        {
+            Assert.AreEqual(GuardResult.Parry, Guard.Resolve(3f, false, 0f));
+        }
+
+        [Test]
+        public void StillWeapon_BlocksWithStamina_ElseBreaks()
+        {
+            Assert.AreEqual(GuardResult.Block, Guard.Resolve(0.5f, false, 50f));
+            Assert.AreEqual(GuardResult.GuardBroken, Guard.Resolve(0.5f, false, 10f));
+            Assert.AreEqual(4f, Guard.DamageToPlayer(GuardResult.Block, 15f));
+            Assert.AreEqual(15f, Guard.DamageToPlayer(GuardResult.GuardBroken, 15f));
+            Assert.AreEqual(0f, Guard.DamageToPlayer(GuardResult.Parry, 15f));
+        }
+
+        [Test]
+        public void CounterStance_TurnsAnyContactIntoCounter()
+        {
+            Assert.AreEqual(GuardResult.Counter, Guard.Resolve(0f, true, 0f));
+        }
+    }
+
+    public class PostureTests
+    {
+        [Test]
+        public void Fills_Breaks_ThenResets()
+        {
+            var p = new Posture(100f);
+            int broke = 0; p.Broke += () => broke++;
+            Assert.IsFalse(p.Add(60f));
+            Assert.IsTrue(p.Add(50f));
+            Assert.AreEqual(1, broke);
+            Assert.IsTrue(p.IsBroken);
+            Assert.IsFalse(p.Add(10f), "não acumula quebrada");
+            p.Tick(Posture.BrokenSeconds + 0.01f);
+            Assert.IsFalse(p.IsBroken);
+            Assert.AreEqual(0f, p.Value);
+        }
+
+        [Test]
+        public void Regenerates_AfterDelay()
+        {
+            var p = new Posture(100f);
+            p.Add(50f);
+            p.Tick(1f);
+            Assert.AreEqual(50f, p.Value, 1e-3);
+            p.Tick(1f);
+            p.Tick(1f);
+            Assert.AreEqual(35f, p.Value, 1e-3);
+        }
+
+        [Test]
+        public void Slime_HasNoPosture()
+        {
+            var p = new Posture(EnemyDef.Slime().MaxPosture);
+            Assert.IsFalse(p.Enabled);
+            Assert.IsFalse(p.Add(5000f));
+        }
+    }
+
+    public class EnemyStateTests
+    {
+        [Test]
+        public void BrokenPosture_GivesCritAndStun()
+        {
+            var e = new EnemyState(EnemyDef.Goblin);
+            e.AddPosture(100f);
+            Assert.Greater(e.Stun, 0f);
+            var ev = e.TakeDamage(10f);
+            Assert.IsTrue(ev.Crit);
+            Assert.AreEqual(25f, ev.Amount);
+        }
+
+        [Test]
+        public void Burn_OnlyWhenRooted()
+        {
+            var e = new EnemyState(EnemyDef.Goblin);
+            Assert.IsFalse(e.TakeDamage(10f, burn: true).Burn);
+            e.ApplyRoot(3f);
+            var ev = e.TakeDamage(10f, burn: true);
+            Assert.IsTrue(ev.Burn);
+            Assert.AreEqual(16f, ev.Amount);
+        }
+
+        [Test]
+        public void Dies_AndRaisesEvent()
+        {
+            var e = new EnemyState(EnemyDef.Slime());
+            bool died = false; e.Died += () => died = true;
+            var ev = e.TakeDamage(1000f);
+            Assert.IsTrue(ev.Killed && died && e.Dead);
+            Assert.AreEqual(0, e.TakeDamage(5f).Amount);
+        }
+
+        [Test]
+        public void Slime_SplitsUntilSmall()
+        {
+            Assert.IsTrue(EnemyDef.SlimeSplits(1f));
+            Assert.IsTrue(EnemyDef.SlimeSplits(0.62f));
+            Assert.IsFalse(EnemyDef.SlimeSplits(0.62f * 0.62f));
+        }
+
+        [Test]
+        public void Boss_GetsTougherEachVictory()
+        {
+            Assert.Greater(EnemyDef.ReiGoblin(1).MaxHp, EnemyDef.ReiGoblin(0).MaxHp);
+        }
+    }
+
+    public class WaveDirectorTests
+    {
+        [Test]
+        public void SpawnsUpToTarget_ThenBossAfterKills()
+        {
+            var d = new WaveDirector(seed: 42);
+            Assert.IsNotNull(d.Tick(2f, 0, 0, 1, 0));
+            Assert.IsNull(d.Tick(5f, d.TargetCount(1), 0, 1, 0));
+            var boss = d.Tick(5f, 0, 0, 1, WaveDirector.KillsForBoss);
+            Assert.AreEqual(EnemyKind.ReiGoblin, boss.Kind);
+            Assert.AreEqual(0, d.TargetCount(1), "fase 1 do chefe: sozinho");
+            d.BossPhase = 2;
+            Assert.AreEqual(2, d.TargetCount(1));
+            d.OnBossDefeated();
+            Assert.AreEqual(1, d.BossesDefeated);
+        }
+    }
+}
