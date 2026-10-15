@@ -7,14 +7,14 @@ namespace Arena
     // VR com mão esquerda livre: analógico direito move, clique curto = esquiva, segurar = árvore.
     // VR com dois controles: analógico esquerdo move, X esquiva, Y árvore, clique esquerdo troca arma, direito gira.
     // Desktop: WASD, mouse olha, botão esq = golpe, dir = aparo, Shift/Espaço = esquiva, 1/2/3 habilidades,
-    //          Q troca arma, Tab árvore, Z laser / X soco no chão / C corte da palma (poderes da mão).
+    //          Q troca arma, Tab árvore, Z metralhadora / X soco no chão / C corte da palma (poderes da mão), F escudo nas costas/na mão.
     public sealed class ArenaInput
     {
         public bool Vr { get; private set; }
         public bool LeftControllerConnected { get; private set; }
 
         public Vector2 Move, Look;
-        public bool Dash, ToggleTree, SwitchWeapon;
+        public bool Dash, ToggleTree, SwitchWeapon, ShieldToggle;
         public int SnapTurn;                       // -1, 0, +1
         public bool APressed, BPressed, BHeld, BReleased;
         public bool TriggerPressed, TriggerHeld, TriggerReleased, GripPressed;
@@ -23,12 +23,14 @@ namespace Arena
         public bool MenuUp, MenuDown, MenuConfirm, MenuRespec;
         public Vector2 MousePointer;
 
+        bool leftHandFree;
         bool bWasHeld, trigWasHeld, snapReady = true, menuReady = true;
         float stickHoldT; bool stickHoldFired;
 
-        public void Update(bool xrActive, float dt)
+        public void Update(bool xrActive, float dt, bool leftHandFree = false)
         {
             Vr = xrActive;
+            this.leftHandFree = leftHandFree;
             Reset();
             if (Vr) ReadVr(dt); else ReadDesktop();
         }
@@ -36,7 +38,7 @@ namespace Arena
         void Reset()
         {
             Move = Look = Vector2.zero;
-            Dash = ToggleTree = SwitchWeapon = false; SnapTurn = 0;
+            Dash = ToggleTree = SwitchWeapon = ShieldToggle = false; SnapTurn = 0;
             APressed = BPressed = BHeld = BReleased = false;
             TriggerPressed = TriggerHeld = TriggerReleased = GripPressed = false;
             DesktopSwing = DesktopParry = DesktopLaser = DesktopSlam = DesktopPalm = false;
@@ -46,7 +48,7 @@ namespace Arena
         void ReadVr(float dt)
         {
             const OVRInput.Controller R = OVRInput.Controller.RTouch, L = OVRInput.Controller.LTouch;
-            LeftControllerConnected = OVRInput.IsControllerConnected(L);
+            LeftControllerConnected = OVRInput.IsControllerConnected(L) && !leftHandFree;   // largado na mesa + mão rastreada = mão livre
             var rStick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, R);
 
             if (LeftControllerConnected)
@@ -105,6 +107,7 @@ namespace Arena
             BPressed = kb.digit3Key.wasPressedThisFrame;
             BReleased = kb.digit3Key.wasReleasedThisFrame;
             GripPressed = kb.gKey.wasPressedThisFrame;
+            ShieldToggle = kb.fKey.wasPressedThisFrame;
             DesktopLaser = kb.zKey.isPressed;
             DesktopSlam = kb.xKey.wasPressedThisFrame;
             DesktopPalm = kb.cKey.wasPressedThisFrame;

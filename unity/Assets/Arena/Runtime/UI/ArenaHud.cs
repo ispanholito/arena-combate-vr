@@ -15,6 +15,7 @@ namespace Arena
         TextMesh info, message, bossName;
         Renderer vignetteR, hurtR;
         float hurtFlash;
+        LeftHandPowers handPowers;
         readonly StringBuilder sb = new StringBuilder();
 
         void Start()
@@ -88,6 +89,14 @@ namespace Arena
                 if (!s.Tree.Has(node.Id)) sb.Append("<color=#777>bloqueada</color>");
                 else { float cd = s.CooldownLeft(node.Id); sb.Append(cd > 0f ? $"<color=#aaa>{cd:0.0}s</color>" : "<color=#7CFC00>pronta</color>"); }
             }
+            var shield = player.Shield;
+            if (shield && shield.Available) sb.Append(shield.Equipped ? "\nEscudo na mão" : "\n<color=#9fd0ff>Escudo nas costas: mão livre</color>");
+            if (handPowers == null) handPowers = player.GetComponent<LeftHandPowers>();
+            if (handPowers && handPowers.Arming.Armed != HandPower.Nenhum)
+                sb.Append("\n<color=#ff9a7a>").Append(HandSigns.Name(handPowers.Arming.Armed)).Append(" armada ")
+                  .Append(handPowers.Arming.ArmedTimeLeft.ToString("0.0")).Append("s</color>");
+            else if (handPowers && handPowers.HandTracked)
+                sb.Append("\n<color=#999>Mão: ").Append(handPowers.CurrentShape).Append("</color>");
             if (s.CounterStance > 0f) sb.Append("\n<color=#ffd36b>CONTRA ATIVO</color>");
             if (s.WindCharges > 0) sb.Append("\n<color=#cff4ff>Vento: ").Append(s.WindCharges).Append("</color>");
             if (ArenaGame.Instance && ArenaGame.Instance.NearBonfire) sb.Append("\n<color=#ffb060>Fogueira: curando</color>");

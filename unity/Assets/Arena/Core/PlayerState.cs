@@ -146,8 +146,8 @@ namespace Arena.Core
             return SkillCastResult.Ok;
         }
 
-        // Laser contínuo: drena mana enquanto apontar. Retorna false quando acabou a mana.
-        public bool DrainLaser(float dt) => Mana.TrySpend(HandPowers.LaserManaPerSecond * dt, 0.3f);
+        // Metralhadora: um tiro gasta mana. Retorna false sem mana.
+        public bool TryGunShot() => Mana.TrySpend(HandPowers.GunManaPerShot, 0.3f);
 
         // Esquiva = dash. Retorna false se não houver estamina.
         public bool TryDash()

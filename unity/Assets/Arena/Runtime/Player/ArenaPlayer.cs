@@ -23,6 +23,7 @@ namespace Arena
         public PlayerState State { get; private set; }
         public ArenaInput Input { get; } = new ArenaInput();
         public PlayerWeapon Weapon { get; private set; }
+        public PlayerShield Shield { get; private set; }
         public bool IsVr { get; private set; }
         public bool TreeOpen { get; set; }
 
@@ -35,6 +36,7 @@ namespace Arena
         public event System.Action<float> Hurt;
 
         WeaponDef[] loadout;
+        LeftHandPowers handPowers;
         int weaponIndex;
         float yaw, pitch;
         float dashT, chargeT, chargeLen;
@@ -49,6 +51,7 @@ namespace Arena
             State = new PlayerState(startClass);
             Weapon = new GameObject("ArmaDoJogador").AddComponent<PlayerWeapon>();
             Weapon.Init(this);
+            Shield = GetComponent<PlayerShield>();
             SetupLoadout();
             State.Died += lost =>
             {
@@ -82,7 +85,8 @@ namespace Arena
         {
             float dt = Time.deltaTime;
             IsVr = XRSettings.isDeviceActive;
-            Input.Update(IsVr, dt);
+            if (handPowers == null) handPowers = GetComponent<LeftHandPowers>();
+            Input.Update(IsVr, dt, handPowers && handPowers.HandTracked);
             if (!IsVr) DesktopLook();
             else trackingSpace.localPosition = Vector3.zero;
 

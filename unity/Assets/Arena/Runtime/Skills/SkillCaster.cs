@@ -77,7 +77,7 @@ namespace Arena
             {
                 slashCd = 0.35f;
                 float dmg = Combat.WindSlashDamage * (S.Has(SkillIds.FioAfiado) ? Combat.SharpEdgeBonus : 1f);
-                LaunchSlash(w.TipPoint, player.HeadForward, w.TipVelocity, dmg, new Color(0.81f, 0.96f, 1f));
+                LaunchSlash(w.TipPoint, player.HeadForward, w.TipVelocity, dmg, new Color(0.81f, 0.96f, 1f), Combat.WindSlashWidth, Combat.WindSlashHitRadius);
                 ArenaInput.Haptic(0.8f, 0.08f);
             }
         }
@@ -98,7 +98,7 @@ namespace Arena
             if (Cast(SkillIds.Investida)) player.StartCharge(dir);
         }
 
-        public static void LaunchSlash(Vector3 start, Vector3 travel, Vector3 sweep, float dmg, Color color)
+        public static void LaunchSlash(Vector3 start, Vector3 travel, Vector3 sweep, float dmg, Color color, float width = 1.2f, float hitRadius = 0.55f)
         {
             var f = travel.normalized;
             var w = sweep - Vector3.Dot(sweep, f) * f;
@@ -109,10 +109,10 @@ namespace Arena
             go.GetComponent<Renderer>().sharedMaterial = ArenaUtil.Unlit(new Color(color.r, color.g, color.b, 0.85f));
             var vis = new GameObject("CorteDeVento");
             go.transform.SetParent(vis.transform, false);
-            go.transform.localScale = new Vector3(1.2f, 0.05f, 0.22f);
+            go.transform.localScale = new Vector3(width, 0.05f, 0.22f);
             go.transform.localRotation = Quaternion.FromToRotation(Vector3.right, Quaternion.Inverse(Quaternion.LookRotation(f)) * w);
             var p = Projectile.Spawn(vis, start, f * 15f);
-            p.Life = 0.8f; p.Radius = 0.55f; p.Pierce = 99;
+            p.Life = 0.8f; p.Radius = hitRadius; p.Pierce = 99;
             p.OnHitEnemy = (e, _) => e.ApplyDamage(dmg, 0.7f, f, 2f, new Color(0.81f, 0.96f, 1f));
         }
 

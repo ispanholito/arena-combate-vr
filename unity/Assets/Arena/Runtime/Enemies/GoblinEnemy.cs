@@ -16,6 +16,8 @@ namespace Arena
         protected float windup;
 
         bool hitDone;
+        Vector3 clubPrevA, clubPrevB;
+        bool clubPrevValid;
         int strafe;
         float nextAttackDelay;
 
@@ -53,9 +55,11 @@ namespace Arena
         }
 
         // Ângulo do braço em graus no eixo X local (negativo = para trás/cima, positivo = golpe para baixo/frente).
-        protected void SetArm(float deg) => arm.localRotation = Quaternion.Euler(deg, 0, 0);
-        float ArmAngle => Mathf.DeltaAngle(0, arm.localEulerAngles.x);
-        protected void LerpArm(float deg, float speed, float dt) => SetArm(Mathf.LerpAngle(ArmAngle, deg, dt * speed));
+        // Inclinação de -18° em Y: a clava sai do ombro direito e desce no centro (no jogador), não ao lado.
+        protected void SetArm(float deg) { armAngle = deg; arm.localRotation = Quaternion.Euler(deg, -18f, 0); }
+        float armAngle;
+        float ArmAngle => armAngle;
+        protected void LerpArm(float deg, float speed, float dt) => SetArm(Mathf.Lerp(ArmAngle, deg, Mathf.Min(1f, dt * speed)));
 
         public void ClubSegment(out Vector3 a, out Vector3 b)
         {
@@ -65,7 +69,7 @@ namespace Arena
 
         protected void SetState(AiState s)
         {
-            state = s; stateT = 0f; hitDone = false;
+            state = s; stateT = 0f; hitDone = false; clubPrevValid = false;
             bool glow = s == AiState.Windup || s == AiState.Slam;
             clubMat.color = glow ? new Color(0.9f, 0.15f, 0.05f) : new Color(0.42f, 0.27f, 0.15f);
         }
@@ -134,41 +138,59 @@ namespace Arena
 
         protected virtual void OnStunned() { }
 
+        // Testa o caminho inteiro da clava entre o frame anterior e o atual (golpe rápido não atravessa a defesa).
+        // Ordem: escudo, espada, corpo do jogador.
         void CheckClubContact(float kk, float d)
         {
             ClubSegment(out var a, out var b);
+            if (!clubPrevValid) { clubPrevA = a; clubPrevB = b; clubPrevValid = true; }
+            float tol = 0.06f * Mathf.Sqrt(k);
+            var shield = Player.Shield;
             var w = Player.Weapon;
+            bool wind = kk > 0.35f;   // o começo do arco é atrás da cabeça do goblin
+
+            if (shield && (shield.Intercepts(clubPrevA, clubPrevB, a, b, tol) || (wind && shield.DesktopCovers(transform.position))))
+            {
+                hitDone = true;
+                ResolveGuard(Guard.ResolveShield(shield.GuardSpeed, Player.State.CounterStance > 0f, Player.State.Stamina.Current), b);
+                return;
+            }
             if (w != null && w.Held)
             {
-                float dist = Geometry.SegmentSegmentDistance(w.BasePoint.ToN(), w.TipPoint.ToN(), a.ToN(), b.ToN());
-                // Desktop: sem mão de verdade, segurar o botão direito olhando para o inimigo já intercepta a clava.
-                bool desktopGuard = !Player.IsVr && Player.Input.DesktopParry && kk > 0.5f
+                bool touched = Geometry.SweptSegmentsHit(w.BasePrev.ToN(), w.TipPrev.ToN(), w.BasePoint.ToN(), w.TipPoint.ToN(),
+                                                         clubPrevA.ToN(), clubPrevB.ToN(), a.ToN(), b.ToN(), 0.1f + tol);
+                // Desktop sem escudo (Elementalista): botão direito olhando para o inimigo intercepta com a arma.
+                bool desktopGuard = !Player.IsVr && Player.Input.DesktopParry && wind && (shield == null || !shield.Equipped)
                                     && Vector3.Dot(Player.HeadForward, (transform.position - Player.FeetPosition).Flat().normalized) > 0.5f;
-                if (dist < 0.25f * Mathf.Sqrt(k) || desktopGuard)
+                if (touched || desktopGuard)
                 {
                     hitDone = true;
-                    ResolveGuard(w, b);
+                    float speed = desktopGuard ? Combat.ParrySpeed + 1f : Mathf.Max(w.TipSpeed, (w.TipPoint - w.TipPrev).magnitude / Mathf.Max(Time.deltaTime, 1e-4f));
+                    ResolveGuard(Guard.Resolve(speed, Player.State.CounterStance > 0f, Player.State.Stamina.Current), b);
                     return;
                 }
             }
-            if (kk > 0.97f)
+            // Corpo do jogador: da cintura à cabeça. Só toma dano se a clava realmente chegar nele.
+            var head = Player.HeadPosition;
+            var waist = new Vector3(head.x, Player.FeetPosition.y + 0.6f, head.z);
+            if (wind && Geometry.SweptSegmentsHit(waist.ToN(), head.ToN(), waist.ToN(), head.ToN(),
+                                                  clubPrevA.ToN(), clubPrevB.ToN(), a.ToN(), b.ToN(), 0.22f + tol))
             {
                 hitDone = true;
-                if ((Player.HeadPosition - b).magnitude < 0.75f * k || d < 1.15f * k) Player.TakeDamage(Def.AttackDamage, transform.position);
+                Player.TakeDamage(Def.AttackDamage, transform.position);
             }
+            clubPrevA = a; clubPrevB = b;
+            if (kk >= 1f) hitDone = true;
         }
 
-        void ResolveGuard(PlayerWeapon w, Vector3 contact)
+        void ResolveGuard(GuardResult r, Vector3 contact)
         {
             var ps = Player.State;
-            float speed = Player.Input.DesktopParry ? Mathf.Max(w.TipSpeed, Combat.ParrySpeed + 1f) : w.TipSpeed;
-            var r = Guard.Resolve(speed, ps.CounterStance > 0f, ps.Stamina.Current);
             switch (r)
             {
                 case GuardResult.Counter:
                     ps.ConsumeCounterStance();
                     Parried(contact);
-                    State.Posture.Break();
                     ArenaFx.FloatText("CONTRA-ATAQUE!", Center + Vector3.up * 0.9f * k, new Color(1f, 0.83f, 0.42f), 1.4f);
                     ApplyDamage(Combat.CounterDamage * (ps.Has(SkillIds.FioAfiado) ? Combat.SharpEdgeBonus : 1f), 0.7f,
                                 transform.position - Player.FeetPosition, 4f, new Color(1f, 0.83f, 0.42f));
@@ -185,6 +207,13 @@ namespace Arena
                     ArenaFx.Burst(contact, new Color(1f, 0.82f, 0.56f), 6, 2f);
                     ArenaInput.Haptic(0.7f, 0.07f);
                     Player.TakeDamage(Guard.DamageToPlayer(r, Def.AttackDamage), transform.position, ignoreGuardCooldown: true);
+                    break;
+                case GuardResult.ShieldBlock:
+                    ps.Stamina.TrySpend(Guard.ShieldBlockStaminaCost, 1f);
+                    State.AddPosture(Guard.ShieldBlockPosture);
+                    ArenaFx.FloatText("BLOQUEIO", contact, new Color(0.85f, 0.85f, 0.85f), 0.9f);
+                    ArenaFx.Burst(contact, new Color(1f, 0.82f, 0.56f), 8, 2f);
+                    ArenaInput.Haptic(0.6f, 0.07f, left: true);
                     break;
                 case GuardResult.GuardBroken:
                     ArenaFx.FloatText("GUARDA QUEBRADA", contact, new Color(1f, 0.44f, 0.44f), 1f);

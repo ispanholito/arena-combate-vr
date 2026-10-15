@@ -40,24 +40,27 @@ RPG de **combate físico em VR** (estilo Blade & Sorcery) com **classes e árvor
 ## Classes (estado atual)
 ### Lâmina (espada / machado pesado)
 - **Investida Perfurante** (ideia do Pablo): aponte a espada para frente + botão A → avança ~4,5 m atravessando vários inimigos. Aprovada no Quest ("satisfatória, melhorar depois").
-- **Postura de Contra** (substituiu o Turbilhão, que ficou sem graça): gatilho → por 2 s o próximo aparo/bloqueio vira contra-ataque devastador (quebra postura + crítico).
+- **Escudo** (decisão de 2026-10-15): a Lâmina usa espada + escudo na mão esquerda (controle). Escudo parado = bloqueio sem dano (12 de estamina, +18 de postura no inimigo); empurrar o escudo contra o golpe = aparo. **Largar o controle esquerdo** guarda o escudo nas costas e libera a mão para os sinais. Crítica registrada: aproxima a Lâmina do Guardião planejado (escudo pesado, provocar, proteger aliados) — diferenciar quando o Guardião for feito.
+- **Postura de Contra** (substituiu o Turbilhão, que ficou sem graça): gatilho → por 2 s o próximo aparo/bloqueio (espada ou escudo) vira contra-ataque de **dano alto (90)**. Desde 2026-10-15 não quebra mais a postura.
+- **Lâmina de Vento**: corte quase 2x maior desde 2026-10-15 (2,2 m de largura, raio de acerto 1 m).
 - **Lâmina de Vento** (ideia do Pablo): botão B → os próximos 2 golpes de espada lançam cortes de vento na direção do golpe.
 - Passivas: Fio Afiado (+25% dano corpo a corpo), Passo Leve (esquiva -40% estamina), Investida em Cadeia (recarga 2x, +40% distância).
 
 ### Elementalista (cajado) — "o mago ficou muito bom" (Pablo)
-- **Bola de Fogo**: segurar gatilho e arremessar (explode em área).
+- **Bola de Fogo**: segurar gatilho e arremessar (explode em área). 20 de mana, 18-30 de dano.
 - **Lança de Gelo**: apontar o cajado + A (perfura até 3, deixa lento).
-- **Raízes** (ideia do Pablo, substituiu a Rajada de Vento): segurar B, mirar no chão, soltar → raízes prendem inimigos 3 s. Fogo em enraizados = QUEIMA (+60%).
+- **Raízes** (ideia do Pablo, substituiu a Rajada de Vento): segurar B, mirar no chão, soltar → raízes prendem inimigos 3 s. Fogo em enraizados = QUEIMA (+60%). 25 de mana.
 - Passivas: Combustão (explosão +60%), Fonte Arcana (mana 2x), Gelo Profundo (gelo congela totalmente).
 
 ### Futuras
 Guardião (tanque, escudo), Clérigo (cura/suporte), Generalista, e outras (Lanceiro, Berserker, Assassino, Arqueiro, Invocador, Monge, Lâmina Arcana). Ver `docs/ideias-e-historico.md`.
 
 ## Poderes da mão esquerda livre (hand tracking) — decisão do Pablo
-Mão direita segura a arma com o **controle**; mão esquerda **sem controle**, rastreada. Escudo na mão esquerda foi **descartado** ("a mão faz uma coisa, o escudo outra").
-- **Apontar o indicador** → raio laser contínuo (gasta mana).
-- **Punho fechado golpeando para baixo** → atordoa inimigos num raio de 3 m.
-- **Mão aberta em movimento rápido** → corte de vento (combina com o da espada = corte duplo).
+Mão direita segura a arma com o **controle**; mão esquerda **sem controle**, rastreada. **Só funcionam com a mão livre** (nunca com o controle). A Lâmina larga o controle esquerdo (escudo vai para as costas) para usá-los. **Cada poder precisa ser armado por um sinal de mão** (segurar ~0,25 s, fica armado 2,5 s) e depois disparado pelo gesto:
+- **Sinal V** (indicador + médio) → **apontar o indicador** = **metralhadora** (substituiu o laser contínuo): 8 tiros/s, 3 de dano e 2,5 de mana por tiro.
+- **Sinal chifres** (indicador + mínimo) → **punho golpeando para baixo** = atordoa inimigos num raio de 3 m (20 de mana).
+- **Sinal três dedos** (sem o mínimo) → **mão aberta em movimento rápido** = corte de vento (15 de mana).
+- Planejado: uma **classe só de mãos** (sem arma), depois — provavelmente o Monge.
 Por enquanto disponíveis para qualquer classe (crítica pendente: no jogo final devem ter árvore própria ou pertencer a uma classe).
 
 ## Inimigos
@@ -87,11 +90,12 @@ Slime (se divide ao morrer), Goblin (ataque anunciado com clava, pode ser aparad
 ### Arena jogável na Unity (2026-10-15) — porte do protótipo web
 Três camadas em `unity/Assets/Arena/`:
 - **`Core/` (asmdef `Arena.Core`, C# puro, sem UnityEngine)**: toda a regra do jogo, testável. `PlayerState` (classe, nível/XP, vida/estamina/mana, árvore, recargas, contra, cargas de vento, poderes da mão), `Progression` (XP = 40 + 30·nível, morte perde só o XP do nível, MVP nível 10), `ClassProfile` (força/vida/estamina/mana por nível e classe), `SkillTree` (habilidade inicial grátis, pré-requisitos, nível mínimo, respec), `WeaponDef` (peso → `FollowRate`), `Combat`/`Guard` (dano por velocidade da ponta e alinhamento do fio, aparo/bloqueio/contra), `Posture`, `EnemyDef`/`EnemyState` (Slime, Goblin, Rei Goblin), `WaveDirector`, `Geometry` (varredura lâmina × corpo). Números do protótipo v0.3, com duas mudanças propostas (revisar com o Pablo): vida/estamina/mana por nível agora dependem da classe (Lâmina +14 vida/nível, Elementalista +10, antes +12 para todos), e o dano corpo a corpo cai até 40% quando o golpe não é de fio (pilar "dano pelo ângulo do golpe"; estocada conta como fio).
-- **`Tests/Editor/` (asmdef `Arena.Core.Tests`)**: 47 testes EditMode. Rodar: `unity command run_tests --mode EditMode --filter Arena.Core.Tests --filter_type assembly`.
+- **`Tests/Editor/` (asmdef `Arena.Core.Tests`)**: 59 testes EditMode. Rodar: `unity command run_tests --mode EditMode --filter Arena.Core.Tests --filter_type assembly`.
 - **`Runtime/` (asmdef `Arena.Runtime`)**: componentes da Unity. `ArenaPlayer` (OVRCameraRig, locomoção, esquiva, Investida), `PlayerWeapon` (segue a mão com atraso pelo peso, golpe por varredura, arremessar/chamar de volta; `VrGripPitch` = inclinação da lâmina no controle, **ajustar no Quest**), `SkillCaster` (habilidades das 2 classes), `LeftHandPowers` (laser/soco/palma pela mão rastreada), inimigos em `Enemies/`, `ArenaGame` (ondas, chefe aos 12 abates, fogueira cura, morte), `ArenaHud`, `SkillTreeMenu`. Modelos e efeitos são primitivas criadas em código (placeholder).
 - **Menu Arena > 3 - Criar cena da arena** (`ArenaSceneBuilder`, ou `ArenaSceneBuilder.CreateArenaSceneNoDialog()` pelo CLI) gera `Assets/Arena/Scenes/Arena.unity` (primeira cena do build).
-- **Modo desktop** (Play sem headset): WASD anda, mouse olha (clique trava o cursor, Esc solta), botão esq = golpe, botão dir segurado = aparo, Shift/Espaço = esquiva, 1/2/3 = habilidades (2 e 3 seguram para Bola de Fogo/Raízes), G arremessa a arma, Q troca arma, Tab = árvore (Enter/E libera, R respec na fogueira, L = +1 nível de teste), Z/X/C = laser/soco/palma da mão esquerda.
+- **Modo desktop** (Play sem headset): WASD anda, mouse olha (clique trava o cursor, Esc solta), botão esq = golpe, botão dir = levanta o escudo (apertar logo antes do golpe = aparo; sem escudo = aparo com a arma), F = escudo nas costas/na mão, Shift/Espaço = esquiva, 1/2/3 = habilidades (2 e 3 seguram para Bola de Fogo/Raízes), G arremessa a arma, Q troca arma, Tab = árvore (Enter/E libera, R respec na fogueira, L = +1 nível de teste), Z/X/C = metralhadora/soco/palma da mão esquerda (só com o escudo nas costas; no desktop não precisa de sinal).
 - **VR** (mão esquerda livre): analógico direito move, clique curto = esquiva, segurar = árvore; A/B/gatilho/grip = habilidades da classe (como no protótipo). Com dois controles: analógico esquerdo move, X esquiva, Y árvore, clique esquerdo troca arma, direito gira 30°.
+- **Correção do aparo (2026-10-15)**: no Quest a clava andava 20-35 cm por quadro e atravessava a espada sem contato. Agora o contato é testado pelo caminho inteiro entre quadros (`Geometry.SweptSegmentsHit`), na ordem escudo → espada → corpo, e o goblin só causa dano se a clava encostar no corpo (antes era automático a menos de 1,15 m). O golpe foi inclinado para o centro (a clava saía 28 cm para o lado).
 - **Verificado no editor (desktop)**: golpe tira vida e postura; goblin ataca, bloqueio/aparo/contra-ataque funcionam; Investida atravessa vários; slime se divide; Rei Goblin chega, entra em fúria (<50%), invoca slimes e faz o golpe em área; Bola de Fogo com QUEIMA em enraizados; Lança de Gelo perfura; Raízes prendem; morte volta à fogueira. **Ainda não testado no Quest.**
 - Testar no editor pelo CLI: antes do Play rode `unity command set_autotick` e, já no Play, `eval "UnityEngine.Application.runInBackground = true;"` (senão o jogo congela no frame 1 com o editor sem foco). Teclas simuladas com `simulate_key` só funcionam para teclas seguradas (WASD); toques únicos (1/2/3) não chegam com o editor sem foco — teste habilidades chamando os métodos por reflexão.
 

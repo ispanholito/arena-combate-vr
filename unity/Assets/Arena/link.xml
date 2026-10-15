@@ -1,0 +1,14 @@
+<linker>
+  <!-- GameObject.CreatePrimitive adiciona colisores em tempo de execução; sem isto o build (code stripping) remove essas classes. -->
+  <assembly fullname="UnityEngine.PhysicsModule">
+    <type fullname="UnityEngine.Collider" preserve="all"/>
+    <type fullname="UnityEngine.BoxCollider" preserve="all"/>
+    <type fullname="UnityEngine.SphereCollider" preserve="all"/>
+    <type fullname="UnityEngine.CapsuleCollider" preserve="all"/>
+    <type fullname="UnityEngine.MeshCollider" preserve="all"/>
+  </assembly>
+  <!-- TextMesh do HUD e dos números de dano, criado só em código. -->
+  <assembly fullname="UnityEngine.TextRenderingModule" preserve="all"/>
+  <assembly fullname="Arena.Runtime" preserve="all"/>
+  <assembly fullname="Arena.Core" preserve="all"/>
+</linker>

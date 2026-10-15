@@ -14,6 +14,8 @@ namespace Arena
         public Vector3 TipPoint { get; private set; }
         public Vector3 TipVelocity { get; private set; }
         public float TipSpeed { get; private set; }
+        public Vector3 BasePrev => basePrev;
+        public Vector3 TipPrev => tipPrev;
         public Vector3 BladeDir => (TipPoint - BasePoint).normalized;
 
         // Inclinação da lâmina em relação ao controle (graus). Ajustar no Quest: negativo = lâmina mais para cima.

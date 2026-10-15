@@ -50,6 +50,20 @@ namespace Arena.Core
             return false;
         }
 
+        // Dois segmentos que se movem entre frames (clava do inimigo × arma/escudo do jogador) se cruzaram?
+        // Golpes rápidos andam 20-35 cm por frame no Quest: sem sub-passos um atravessa o outro.
+        public static bool SweptSegmentsHit(Vector3 aPrev, Vector3 bPrev, Vector3 aNow, Vector3 bNow,
+                                            Vector3 cPrev, Vector3 dPrev, Vector3 cNow, Vector3 dNow, float radius, int steps = 8)
+        {
+            for (int k = 0; k <= steps; k++)
+            {
+                float f = k / (float)steps;
+                if (SegmentSegmentDistance(Vector3.Lerp(aPrev, aNow, f), Vector3.Lerp(bPrev, bNow, f),
+                                           Vector3.Lerp(cPrev, cNow, f), Vector3.Lerp(dPrev, dNow, f)) < radius) return true;
+            }
+            return false;
+        }
+
         // 1 = o golpe corta com o fio (movimento perpendicular à lâmina) ou é estocada; 0 = desliza ao longo dela.
         public static float EdgeAlignment(Vector3 bladeDir, Vector3 tipVelocity)
         {

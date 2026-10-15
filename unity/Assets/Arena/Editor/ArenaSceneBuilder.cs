@@ -94,6 +94,7 @@ public static class ArenaSceneBuilder
         player.leftHand = player.trackingSpace.Find("LeftHandAnchor");
         rigGo.AddComponent<SkillCaster>();
         rigGo.AddComponent<LeftHandPowers>();
+        rigGo.AddComponent<PlayerShield>();
         rigGo.AddComponent<ArenaHud>();
         rigGo.AddComponent<SkillTreeMenu>();
         var cam = player.head.GetComponent<Camera>();
