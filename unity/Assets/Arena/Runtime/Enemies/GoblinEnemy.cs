@@ -21,6 +21,8 @@ namespace Arena
         int strafe;
         float nextAttackDelay;
 
+        protected Color clubColor = new Color(0.42f, 0.27f, 0.15f);
+
         protected override void BuildModel()
         {
             k = Def.Size;
@@ -29,6 +31,15 @@ namespace Arena
             model = new GameObject("Modelo").transform;
             model.SetParent(transform, false);
             model.localScale = Vector3.one * k;
+            BuildVisual();
+            SetArm(-35f);
+            strafe = Random.value < 0.5f ? -1 : 1;
+            nextAttackDelay = Random.Range(0f, 0.8f);
+        }
+
+        // Corpo do goblin (o esqueleto sobrescreve). Precisa criar `arm` (com a arma ao longo de +Y) e `clubMat`.
+        protected virtual void BuildVisual()
+        {
             bool king = Def.Kind == EnemyKind.ReiGoblin;
             skinMat = ArenaUtil.Lit(king ? new Color(0.3f, 0.48f, 0.17f) : new Color(0.37f, 0.54f, 0.23f));
             var cloth = ArenaUtil.Lit(king ? new Color(0.35f, 0.12f, 0.12f) : new Color(0.35f, 0.25f, 0.16f));
@@ -47,12 +58,14 @@ namespace Arena
             arm = new GameObject("Braco").transform;
             arm.SetParent(model, false);
             arm.localPosition = new Vector3(0.28f, 0.85f, 0f);
-            clubMat = ArenaUtil.Lit(new Color(0.42f, 0.27f, 0.15f));
+            clubMat = ArenaUtil.Lit(clubColor);
             ArenaUtil.Prim(PrimitiveType.Cylinder, arm, new Vector3(0, 0.45f, 0), new Vector3(0.14f, 0.4f, 0.14f), clubMat);
-            SetArm(-35f);
-            strafe = Random.value < 0.5f ? -1 : 1;
-            nextAttackDelay = Random.Range(0f, 0.8f);
         }
+
+        // Ganchos para variações (esqueleto sem braço não ataca, sem cabeça gira devagar e demora mais).
+        protected virtual bool CanAttackNow => true;
+        protected virtual float TurnSpeed => 10f;
+        protected virtual float WindupTime => windup;
 
         // Ângulo do braço em graus no eixo X local (negativo = para trás/cima, positivo = golpe para baixo/frente).
         // Inclinação de -18° em Y: a clava sai do ombro direito e desce no centro (no jogador), não ao lado.
@@ -72,7 +85,7 @@ namespace Arena
             state = s; stateT = 0f; hitDone = false; clubPrevValid = false;
             bool glow = s == AiState.Windup || s == AiState.Slam;
             if (s == AiState.Windup || s == AiState.Slam) ArenaAudio.Play(Sfx.Windup, transform.position + Vector3.up, 0.7f, 1f / k);
-            clubMat.color = glow ? new Color(0.9f, 0.15f, 0.05f) : new Color(0.42f, 0.27f, 0.15f);
+            clubMat.color = glow ? new Color(0.9f, 0.15f, 0.05f) : clubColor;
         }
 
         protected override void OnHit(DamageEvent ev)
@@ -95,7 +108,7 @@ namespace Arena
                 return;
             }
             model.localRotation = Quaternion.identity;
-            if (State.Rooted <= 0f) FacePlayer(toPlayer, dt);
+            if (State.Rooted <= 0f) FacePlayer(toPlayer, dt, TurnSpeed);
             stateT += dt;
             if (ExtraAI(dt, d)) return;
             var dir = d > 1e-3f ? toPlayer / d : transform.forward;
@@ -109,7 +122,7 @@ namespace Arena
                     if (d < 2.2f * k) want += side;
                     Move(want, dt);
                     LerpArm(-35f, 5f, dt);
-                    if (d < 1.45f * k && stateT > (k > 1f ? 0.6f : 1.0f) + nextAttackDelay && State.CanAct)
+                    if (d < 1.45f * k && stateT > (k > 1f ? 0.6f : 1.0f) + nextAttackDelay && State.CanAct && CanAttackNow)
                     {
                         nextAttackDelay = Random.Range(0f, 0.8f);
                         SetState(AiState.Windup);
@@ -118,7 +131,7 @@ namespace Arena
                 }
                 case AiState.Windup:
                     LerpArm(-150f, 8f, dt);
-                    if (stateT > windup) SetState(AiState.Strike);
+                    if (stateT > WindupTime) SetState(AiState.Strike);
                     break;
                 case AiState.Strike:
                 {

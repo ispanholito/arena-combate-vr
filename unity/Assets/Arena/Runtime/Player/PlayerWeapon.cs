@@ -683,7 +683,12 @@ namespace Arena
                 // Altura do acerto no corpo: cabeça causa mais dano.
                 float height = Geometry.ClosestParamOnSecond(strikeA.ToN(), strikeB.ToN(), a.ToN(), b.ToN());
                 bool head = WeakPoints.IsHead(e.Def.Kind, height);
-                e.TakeMeleeHit(speed, edge, strikeVel, Def, player.State, TwoHandRules.DamageMultiplier(Def, TwoHanded), head);
+                if (e.TakeMeleeHit(speed, edge, strikeVel, Def, player.State, TwoHandRules.DamageMultiplier(Def, TwoHanded), head))
+                {
+                    // Ponto do acerto na lâmina (para o esqueleto saber qual parte foi cortada).
+                    float s = Geometry.ClosestParamOnSecond(a.ToN(), b.ToN(), strikeA.ToN(), strikeB.ToN());
+                    e.OnMeleeHitAt(Vector3.Lerp(strikeA, strikeB, s), speed, edge, strikeVel, Def);
+                }
             }
         }
 

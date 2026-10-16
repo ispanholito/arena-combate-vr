@@ -6,6 +6,7 @@ namespace Arena.Core
     public sealed class WaveDirector
     {
         public const int KillsForBoss = 12;
+        public const int SkeletonMinLevel = 2;
         public float SpawnInterval = 1.6f;
 
         readonly Random rng;
@@ -34,8 +35,10 @@ namespace Arena.Core
             }
             if (aliveCount >= TargetCount(playerLevel)) { timer = 0.5f; return null; }
             timer = SpawnInterval;
-            bool goblin = aliveGoblins < MaxGoblins(playerLevel) && rng.NextDouble() < 0.55;
-            return goblin ? EnemyDef.Goblin : EnemyDef.Slime(1f);
+            // Humanoides (goblin e esqueleto) têm limite pelo nível; esqueletos a partir do nível 2.
+            bool humanoid = aliveGoblins < MaxGoblins(playerLevel) && rng.NextDouble() < 0.55;
+            if (!humanoid) return EnemyDef.Slime(1f);
+            return playerLevel >= SkeletonMinLevel && rng.NextDouble() < 0.45 ? EnemyDef.Esqueleto : EnemyDef.Goblin;
         }
 
         public void OnBossDefeated()

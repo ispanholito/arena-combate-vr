@@ -115,6 +115,9 @@ namespace Arena
 
         protected virtual void OnStagger() { }
 
+        // Onde o golpe acertou (o esqueleto usa para desmembrar).
+        public virtual void OnMeleeHitAt(Vector3 point, float speed, float edge, Vector3 velocity, WeaponDef weapon) { }
+
         // Reação a golpes seguidos (ComboBreaker): o goblin pula para trás e fica intocável por um instante.
         protected virtual void ComboBreak()
         {
@@ -306,10 +309,12 @@ namespace Arena
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(toPlayer), dt * speed);
         }
 
+        protected virtual float MoveMultiplier => 1f;   // esqueleto sem pernas rasteja
+
         protected void Move(Vector3 velocity, float dt)
         {
             if (!State.CanMove || Impaled) return;
-            transform.position = ArenaUtil.ClampToArena(transform.position + velocity * State.SpeedMultiplier * dt);
+            transform.position = ArenaUtil.ClampToArena(transform.position + velocity * State.SpeedMultiplier * MoveMultiplier * dt);
         }
 
         void UpdateFlash(float dt)

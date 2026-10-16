@@ -13,6 +13,7 @@ namespace Arena.Core
         public static int HitsToBreak(EnemyKind kind) => kind switch
         {
             EnemyKind.Goblin => 5,
+            EnemyKind.Esqueleto => 5,
             EnemyKind.ReiGoblin => 4,
             _ => 0,                                       // slime e boneco não reagem
         };

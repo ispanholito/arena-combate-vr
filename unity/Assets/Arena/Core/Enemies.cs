@@ -2,7 +2,7 @@ using System;
 
 namespace Arena.Core
 {
-    public enum EnemyKind { Slime, Goblin, ReiGoblin, Boneco }
+    public enum EnemyKind { Slime, Goblin, ReiGoblin, Boneco, Esqueleto }
 
     public sealed class EnemyDef
     {
@@ -35,6 +35,9 @@ namespace Arena.Core
         public static bool SlimeSplits(float size) => size > SlimeSplitMinSize;
 
         public static readonly EnemyDef Goblin = new EnemyDef(EnemyKind.Goblin, "Goblin", 70f, 100f, 35, 15f, 0.75f, 0.32f, 1.15f, 1.2f, 1.6f);
+
+        // Esqueleto: espada, mais rápido e frágil que o goblin; desmembra e se remonta (SkeletonBody).
+        public static readonly EnemyDef Esqueleto = new EnemyDef(EnemyKind.Esqueleto, "Esqueleto", 55f, 80f, 30, 12f, 0.6f, 0.28f, 1.35f, 0.9f, 1.9f);
 
         // Boneco de treino (modo Treino): não ataca nem anda, vida enorme que volta cheia, postura de goblin forte.
         public static readonly EnemyDef Boneco = new EnemyDef(EnemyKind.Boneco, "Boneco de treino", 100000f, 150f, 0, 0f, 0f, 0.3f, 1.6f, 1000f, 0f);
