@@ -52,7 +52,8 @@ namespace Arena
                 ArenaGame.Instance?.Message(desktopEquipped ? "Escudo na mão" : "Escudo nas costas: mão livre", 0.9f);
             }
 
-            Equipped = Available && (vr ? player.Input.LeftControllerConnected : desktopEquipped) && !player.TreeOpen;
+            Equipped = Available && (vr ? player.Input.LeftControllerConnected : desktopEquipped) && !player.TreeOpen
+                       && !(player.Weapon && player.Weapon.TwoHanded);   // mão esquerda na arma: escudo nas costas
             visual.gameObject.SetActive(Equipped);
             if (!Equipped) { hasPrev = false; DesktopRaised = false; return; }
 

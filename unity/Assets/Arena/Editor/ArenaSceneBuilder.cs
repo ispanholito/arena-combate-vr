@@ -96,6 +96,7 @@ public static class ArenaSceneBuilder
         rigGo.AddComponent<LeftHandPowers>();
         rigGo.AddComponent<PlayerShield>();
         rigGo.AddComponent<StartMenu>();
+        rigGo.AddComponent<TwoHandGrip>();
         rigGo.AddComponent<ArenaHud>();
         rigGo.AddComponent<SkillTreeMenu>();
         var cam = player.head.GetComponent<Camera>();

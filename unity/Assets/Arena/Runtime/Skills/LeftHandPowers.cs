@@ -86,6 +86,7 @@ namespace Arena
 
         void VrPowers()
         {
+            if (player.Weapon && player.Weapon.TwoHanded) return;   // mão ocupada segurando a arma
             if (!HandTracked || !player.Input.LeftHandFree) return;
             var hand = hands.leftHand;
             if (CurrentShape == HandShape.Punho
@@ -164,6 +165,13 @@ namespace Arena
         }
 
         // ---------- Detecção do formato da mão ----------
+        // Centro da palma esquerda rastreada (para segurar a arma com as duas mãos).
+        public bool TryGetPalm(out Vector3 pos)
+        {
+            pos = default;
+            return HandTracked && hands != null && World(hands.leftHand, XRHandJointID.Palm, out pos);
+        }
+
         bool World(XRHand hand, XRHandJointID id, out Vector3 world)
         {
             world = default;

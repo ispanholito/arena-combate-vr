@@ -143,11 +143,11 @@ namespace Arena
 
         // ---------- Dano recebido ----------
         // Golpe da arma do jogador (chamado pela PlayerWeapon). Retorna true se contou.
-        public bool TakeMeleeHit(float tipSpeed, float edge, Vector3 dir, WeaponDef weapon, PlayerState ps)
+        public bool TakeMeleeHit(float tipSpeed, float edge, Vector3 dir, WeaponDef weapon, PlayerState ps, float damageMultiplier = 1f)
         {
             if (Dead || hitCooldown > 0f || SpawnGrace > 0f) return false;
             bool hasSta = ps.SpendSwingStamina(weapon);
-            float dmg = Combat.MeleeDamage(tipSpeed, weapon, ps.Has(SkillIds.FioAfiado), hasSta, edge);
+            float dmg = Combat.MeleeDamage(tipSpeed, weapon, ps.Has(SkillIds.FioAfiado), hasSta, edge) * damageMultiplier;
             if (dmg <= 0f) return false;
             hitCooldown = Combat.HitCooldown;
             ApplyDamage(dmg, 0.7f, dir, Combat.Knockback(tipSpeed, weapon));

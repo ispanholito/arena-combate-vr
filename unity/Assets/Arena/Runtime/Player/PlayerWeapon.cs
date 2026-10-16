@@ -45,6 +45,14 @@ namespace Arena
         Vector3 physTipVel;   // velocidade da ponta no último passo de física
         float stuckTime;
         public bool Stuck => stuckEnemy != null;
+
+        // Fase 4: segunda mão
+        public bool TwoHanded { get; private set; }
+        Rigidbody wrist2;
+        ConfigurableJoint joint2;
+        float grip2Z, stretchT;
+        Vector3 target2Pos;
+        public Vector3 SecondGripWorld => visual ? visual.TransformPoint(new Vector3(0f, 0f, grip2Z)) : Vector3.zero;
         public static bool DebugStab;   // registra no console os valores de cada contato (para calibrar)
         Transform staffCrystal, ghost;
         Material ghostMat;
@@ -79,6 +87,7 @@ namespace Arena
         void Attach()
         {
             ReleaseStab(false);
+            ReleaseSecondHand();
             mode = Mode.Held;
             body.isKinematic = false;
             body.useGravity = true;
@@ -107,7 +116,7 @@ namespace Arena
         void ApplyDrives()
         {
             if (!joint) return;
-            float str = player.State.Strength;
+            float str = TwoHandRules.EffectiveStrength(player.State.Strength, TwoHanded);
             float m = body.mass;
             float wl = WeaponPhysics.LinearOmega(Def, str), wa = WeaponPhysics.AngularOmega(Def, str);
             float kl = WeaponPhysics.LinearSpringHolding(m, wl);
@@ -125,8 +134,9 @@ namespace Arena
             float ka = WeaponPhysics.AngularSpringHolding(inertia, wa, m, com);
             joint.slerpDrive = new JointDrive
             {
-                positionSpring = ka,
-                positionDamper = WeaponPhysics.DamperFor(ka, inertia),
+                // Com as duas mãos a rotação vem da linha entre elas: a mola de rotação da mão principal afrouxa.
+                positionSpring = ka * (TwoHanded ? TwoHandRules.MainAngularScale : 1f),
+                positionDamper = WeaponPhysics.DamperFor(ka * (TwoHanded ? TwoHandRules.MainAngularScale : 1f), inertia),
                 maximumForce = float.MaxValue,
             };
         }
@@ -199,11 +209,92 @@ namespace Arena
             go.AddComponent<WeaponImpactRelay>().Init(this);
         }
 
+        // ---------- Fase 4: segunda mão ----------
+        // A mão esquerda segura o cabo num ponto (grip2Z): uma segunda mola de posição prende esse ponto à mão.
+        // A rotação da arma passa a vir da linha entre as duas mãos, e a Força conta mais (TwoHandRules).
+        public bool TryGrabSecondHand(Vector3 handWorld)
+        {
+            if (mode != Mode.Held || TwoHanded || Def == null) return false;
+            float z = TwoHandRules.ClampToGrip(Def.Kind, visual.InverseTransformPoint(handWorld).z);
+            var gripWorld = visual.TransformPoint(new Vector3(0f, 0f, z));
+            if (Vector3.Distance(handWorld, gripWorld) > TwoHandRules.GrabRadius) return false;
+
+            grip2Z = z;
+            if (!wrist2)
+            {
+                wrist2 = new GameObject("Pulso2").AddComponent<Rigidbody>();
+                wrist2.isKinematic = true;
+                wrist2.interpolation = RigidbodyInterpolation.Interpolate;
+            }
+            wrist2.transform.position = gripWorld;   // começa no próprio cabo: a arma não dá tranco ao pegar
+            wrist2.position = gripWorld;
+            target2Pos = handWorld;
+            Physics.SyncTransforms();
+            joint2 = visual.gameObject.AddComponent<ConfigurableJoint>();
+            joint2.connectedBody = wrist2;
+            joint2.autoConfigureConnectedAnchor = false;
+            joint2.anchor = new Vector3(0f, 0f, z);
+            joint2.connectedAnchor = Vector3.zero;
+            joint2.xMotion = joint2.yMotion = joint2.zMotion = ConfigurableJointMotion.Free;
+            joint2.angularXMotion = joint2.angularYMotion = joint2.angularZMotion = ConfigurableJointMotion.Free;
+            joint2.enablePreprocessing = false;
+            TwoHanded = true;
+            stretchT = 0f;
+            ApplyDrives();
+            ArenaInput.Haptic(0.4f, 0.05f, left: true);
+            return true;
+        }
+
+        public void SetSecondHandTarget(Vector3 handWorld) => target2Pos = handWorld;
+
+        public void ReleaseSecondHand()
+        {
+            if (joint2) Destroy(joint2);
+            joint2 = null;
+            if (!TwoHanded) return;
+            TwoHanded = false;
+            ApplyDrives();
+        }
+
+        // Desktop: ponto do cabo onde a "mão esquerda" seguraria na pose atual (para testar sem VR).
+        public Vector3 DesktopSecondHandPoint()
+        {
+            var (min, max) = TwoHandRules.GripRange(Def.Kind);
+            float z = Def.Kind == WeaponKind.Espada ? min : Mathf.Lerp(min, max, 0.6f);
+            return targetPos + targetRot * new Vector3(0f, 0f, z);
+        }
+
+        // Desktop: o mesmo ponto, mas no cabo como ele está agora (a arma pesada pende; é ali que a mão pega).
+        public Vector3 DesktopSecondHandGrabPoint()
+        {
+            var (min, max) = TwoHandRules.GripRange(Def.Kind);
+            float z = Def.Kind == WeaponKind.Espada ? min : Mathf.Lerp(min, max, 0.6f);
+            return visual.TransformPoint(new Vector3(0f, 0f, z));
+        }
+
+        void UpdateSecondHandStretch(float dt)
+        {
+            if (!TwoHanded) return;
+            // Mãos afastadas além do que o cabo permite: a mão esquerda solta.
+            if (Vector3.Distance(target2Pos, SecondGripWorld) > TwoHandRules.MaxStretch) stretchT += dt; else stretchT = 0f;
+            if (stretchT > TwoHandRules.StretchSeconds) ReleaseSecondHand();
+            if (joint2)
+            {
+                float m = body.mass, w = WeaponPhysics.LinearOmega(Def, TwoHandRules.EffectiveStrength(player.State.Strength, true));
+                float k = WeaponPhysics.LinearSpringHolding(m, w);
+                joint2.xDrive = joint2.yDrive = joint2.zDrive = new JointDrive
+                {
+                    positionSpring = k, positionDamper = WeaponPhysics.DamperFor(k, m), maximumForce = WeaponPhysics.MaxForce(Def),
+                };
+            }
+        }
+
         // ---------- Arremessar / chamar de volta ----------
         public void Throw(Vector3 velocity)
         {
             if (!Held) return;
             ReleaseStab(false);
+            ReleaseSecondHand();
             mode = Mode.Thrown;
             if (joint) Destroy(joint);
             var v = velocity.magnitude < 3f ? player.HeadForward * 9f + Vector3.up * 2f : velocity * 1.6f;
@@ -278,6 +369,7 @@ namespace Arena
                 if (to.magnitude < 0.25f) { Attach(); ArenaInput.Haptic(0.6f, 0.08f); }
             }
 
+            UpdateSecondHandStretch(dt);
             Separation = mode == Mode.Held ? Vector3.Distance(visual.position, targetPos) : 0f;
             UpdateGhost();
 
@@ -299,6 +391,7 @@ namespace Arena
             if (body && !body.isKinematic) physTipVel = body.GetPointVelocity(visual.TransformPoint(new Vector3(0, 0, Def.Length)));
             wrist.MovePosition(targetPos);
             wrist.MoveRotation(targetRot);
+            if (TwoHanded && wrist2) wrist2.MovePosition(target2Pos);
             if (mode != Mode.Held) return;
             ApplyDrives();   // a Força muda ao subir de nível
             // Presa longe da mão por muito tempo (atrás de uma parede, por exemplo): volta para a mão.
@@ -437,7 +530,7 @@ namespace Arena
                 if (e == null || e.Dead) continue;
                 e.BodyAxis(out var a, out var b);
                 if (Geometry.SweptBladeHits(basePrev.ToN(), tipPrev.ToN(), BasePoint.ToN(), TipPoint.ToN(), a.ToN(), b.ToN(), e.Radius + 0.1f))
-                    e.TakeMeleeHit(Mathf.Min(TipSpeed, Combat.SpeedCap), edge, TipVelocity, Def, player.State);
+                    e.TakeMeleeHit(Mathf.Min(TipSpeed, Combat.SpeedCap), edge, TipVelocity, Def, player.State, TwoHandRules.DamageMultiplier(Def, TwoHanded));
             }
         }
 
@@ -445,6 +538,7 @@ namespace Arena
         {
             if (visual) Destroy(visual.gameObject);
             if (wrist) Destroy(wrist.gameObject);
+            if (wrist2) Destroy(wrist2.gameObject);
             if (ghost) Destroy(ghost.gameObject);
         }
     }
