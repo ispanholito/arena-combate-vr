@@ -69,6 +69,20 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void EmptySecondSlot_StaysEmpty_AfterLoad()
+        {
+            var ps = new PlayerState(ClassId.Lamina);
+            var axe = ps.Loadout[1];
+            ps.Loadout[1] = null;   // guardou o machado no suporte
+            ps.AddLostItem(axe);
+            var loaded = SaveData.From(ps).ToPlayer();
+            Assert.IsNull(loaded.Loadout[1]);
+            Assert.AreEqual(WeaponKind.Espada, loaded.ActiveItem.Base.Kind);
+            Assert.AreEqual(WeaponKind.Machado, loaded.LostItems.Single().Base.Kind);
+            Assert.AreEqual(12, PlayerState.MaxLostItems);
+        }
+
+        [Test]
         public void InvalidData_IsIgnored()
         {
             var data = new SaveData { classId = 99, level = 500, xp = -5, gold = -10, activeSlot = 7 };

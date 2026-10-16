@@ -99,7 +99,7 @@ namespace Arena.Core
 
         // Armas do jogador largadas e esquecidas (trocou e não pegou de volta antes de sair do andar):
         // reaparecem no santuário, perto da fogueira. Guarda as 6 mais recentes.
-        public const int MaxLostItems = 6;
+        public const int MaxLostItems = 12;   // = vagas do suporte de armas do santuário
         public List<ItemInstance> LostItems { get; } = new List<ItemInstance>();
         public void AddLostItem(ItemInstance item)
         {

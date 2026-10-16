@@ -68,11 +68,11 @@ namespace Arena
                                         0.008f, new Color(0.95f, 0.9f, 0.8f));
             sign.transform.position = new Vector3(0, 3.6f, -7.7f);
             sign.transform.rotation = Quaternion.LookRotation(Vector3.back);
-            // Armas esquecidas voltam aqui, ao lado da fogueira (saem da lista quando o jogador pega).
-            var lost = game.Player.State.LostItems;
-            for (int i = 0; i < lost.Count; i++)
-                WeaponPickup.Spawn(lost[i], new Vector3(2.2f + (i % 3) * 0.9f, 0f, -3.3f + (i / 3) * 1f)).Owned = true;
-            if (lost.Count > 0) game.Message(lost.Count + " arma(s) esquecida(s) voltaram para perto da fogueira", 2.5f);
+            // Suporte de armas na parede leste: guarda até 12 (armas guardadas e as esquecidas na dungeon voltam aqui).
+            BuildRack();
+            var stored = game.Player.State.LostItems;
+            for (int i = 0; i < stored.Count && i < RackSlots; i++)
+                WeaponPickup.Spawn(stored[i], RackSlot(i)).PlaceOnRack(RackSlot(i), RackFacing).Owned = true;
 
             portalCd = 1.5f;
             game.Player.TeleportTo(game.BonfireStandPoint, new Vector3(0, 0, 6f));
@@ -168,10 +168,59 @@ namespace Arena
                 (item.CanUpgrade ? "+" + (item.Upgrade + 1) + ": " + item.UpgradeCost + " ouro (você tem " + game.Player.State.Gold + ")\ngrip / E na bigorna" : "no máximo (+5)") + "</size>";
         }
 
+        // ---------- Suporte de armas ----------
+        public const int RackSlots = 12;
+        const float RackX = 7.25f, RackZ0 = -4.6f, RackStep = 0.75f;
+        static readonly Quaternion RackFacing = Quaternion.LookRotation(Vector3.left);
+        static Vector3 RackSlot(int i) => new Vector3(RackX, 0f, RackZ0 + i * RackStep);
+
+        void BuildRack()
+        {
+            var wood = ArenaUtil.Lit(new Color(0.32f, 0.2f, 0.11f));
+            float len = RackStep * RackSlots;
+            var mid = new Vector3(RackX + 0.25f, 0f, RackZ0 + RackStep * (RackSlots - 1) * 0.5f);
+            ArenaUtil.Prim(PrimitiveType.Cube, root, mid + new Vector3(0, 0.08f, 0), new Vector3(0.5f, 0.16f, len), wood);
+            ArenaUtil.Prim(PrimitiveType.Cube, root, mid + new Vector3(0.12f, 1.55f, 0), new Vector3(0.1f, 0.1f, len), wood);
+            for (int i = 0; i <= RackSlots; i += 3)
+                ArenaUtil.Prim(PrimitiveType.Cube, root, new Vector3(RackX + 0.37f, 0.8f, RackZ0 - RackStep * 0.5f + i * RackStep), new Vector3(0.1f, 1.6f, 0.1f), wood);
+            var sign = ArenaFx.MakeText(root, "SUPORTE DE ARMAS\n<size=40>grip numa arma: troca pela sua · grip num gancho vazio: guarda a sua 2ª arma</size>", 0.006f, new Color(0.95f, 0.9f, 0.8f));
+            sign.transform.position = mid + new Vector3(-0.1f, 2.1f, 0);
+            sign.transform.rotation = Quaternion.LookRotation(Vector3.right);
+        }
+
+        // Grip num gancho vazio: guarda a 2ª arma (a que não está na mão).
+        bool TryStore(ArenaPlayer player)
+        {
+            var reach = player.IsVr ? player.RightHand.position : player.FeetPosition + player.HeadForward * 0.6f;
+            int best = -1; float bestD = player.IsVr ? 0.6f : 1.2f;
+            for (int i = 0; i < RackSlots; i++)
+            {
+                var s = RackSlot(i);
+                float d = player.IsVr ? Vector3.Distance(reach, s + Vector3.up * 0.8f) : (reach - s).Flat().magnitude;
+                if (d < bestD) { bestD = d; best = i; }
+            }
+            if (best < 0) return false;
+            var slot = RackSlot(best);
+            foreach (var p in WeaponPickup.All)
+                if (p && p.OnRack && (p.RackPos - slot).sqrMagnitude < 0.01f) return false;   // ocupado: quem pega é o WeaponPickup
+            var s2 = player.State;
+            int other = 1 - s2.ActiveSlot;
+            var item = s2.Loadout[other];
+            if (item == null) { game.Message("Nada para guardar: o suporte guarda a sua 2ª arma", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
+            s2.Loadout[other] = null;
+            s2.AddLostItem(item);
+            WeaponPickup.Spawn(item, slot).PlaceOnRack(slot, RackFacing).Owned = true;
+            ArenaAudio.Play(Sfx.Pickup, slot + Vector3.up, 0.8f, 0.8f);
+            game.Message("Guardou " + item.DisplayName, 1.2f);
+            game.RequestSave();
+            return true;
+        }
+
         // Grip/E perto da bigorna: melhora a arma da mão.
         public bool TryInteract(ArenaPlayer player)
         {
             if (!root || !anvil) return false;
+            if (TryStore(player)) return true;
             float d = player.IsVr
                 ? Mathf.Min(Vector3.Distance(player.RightHand.position, anvil.position + Vector3.up * 0.75f), (player.FeetPosition - anvil.position).Flat().magnitude)
                 : (player.FeetPosition - anvil.position).Flat().magnitude;

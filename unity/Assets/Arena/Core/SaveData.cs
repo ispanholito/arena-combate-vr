@@ -50,6 +50,7 @@ namespace Arena.Core
                 {
                     var it = items[i]?.ToItem();
                     if (it != null) ps.Loadout[i] = it;
+                    else if (i > 0 && items[i] != null && string.IsNullOrEmpty(items[i].weapon)) ps.Loadout[i] = null;   // 2º slot vazio (arma guardada no suporte)
                 }
             if (lostItems != null)
                 foreach (var s in lostItems) { var it = s?.ToItem(); if (it != null) ps.AddLostItem(it); }

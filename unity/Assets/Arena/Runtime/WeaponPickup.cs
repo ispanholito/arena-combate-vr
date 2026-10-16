@@ -15,6 +15,22 @@ namespace Arena
 
         public ItemInstance Item { get; private set; }
         public bool Owned;   // arma do próprio jogador (trocada): se ficar para trás, volta no santuário
+        // Pendurada no suporte de armas do santuário: em pé, parada, sem feixe; o nome só aparece bem perto.
+        public bool OnRack { get; private set; }
+        public Vector3 RackPos { get; private set; }
+        public Quaternion RackRot { get; private set; }
+
+        public WeaponPickup PlaceOnRack(Vector3 pos, Quaternion facing)
+        {
+            OnRack = true; RackPos = pos; RackRot = facing;
+            vel = Vector3.zero;
+            transform.SetPositionAndRotation(pos, facing);
+            model.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+            model.localPosition = new Vector3(0, Item.Base.Length * 0.5f + 0.1f, 0);
+            if (beam) beam.gameObject.SetActive(false);
+            label.transform.localPosition = new Vector3(0, Item.Base.Length + 0.35f, 0);
+            return this;
+        }
         Transform model, beam;
         TextMesh label;
         float t, settle;
@@ -70,6 +86,7 @@ namespace Arena
         {
             float dt = Time.deltaTime;
             t += dt;
+            if (OnRack) { UpdateLabel(1.3f); return; }
             // Cai até o chão (loot arremessado do inimigo).
             if (transform.position.y > 0.02f || vel.y > 0f)
             {
@@ -81,13 +98,16 @@ namespace Arena
             settle -= dt;
             model.localPosition = new Vector3(0, 0.25f + Mathf.Sin(t * 2f) * 0.05f, 0);
             model.Rotate(Vector3.up, 40f * dt, Space.World);
+            UpdateLabel(LabelRange);
+        }
+
+        void UpdateLabel(float range)
+        {
             var cam = Camera.main;
-            if (cam)
-            {
-                bool near = (cam.transform.position - transform.position).Flat().magnitude < LabelRange;
-                label.gameObject.SetActive(near);
-                if (near) label.transform.rotation = Quaternion.LookRotation(label.transform.position - cam.transform.position);
-            }
+            if (!cam) return;
+            bool near = (cam.transform.position - transform.position).Flat().magnitude < range;
+            label.gameObject.SetActive(near);
+            if (near) label.transform.rotation = Quaternion.LookRotation(label.transform.position - cam.transform.position);
         }
 
         void OnDestroy() => All.Remove(this);
@@ -115,7 +135,8 @@ namespace Arena
                 float d;
                 if (player.IsVr)
                 {
-                    float hand = Vector3.Distance(player.RightHand.position, p.transform.position + Vector3.up * 0.25f);
+                    var center = p.transform.position + Vector3.up * (p.OnRack ? p.Item.Base.Length * 0.5f + 0.1f : 0.25f);
+                    float hand = Vector3.Distance(player.RightHand.position, center);
                     float feet = (player.FeetPosition - p.transform.position).Flat().magnitude;
                     if (hand > VrHandRange && feet > FeetRange) continue;
                     d = Mathf.Min(hand, feet);
@@ -136,7 +157,12 @@ namespace Arena
             player.State.LostItems.Remove(item);   // era uma arma esquecida: achou
             var old = player.State.EquipToActive(item);
             player.EquipActive();
-            if (old != null) Spawn(old, pos + Vector3.up * 0.05f).Owned = true;
+            if (old != null)
+            {
+                var dropped = Spawn(old, pos + Vector3.up * 0.05f);
+                dropped.Owned = true;
+                if (best.OnRack) { dropped.PlaceOnRack(best.RackPos, best.RackRot); player.State.AddLostItem(old); }   // troca no suporte: a sua fica pendurada
+            }
             ArenaAudio.Play2D(Sfx.Pickup, 0.9f);
             ArenaGame.Instance?.RequestSave();
             ArenaInput.Haptic(0.5f, 0.08f);
