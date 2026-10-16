@@ -90,6 +90,30 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void Map_FitsFloor_AndRevealsVisitedNeighbours()
+        {
+            for (int seed = 1; seed < 30; seed++)
+            {
+                var f = DungeonGenerator.Generate(seed, 1);
+                var p = new MapProjection(f);
+                foreach (var r in f.Area.Rects)
+                    foreach (var (x, z) in new[] { (r.MinX, r.MinZ), (r.MaxX, r.MaxZ) })
+                    {
+                        var (u, v) = p.ToMap(x, z);
+                        Assert.That(u, Is.InRange(-0.5f, 0.5f));
+                        Assert.That(v, Is.InRange(-0.5f, 0.5f));
+                    }
+            }
+            var run = new DungeonRun(4);
+            var fl = run.Floor;
+            Assert.IsFalse(MapProjection.Revealed(fl, 0));
+            run.OnPlayerAt(fl.Start.Rect.CenterX, fl.Start.Rect.CenterZ);
+            Assert.IsTrue(fl.Start.Visited);
+            Assert.IsTrue(MapProjection.Revealed(fl, 1));    // vizinha da visitada aparece (apagada)
+            Assert.IsFalse(MapProjection.Revealed(fl, 2));   // o resto fica escondido
+        }
+
+        [Test]
         public void SameSeed_SameLayout()
         {
             var a = DungeonGenerator.Generate(5, 1);

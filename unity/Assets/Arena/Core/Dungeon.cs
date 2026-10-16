@@ -117,6 +117,7 @@ namespace Arena.Core
         public Rect2 Rect;
         public List<EnemyDef> Enemies = new List<EnemyDef>();
         public bool Entered, Cleared;
+        public bool Visited;           // o jogador já pisou (minimapa)
         public bool HasChest;          // baú aparece quando a sala é limpa
         public bool ChestIsMimic;      // o baú é um mímico
         public int EnteredFrom = -1;   // sala anterior (para os inimigos nascerem longe da entrada)
@@ -314,6 +315,7 @@ namespace Arena.Core
         {
             var room = Floor.RoomAt(x, z, 1f);
             if (room == null) return null;
+            room.Visited = true;
             if (room.Kind == RoomKind.Fogueira || room.Kind == RoomKind.Inicio) CheckpointRoom = room;
             if (room.Entered || room.Cleared || ActiveRoom != null) return null;
             room.Entered = true;
@@ -342,5 +344,34 @@ namespace Arena.Core
             if (ActiveRoom != null) ActiveRoom.Entered = false;
             ActiveRoom = null;
         }
+    }
+}
+
+namespace Arena.Core
+{
+    // Minimapa: encaixa o andar inteiro num quadrado (lado 1, centrado em 0) mantendo a proporção.
+    public readonly struct MapProjection
+    {
+        public readonly float CenterX, CenterZ, Scale;
+
+        public MapProjection(DungeonFloor f, float margin = 0.06f)
+        {
+            float minX = float.MaxValue, minZ = float.MaxValue, maxX = float.MinValue, maxZ = float.MinValue;
+            foreach (var r in f.Area.Rects)
+            {
+                minX = Math.Min(minX, r.MinX); minZ = Math.Min(minZ, r.MinZ);
+                maxX = Math.Max(maxX, r.MaxX); maxZ = Math.Max(maxZ, r.MaxZ);
+            }
+            CenterX = (minX + maxX) / 2f; CenterZ = (minZ + maxZ) / 2f;
+            float span = Math.Max(maxX - minX, maxZ - minZ);
+            Scale = (1f - 2f * margin) / Math.Max(span, 1f);
+        }
+
+        // Mundo (x, z) → mapa (u, v), ambos em [-0,5; 0,5].
+        public (float u, float v) ToMap(float x, float z) => ((x - CenterX) * Scale, (z - CenterZ) * Scale);
+
+        // Mostrar a sala no mapa? Visitadas e as vizinhas das visitadas (a "névoa" esconde o resto).
+        public static bool Revealed(DungeonFloor f, int i) =>
+            f.Rooms[i].Visited || (i > 0 && f.Rooms[i - 1].Visited) || (i + 1 < f.Rooms.Count && f.Rooms[i + 1].Visited);
     }
 }

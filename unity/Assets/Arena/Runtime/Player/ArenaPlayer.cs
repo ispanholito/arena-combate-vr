@@ -52,6 +52,7 @@ namespace Arena
             if (!GetComponent<WeaponAbilityCaster>()) gameObject.AddComponent<WeaponAbilityCaster>();   // cenas antigas não têm
             pauseMenu = GetComponent<PauseMenu>();
             if (!pauseMenu) pauseMenu = gameObject.AddComponent<PauseMenu>();
+            if (!GetComponent<DungeonMap>()) gameObject.AddComponent<DungeonMap>();
             ResetCharacter(startClass);
             yaw = rigRoot.eulerAngles.y;
         }
