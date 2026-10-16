@@ -5,6 +5,7 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 ## Validar no Quest (pendente de teste seu)
 - **A** Novidades de 2026-10-16 (feitas sem headset): som, esqueleto, armas novas (maça, lança, adaga) e o loot no chão (grip direito pega), ferreiro, salvar/continuar, dungeon de 2 andares. Conferir desempenho da dungeon no Quest 2 (1 luz por sala).
 - **A** 2ª leva de 2026-10-16: habilidade da arma (erguer a arma acima da cabeça e golpear — ver se dispara sem querer ao aparar golpe de cima), portas da emboscada e baús, santuário com bigorna e portais, menu de opções na pausa (giro suave, sentado), armas esquecidas voltando no santuário.
+- **A** 3ª leva de 2026-10-16: espinhos (o aviso dá tempo de sair?), mímico (o bote é justo?), Goblin Arqueiro (rebater a flecha com a espada é possível no VR?), goblins cercando, HUD no pulso (posição/legibilidade).
 - **A** Espetar/cravar refeito (slime/goblin espetados e arremessados; chefe/boneco: segurar o gatilho para arrancar).
 - **A** Espada sem tremer ao andar; escudo no gatilho esquerdo; esquiva no clique do analógico direito.
 - **A** Cabeça ×1,5; machado acertando pelo gume; duas mãos (grip esquerdo no cabo).
@@ -33,20 +34,20 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 
 ## Inimigos
 - ~~Esqueleto~~ feito (desmembra e se remonta).
-- **B** Mais ataques e comportamentos para goblin e chefe (bloquear, recuar, flanquear).
-- **C** Orcs, lobos, morcegos, aranhas, mímicos.
+- ~~Goblin recuar e cercar pelos lados~~ feito; ~~Goblin Arqueiro~~ feito. **B** Goblin bloquear com a clava; chefe com mais ataques.
+- ~~Mímico~~ feito. **C** Orcs, lobos, morcegos, aranhas.
 
 ## Conteúdo e progressão (MVP)
 - **B** Modelos 3D de verdade (personagens, armas, cenário) no lugar das primitivas.
 - ~~Santuário~~ feito (fogueira, bigorna, 3 portais). **C** NPCs, loja, baú de guardar armas.
-- ~~Dungeon de 2 andares + chefe~~ feita (gerada por semente). ~~Portas que trancam e baús~~ feitos. **B** Armadilhas, tochas nas paredes, salas com formas diferentes, minimapa, mímico no baú.
+- ~~Dungeon de 2 andares + chefe~~ feita (gerada por semente). ~~Portas que trancam e baús~~ feitos. ~~Armadilhas, tochas e mímico~~ feitos. **B** Salas com formas diferentes, minimapa.
 - ~~6 armas e loot (5 raridades, 0–3 atributos), ouro, ferreiro +1 a +5~~ feito. **B** Inventário maior que 2 slots e vender/desmontar armas.
 - ~~Salvar o progresso~~ feito (nível, árvore, ouro, armas, chefes vencidos).
 - ~~Equipamento esquecido volta~~ feito (no santuário). Chamar a arma: já existe (gatilho com a arma arremessada).
 - **C** Escala de dificuldade e companheiros IA opcionais.
 
 ## Interface e conforto
-- **B** HUD no pulso (hoje preso à cabeça) e árvore de habilidades visual.
+- ~~HUD no pulso~~ como opção (ajustar posição no Quest). **B** Árvore de habilidades visual.
 - ~~Opções de conforto~~ feitas na pausa (volume, giro rápido/suave, vinheta, sentado). **B** Mão dominante (canhoto) e sensibilidade.
 
 ## Técnico
@@ -56,4 +57,4 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 - **D** PvP.
 
 ## Já feito (resumo)
-Projeto Unity no Quest; arena jogável; Lâmina e Elementalista com árvore; poderes da mão livre; Slime, Goblin, Rei Goblin; menu (continuar/novo; Arena/Dungeon/Treino) com boneco de DPS; pausa; escudo; espada física (fases 1–4); espetar/cravar; ponto fraco; som sintetizado; Esqueleto que desmembra; 6 armas com raridades, atributos, ouro e ferreiro; salvar; dungeon de 2 andares com o Rei Goblin, portas e baús; habilidades das armas; santuário; opções de conforto; armas esquecidas; 135 testes automáticos.
+Projeto Unity no Quest; arena jogável; Lâmina e Elementalista com árvore; poderes da mão livre; Slime, Goblin, Rei Goblin; menu (continuar/novo; Arena/Dungeon/Treino) com boneco de DPS; pausa; escudo; espada física (fases 1–4); espetar/cravar; ponto fraco; som sintetizado; Esqueleto que desmembra; 6 armas com raridades, atributos, ouro e ferreiro; salvar; dungeon de 2 andares com o Rei Goblin, portas e baús; habilidades das armas; santuário; opções de conforto; armas esquecidas; espinhos, mímico, Goblin Arqueiro, goblins que cercam; HUD no pulso; 142 testes automáticos.
