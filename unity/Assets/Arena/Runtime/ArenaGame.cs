@@ -40,6 +40,7 @@ namespace Arena
         void Awake()
         {
             Instance = this;
+            Time.fixedDeltaTime = 1f / 90f;   // física a 90 Hz: arma rápida e fina precisa de passos curtos
             OVRManager.HMDUnmounted += PauseFromSystem;
             OVRManager.InputFocusLost += PauseFromSystem;
         }

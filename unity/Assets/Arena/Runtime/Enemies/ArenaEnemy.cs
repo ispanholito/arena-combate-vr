@@ -29,10 +29,23 @@ namespace Arena
             State = new EnemyState(def);
             State.Damaged += OnDamaged;
             BuildModel();
+            AddBodyCollider();
             BuildBars();
             renderers = GetComponentsInChildren<Renderer>();
             foreach (var r in renderers) baseColors.Add(r.sharedMaterial.color);
             All.Add(this);
+        }
+
+        // Corpo sólido para a arma física bater e parar (Fase 1). Cinemático: quem move o inimigo é a IA, não a física.
+        void AddBodyCollider()
+        {
+            var col = gameObject.AddComponent<CapsuleCollider>();
+            col.radius = Def.Radius;
+            col.height = Mathf.Max(bodyTop - bodyBottom + Def.Radius * 2f, Def.Radius * 2f);
+            col.center = Vector3.up * (bodyBottom + bodyTop) * 0.5f;
+            var rb = gameObject.AddComponent<Rigidbody>();
+            rb.isKinematic = true;
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
         }
 
         protected abstract void BuildModel();

@@ -190,3 +190,69 @@ namespace Arena.Core.Tests
         }
     }
 }
+
+namespace Arena.Core.Tests
+{
+    public class WeaponPhysicsTests
+    {
+        [Test]
+        public void StrongerWielder_HasStifferSpring()
+        {
+            var axe = WeaponDef.MachadoPesado;
+            float weak = WeaponPhysics.Spring(WeaponPhysics.Mass(axe), WeaponPhysics.LinearOmega(axe, ClassProfile.Elementalista.Strength(1)));
+            float strong = WeaponPhysics.Spring(WeaponPhysics.Mass(axe), WeaponPhysics.LinearOmega(axe, ClassProfile.Lamina.Strength(10)));
+            Assert.Greater(strong, weak);
+        }
+
+        [Test]
+        public void HeavyAxe_IsSlowerThanSword_ForSameWielder()
+        {
+            float str = ClassProfile.Lamina.Strength(1);
+            Assert.Less(WeaponPhysics.LinearOmega(WeaponDef.MachadoPesado, str), WeaponPhysics.LinearOmega(WeaponDef.EspadaLonga, str));
+        }
+
+        [Test]
+        public void Rotation_IsSofterThanPosition()
+        {
+            float str = ClassProfile.Lamina.Strength(5);
+            Assert.Less(WeaponPhysics.AngularOmega(WeaponDef.EspadaLonga, str), WeaponPhysics.LinearOmega(WeaponDef.EspadaLonga, str));
+        }
+
+        [Test]
+        public void Damper_GivesNearCriticalDamping()
+        {
+            float m = 2f, w = 10f;
+            float k = WeaponPhysics.Spring(m, w), c = WeaponPhysics.Damper(m, w);
+            Assert.AreEqual(WeaponPhysics.DampingRatio, c / (2f * (float)System.Math.Sqrt(k * m)), 1e-3);
+        }
+
+        [Test]
+        public void Haptic_ScalesWithImpulse_AndClamps()
+        {
+            Assert.AreEqual(0f, WeaponPhysics.HapticFromImpulse(0f, WeaponDef.EspadaLonga));
+            Assert.AreEqual(1f, WeaponPhysics.HapticFromImpulse(1000f, WeaponDef.EspadaLonga));
+        }
+    }
+}
+
+namespace Arena.Core.Tests
+{
+    public class WeaponHoldingTests
+    {
+        [Test]
+        public void HeavyAxe_WeakWielder_DoesNotDroopMoreThanLimit()
+        {
+            var axe = WeaponDef.MachadoPesado;
+            float m = WeaponPhysics.Mass(axe), d = 0.75f, inertia = 0.3f + m * d * d;
+            float k = WeaponPhysics.AngularSpringHolding(inertia, WeaponPhysics.AngularOmega(axe, ClassProfile.Lamina.Strength(1)), m, d);
+            float droop = WeaponPhysics.AngularDriveCalibration * m * WeaponPhysics.Gravity * d / k;   // queda parada (rad), com a calibração medida
+            Assert.LessOrEqual(droop, WeaponPhysics.MaxRestDroopRad + 1e-4);
+        }
+
+        [Test]
+        public void HoldingSpring_NeverWeakerThanDynamicSpring()
+        {
+            Assert.GreaterOrEqual(WeaponPhysics.LinearSpringHolding(1.4f, 45f), WeaponPhysics.Spring(1.4f, 45f));
+        }
+    }
+}
