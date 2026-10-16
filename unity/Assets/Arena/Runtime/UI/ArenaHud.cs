@@ -13,6 +13,7 @@ namespace Arena
         Transform root;
         Transform hp, sta, mana, xp, bossHp, bossPosture, bossRoot;
         TextMesh info, message, bossName;
+        WeaponAbilityCaster wac;
         Renderer vignetteR, hurtR;
         float hurtFlash;
         LeftHandPowers handPowers;
@@ -117,6 +118,13 @@ namespace Arena
                 sb.Append("\n<color=#ff8080>Espada cravada: segure o gatilho ").Append((player.Weapon.PullProgress * 100f).ToString("0")).Append("%</color>");
             if (s.CounterStance > 0f) sb.Append("\n<color=#ffd36b>CONTRA ATIVO</color>");
             if (s.WindCharges > 0) sb.Append("\n<color=#cff4ff>Vento: ").Append(s.WindCharges).Append("</color>");
+            if (s.ActiveItem != null)
+            {
+                float acd = s.WeaponAbilityCooldown;
+                if (!wac) wac = player.GetComponent<WeaponAbilityCaster>();
+                sb.Append("\nArma: ").Append(s.ActiveItem.Ability.Name).Append(": ")
+                  .Append(wac && wac.Charged ? "<color=#ffe680>CARREGADA</color>" : acd > 0f ? $"<color=#aaa>{acd:0.0}s</color>" : "<color=#7CFC00>pronta</color>");
+            }
             if (ArenaGame.Instance && ArenaGame.Instance.NearBonfire) sb.Append("\n<color=#ffb060>Fogueira: curando</color>");
             info.text = sb.ToString();
 

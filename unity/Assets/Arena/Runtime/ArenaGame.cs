@@ -252,6 +252,7 @@ namespace Arena
         {
             int levelBefore = player.State.Progression.Level;
             player.State.AddKill(e.Def.Xp);
+            player.State.OnKillPassive();
             DropLoot(e);
             if (e is GoblinKing && Mode == GameMode.Dungeon)
             {

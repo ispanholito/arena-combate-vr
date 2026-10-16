@@ -48,6 +48,7 @@ namespace Arena
             Weapon = new GameObject("ArmaDoJogador").AddComponent<PlayerWeapon>();
             Weapon.Init(this);
             Shield = GetComponent<PlayerShield>();
+            if (!GetComponent<WeaponAbilityCaster>()) gameObject.AddComponent<WeaponAbilityCaster>();   // cenas antigas não têm
             ResetCharacter(startClass);
             yaw = rigRoot.eulerAngles.y;
         }

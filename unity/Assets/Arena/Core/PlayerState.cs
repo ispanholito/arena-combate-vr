@@ -101,10 +101,53 @@ namespace Arena.Core
         public void SpendGold(int g) => Gold = Math.Max(0, Gold - Math.Max(0, g));
         public void SetGold(int g) => Gold = Math.Max(0, g);
 
-        // Roubo de vida da arma.
+        // Roubo de vida da arma e passivas de golpe (Ímpeto, Eco Arcano).
         public void OnDealtDamage(float amount, WeaponDef w)
         {
             if (w != null && w.LifeSteal > 0f && amount > 0f) Hp.Restore(amount * w.LifeSteal);
+            if (amount <= 0f) return;
+            var p = ActiveItem?.Passive ?? WeaponPassive.Nenhuma;
+            if (p == WeaponPassive.Impeto) Stamina.Restore(WeaponAbilities.HitStamina);
+            if (p == WeaponPassive.EcoArcano) Mana.Restore(WeaponAbilities.HitMana);
+        }
+
+        // Passiva Sede de Sangue: abate cura.
+        public void OnKillPassive()
+        {
+            if (ActiveItem?.Passive == WeaponPassive.SedeDeSangue) Hp.Restore(WeaponAbilities.KillHeal);
+        }
+
+        // ---------- Habilidade da arma ----------
+        public float WeaponAbilityCooldown => CooldownLeft(WeaponAbilities.CooldownId);
+
+        public SkillCastResult CanUseWeaponAbility()
+        {
+            var item = ActiveItem;
+            if (item == null) return SkillCastResult.Unknown;
+            if (WeaponAbilityCooldown > 0f) return SkillCastResult.Cooldown;
+            var a = item.Ability;
+            var pool = a.Resource == ResourceKind.Mana ? Mana : Stamina;
+            return pool.Has(a.Cost) ? SkillCastResult.Ok : (a.Resource == ResourceKind.Mana ? SkillCastResult.NoMana : SkillCastResult.NoStamina);
+        }
+
+        public SkillCastResult TryWeaponAbility()
+        {
+            var r = CanUseWeaponAbility();
+            if (r != SkillCastResult.Ok) return r;
+            var item = ActiveItem;
+            (item.Ability.Resource == ResourceKind.Mana ? Mana : Stamina).TrySpend(item.Ability.Cost, 0.6f);
+            cooldowns[WeaponAbilities.CooldownId] = WeaponAbilities.CooldownFor(item);
+            return r;
+        }
+
+        // Passo Sombrio: o próximo golpe dentro da janela é crítico.
+        public float BackstabReady { get; private set; }
+        public void ArmBackstab() => BackstabReady = WeaponAbilities.BackstabWindow;
+        public bool ConsumeBackstab()
+        {
+            if (BackstabReady <= 0f) return false;
+            BackstabReady = 0f;
+            return true;
         }
 
         // Arma efetiva na mão (com raridade, atributos, ferreiro e proficiência).
@@ -230,6 +273,7 @@ namespace Arena.Core
             Invulnerable = Math.Max(0f, Invulnerable - dt);
             HurtCooldown = Math.Max(0f, HurtCooldown - dt);
             CounterStance = Math.Max(0f, CounterStance - dt);
+            BackstabReady = Math.Max(0f, BackstabReady - dt);
             Mana.RegenPerSecond = Has(SkillIds.FonteArcana) ? 14f : 7f;
             Hp.Tick(dt); Stamina.Tick(dt); Mana.Tick(dt);
             if (cooldowns.Count == 0) return;

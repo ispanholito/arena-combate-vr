@@ -17,6 +17,8 @@ namespace Arena
         Vector3 handPrev, handVel;
 
         PlayerState S => player.State;
+        // Mirando Bola de Fogo ou Raízes (a habilidade da arma não carrega nem solta nesse meio tempo).
+        public bool Aiming => fireCharge > 0f || rootAim;
         ArenaInput I => player.Input;
 
         void Awake() { player = GetComponent<ArenaPlayer>(); }

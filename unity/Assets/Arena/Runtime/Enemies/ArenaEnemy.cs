@@ -185,10 +185,20 @@ namespace Arena
             if (head) { dmg *= WeakPoints.HeadMultiplier; HeadText(); }
             if (comboBreaker.RegisterHit(State.Posture.IsBroken)) { ComboBreak(); return true; }
             if (dmg <= 0f) return false;
+            if (ps.ConsumeBackstab())
+            {
+                dmg *= WeaponAbilities.BackstabMultiplier;
+                ArenaFx.FloatText("PELAS COSTAS!", Center + Vector3.up * (0.75f + bodyTop * 0.3f), new Color(0.75f, 0.5f, 1f), 1.2f);
+            }
             ArenaAudio.Play(weapon.Weight > 5f ? Sfx.HitHeavy : Sfx.Hit, Center, 0.4f + tipSpeed / 10f);
             hitCooldown = Combat.HitCooldown;
             var ev = ApplyDamage(dmg, weapon.PostureFactor, dir, Combat.Knockback(tipSpeed, weapon));
             ps.OnDealtDamage(ev.Amount, weapon);
+            if (ps.ActiveItem?.Passive == WeaponPassive.Atordoante && !Dead && Random.value < WeaponAbilities.StunChance)
+            {
+                State.ApplyStun(WeaponAbilities.PassiveStunSeconds);
+                ArenaFx.FloatText("ATORDOADO", Center + Vector3.up * 0.9f, new Color(1f, 1f, 0.6f), 0.9f);
+            }
             ArenaInput.Haptic(Mathf.Min(1f, 0.3f + tipSpeed / 8f) * (weapon.Weight > 5 ? 1f : 0.7f), 0.05f + weapon.Weight * 0.004f);
             return true;
         }

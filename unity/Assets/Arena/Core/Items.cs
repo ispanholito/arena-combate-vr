@@ -46,14 +46,18 @@ namespace Arena.Core
         public Rarity Rarity { get; }
         public IReadOnlyList<Affix> Affixes => affixes;
         public int Upgrade { get; private set; }
+        public WeaponPassive Passive { get; }   // só Rara ou melhor
+        public WeaponAbilityDef Ability => WeaponAbilities.For(Base.Kind);
         readonly List<Affix> affixes;
 
-        public ItemInstance(WeaponDef baseDef, Rarity rarity = Rarity.Comum, IEnumerable<Affix> affixes = null, int upgrade = 0)
+        public ItemInstance(WeaponDef baseDef, Rarity rarity = Rarity.Comum, IEnumerable<Affix> affixes = null, int upgrade = 0,
+                            WeaponPassive passive = WeaponPassive.Nenhuma)
         {
             Base = baseDef ?? throw new ArgumentNullException(nameof(baseDef));
             Rarity = rarity;
             this.affixes = affixes != null ? new List<Affix>(affixes) : new List<Affix>();
             Upgrade = Math.Clamp(upgrade, 0, MaxUpgrade);
+            Passive = rarity >= Rarity.Raro ? passive : WeaponPassive.Nenhuma;
         }
 
         public static ItemInstance Basic(WeaponDef def) => new ItemInstance(def);
@@ -215,7 +219,8 @@ namespace Arena.Core
                 kinds.RemoveAt(j);
                 affixes.Add(new Affix(k, AffixValue(k, rarity, rng.NextDouble())));
             }
-            return new ItemInstance(def, rarity, affixes);
+            var passive = rarity >= Rarity.Raro ? (WeaponPassive)rng.Next(1, Enum.GetValues(typeof(WeaponPassive)).Length) : WeaponPassive.Nenhuma;
+            return new ItemInstance(def, rarity, affixes, 0, passive);
         }
 
         // Valor do atributo cresce com a raridade; t 0..1 = sorte.

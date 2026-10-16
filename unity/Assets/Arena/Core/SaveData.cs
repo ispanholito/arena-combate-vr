@@ -63,6 +63,7 @@ namespace Arena.Core
         public string weapon = "";
         public int rarity;
         public int upgrade;
+        public int passive;
         public List<AffixSave> affixes = new List<AffixSave>();
 
         public static ItemSave From(ItemInstance it)
@@ -73,6 +74,7 @@ namespace Arena.Core
                 weapon = it.Base.Id,
                 rarity = (int)it.Rarity,
                 upgrade = it.Upgrade,
+                passive = (int)it.Passive,
                 affixes = it.Affixes.Select(a => new AffixSave { kind = (int)a.Kind, value = a.Value }).ToList(),
             };
         }
@@ -86,7 +88,8 @@ namespace Arena.Core
                 .Where(a => Enum.IsDefined(typeof(AffixKind), a.kind))
                 .Take(ItemInstance.MaxAffixes(r))
                 .Select(a => new Affix((AffixKind)a.kind, Math.Clamp(a.value, 0f, 1f)));
-            return new ItemInstance(def, r, aff, upgrade);
+            var p = Enum.IsDefined(typeof(WeaponPassive), passive) ? (WeaponPassive)passive : WeaponPassive.Nenhuma;
+            return new ItemInstance(def, r, aff, upgrade, p);
         }
     }
 

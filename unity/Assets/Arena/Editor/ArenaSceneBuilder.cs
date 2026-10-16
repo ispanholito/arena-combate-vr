@@ -93,6 +93,7 @@ public static class ArenaSceneBuilder
         player.rightHand = player.trackingSpace.Find("RightHandAnchor");
         player.leftHand = player.trackingSpace.Find("LeftHandAnchor");
         rigGo.AddComponent<SkillCaster>();
+        rigGo.AddComponent<WeaponAbilityCaster>();
         rigGo.AddComponent<LeftHandPowers>();
         rigGo.AddComponent<PlayerShield>();
         rigGo.AddComponent<StartMenu>();

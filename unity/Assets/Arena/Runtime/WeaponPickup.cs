@@ -58,6 +58,9 @@ namespace Arena
             var sb = new StringBuilder();
             sb.Append(item.DisplayName).Append("  <size=48>(").Append(ItemInstance.RarityName(item.Rarity)).Append(")</size>");
             sb.Append("\n<size=48><color=#dddddd>dano x").Append(item.DamageMultiplier.ToString("0.00")).Append("</color></size>");
+            sb.Append("\n<size=48><color=#ffe680>").Append(item.Ability.Name).Append(item.Rarity == Rarity.Lendario ? " (desperta)" : "").Append("</color></size>");
+            if (item.Passive != WeaponPassive.Nenhuma)
+                sb.Append("\n<size=48><color=#c8a0ff>").Append(WeaponAbilities.PassiveName(item.Passive)).Append("</color></size>");
             foreach (var a in item.Affixes) sb.Append("\n<size=48>").Append(a.Label).Append("</size>");
             return sb.ToString();
         }
