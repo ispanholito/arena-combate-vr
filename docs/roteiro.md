@@ -3,6 +3,7 @@
 Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do MVP · **D** = futuro distante.
 
 ## Validar no Quest (pendente de teste seu)
+- **A** **Siga `docs/teste-quest.md`** (lista completa de tudo desde o último teste, na ordem de uma sessão).
 - **A** Novidades de 2026-10-16 (feitas sem headset): som, esqueleto, armas novas (maça, lança, adaga) e o loot no chão (grip direito pega), ferreiro, salvar/continuar, dungeon de 2 andares. Conferir desempenho da dungeon no Quest 2 (1 luz por sala).
 - **A** 2ª leva de 2026-10-16: habilidade da arma (erguer a arma acima da cabeça e golpear — ver se dispara sem querer ao aparar golpe de cima), portas da emboscada e baús, santuário com bigorna e portais, menu de opções na pausa (giro suave, sentado), armas esquecidas voltando no santuário.
 - **A** 3ª leva de 2026-10-16: espinhos (o aviso dá tempo de sair?), mímico (o bote é justo?), Goblin Arqueiro (rebater a flecha com a espada é possível no VR?), goblins cercando, HUD no pulso (posição/legibilidade).
@@ -26,7 +27,7 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 ## Classes e habilidades
 - **B** Lâmina e Elementalista: revisar números com o boneco; 3 habilidades + 3 passivas cada hoje.
 - **B** Loadout planejado: 4 da classe + 1 da arma + 1 suprema (hoje são 3 ativas).
-- ~~Habilidades das armas~~ feitas (1 por tipo, gesto de erguer + golpe; passivas em Rara+; lendária desperta). **B** Habilidades lendárias realmente únicas.
+- ~~Habilidades das armas e lendárias únicas~~ feitas (1 por tipo; passivas em Rara+; lendárias com nome e efeito extra).
 - **B** Sinais de mão (já prontos e testados no código, `HandSigns`) para habilidades novas.
 - **C** Classe só de mãos (provavelmente o Monge).
 - **C** Guardião (tanque com escudo pesado; diferenciar do escudo da Lâmina), Clérigo, Generalista.
@@ -34,7 +35,7 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 
 ## Inimigos
 - ~~Esqueleto~~ feito (desmembra e se remonta).
-- ~~Goblin recuar e cercar pelos lados~~ feito; ~~Goblin Arqueiro~~ feito. **B** Goblin bloquear com a clava; chefe com mais ataques.
+- ~~Goblin recuar e cercar pelos lados~~ feito; ~~Goblin Arqueiro~~ feito. ~~Goblin bloquear~~ feito. **B** Chefe com mais ataques.
 - ~~Mímico~~ feito. **C** Orcs, lobos, morcegos, aranhas.
 
 ## Conteúdo e progressão (MVP)
@@ -44,17 +45,17 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 - ~~6 armas e loot (5 raridades, 0–3 atributos), ouro, ferreiro +1 a +5~~ feito. **B** Inventário maior que 2 slots e vender/desmontar armas.
 - ~~Salvar o progresso~~ feito (nível, árvore, ouro, armas, chefes vencidos).
 - ~~Equipamento esquecido volta~~ feito (no santuário). Chamar a arma: já existe (gatilho com a arma arremessada).
-- **C** Escala de dificuldade e companheiros IA opcionais.
+- ~~Escala de dificuldade~~ feita (opção na pausa). **C** Companheiros IA opcionais.
 
 ## Interface e conforto
 - ~~HUD no pulso~~ como opção (ajustar posição no Quest). **B** Árvore de habilidades visual.
 - ~~Opções de conforto~~ feitas na pausa (volume, giro rápido/suave, vinheta, sentado). **B** Mão dominante (canhoto) e sensibilidade.
 
 ## Técnico
-- **B** Desempenho no Quest 2 (medir quadros com vários inimigos e ragdolls).
+- **A** Desempenho no Quest 2: medir com a opção "Mostrar FPS" (feita) na dungeon com vários inimigos e ragdolls.
 - **B** Rodar no PC via Quest Link (fluxo de teste rápido).
 - **C** Coop de 1 a 4 jogadores (o mais difícil: física em rede).
 - **D** PvP.
 
 ## Já feito (resumo)
-Projeto Unity no Quest; arena jogável; Lâmina e Elementalista com árvore; poderes da mão livre; Slime, Goblin, Rei Goblin; menu (continuar/novo; Arena/Dungeon/Treino) com boneco de DPS; pausa; escudo; espada física (fases 1–4); espetar/cravar; ponto fraco; som sintetizado; Esqueleto que desmembra; 6 armas com raridades, atributos, ouro e ferreiro; salvar; dungeon de 2 andares com o Rei Goblin, portas e baús; habilidades das armas; santuário; opções de conforto; armas esquecidas; espinhos, mímico, Goblin Arqueiro, goblins que cercam; HUD no pulso; 142 testes automáticos.
+Projeto Unity no Quest; arena jogável; Lâmina e Elementalista com árvore; poderes da mão livre; Slime, Goblin, Rei Goblin; menu (continuar/novo; Arena/Dungeon/Treino) com boneco de DPS; pausa; escudo; espada física (fases 1–4); espetar/cravar; ponto fraco; som sintetizado; Esqueleto que desmembra; 6 armas com raridades, atributos, ouro e ferreiro; salvar; dungeon de 2 andares com o Rei Goblin, portas e baús; habilidades das armas; santuário; opções de conforto; armas esquecidas; espinhos, mímico, Goblin Arqueiro, goblins que cercam; HUD no pulso; dificuldade; medidor de FPS; goblins que bloqueiam; lendárias únicas; 145 testes automáticos.
