@@ -19,7 +19,7 @@ namespace Arena
         public bool Dash, ToggleTree, SwitchWeapon, ShieldToggle, PausePressed;
         public int SnapTurn;                       // -1, 0, +1
         public bool APressed, BPressed, BHeld, BReleased;
-        public bool TriggerPressed, TriggerHeld, TriggerReleased, GripPressed;
+        public bool TriggerPressed, TriggerHeld, TriggerReleased, GripPressed, PickupPressed;   // pegar loot: grip (VR) ou E (desktop)
         public bool DesktopSwing, DesktopParry, DesktopThrust, DesktopThrustHeld, DesktopTwoHand;    // desktop: golpe animado / pose de aparo
         public bool DesktopLaser, DesktopSlam, DesktopPalm;
         public bool MenuUp, MenuDown, MenuConfirm, MenuRespec;
@@ -40,7 +40,7 @@ namespace Arena
             Move = Look = Vector2.zero;
             Dash = ToggleTree = SwitchWeapon = ShieldToggle = PausePressed = false; SnapTurn = 0;
             APressed = BPressed = BHeld = BReleased = false;
-            TriggerPressed = TriggerHeld = TriggerReleased = GripPressed = false;
+            TriggerPressed = TriggerHeld = TriggerReleased = GripPressed = PickupPressed = false;
             DesktopSwing = DesktopParry = DesktopThrust = DesktopThrustHeld = DesktopTwoHand = DesktopLaser = DesktopSlam = DesktopPalm = false;
             MenuUp = MenuDown = MenuConfirm = MenuRespec = false;
         }
@@ -86,6 +86,7 @@ namespace Arena
             TriggerHeld = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, R) > 0.55f;
             TriggerPressed = TriggerHeld && !trigWasHeld; TriggerReleased = !TriggerHeld && trigWasHeld; trigWasHeld = TriggerHeld;
             GripPressed = OVRInput.GetDown(OVRInput.Button.PrimaryHandTrigger, R);
+            PickupPressed = GripPressed;
 
             // Menu da árvore: analógico direito para cima/baixo, A confirma, B respec
             MenuUp = rStick.y > 0.7f && menuReady; MenuDown = rStick.y < -0.7f && menuReady;
@@ -146,6 +147,7 @@ namespace Arena
             BPressed = kb.digit3Key.wasPressedThisFrame;
             BReleased = kb.digit3Key.wasReleasedThisFrame;
             GripPressed = kb.gKey.wasPressedThisFrame;
+            PickupPressed = kb.eKey.wasPressedThisFrame;
             ShieldToggle = kb.fKey.wasPressedThisFrame;
             DesktopThrust = kb.tKey.wasPressedThisFrame;   // estocada (crava a espada)
             DesktopThrustHeld = kb.tKey.isPressed;

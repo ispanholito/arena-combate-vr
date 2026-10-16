@@ -2,7 +2,7 @@ using System;
 
 namespace Arena.Core
 {
-    public enum WeaponKind { Espada, Machado, Cajado }
+    public enum WeaponKind { Espada, Machado, Cajado, Maca, Lanca, Adaga }
 
     // Peso: com pouca Força a arma pesada "atrasa" na mão (lag no follow).
     public sealed class WeaponDef
@@ -15,11 +15,23 @@ namespace Arena.Core
         public float StaminaPerHit { get; }
         public float Length { get; }   // do cabo à ponta, em metros
 
+        // Bônus do item (raridade, atributos, ferreiro, proficiência): o ItemInstance gera uma cópia ajustada da arma base.
+        public float PostureBonus { get; private set; }     // multiplica o dano de postura (1 = normal)
+        public float LifeSteal { get; private set; }        // fração do dano que vira vida
+        public float ExecuteBonus { get; private set; }     // dano extra em inimigos com menos de 30% de vida
+        public bool Proficient { get; private set; } = true; // a classe domina a arma: libera os bônus da árvore
+
         public WeaponDef(string id, string name, WeaponKind kind, float weight, float damageMultiplier, float staminaPerHit, float length)
         {
             Id = id; Name = name; Kind = kind; Weight = weight;
             DamageMultiplier = damageMultiplier; StaminaPerHit = staminaPerHit; Length = length;
+            PostureBonus = 1f;
         }
+
+        public WeaponDef With(string name, float weight, float damageMultiplier, float staminaPerHit,
+                              float postureBonus, float lifeSteal, float executeBonus, bool proficient) =>
+            new WeaponDef(Id, name, Kind, weight, damageMultiplier, staminaPerHit, Length)
+            { PostureBonus = postureBonus, LifeSteal = lifeSteal, ExecuteBonus = executeBonus, Proficient = proficient };
 
         // Quão rápido a arma segue a mão (1/s). Força alta / arma leve = colada na mão.
         public float FollowRate(float strength) => Math.Clamp(60f * (float)Math.Pow(strength / Weight, 1.5), 5f, 45f);
@@ -27,9 +39,21 @@ namespace Arena.Core
         public static readonly WeaponDef EspadaLonga = new WeaponDef("espada", "Espada Longa", WeaponKind.Espada, 2.5f, 1.0f, 6f, 1.07f);
         public static readonly WeaponDef MachadoPesado = new WeaponDef("machado", "Machado Pesado", WeaponKind.Machado, 14f, 1.7f, 14f, 1.05f);
         public static readonly WeaponDef CajadoArcano = new WeaponDef("cajado", "Cajado Arcano", WeaponKind.Cajado, 2f, 0.5f, 5f, 1.14f);
+        // Maça: contundente (não corta nem crava), quebra muita postura. Lança: longa, crava. Adaga: leve, rápida, crava.
+        public static readonly WeaponDef MacaPesada = new WeaponDef("maca", "Maça", WeaponKind.Maca, 9f, 1.35f, 11f, 0.85f);
+        public static readonly WeaponDef Lanca = new WeaponDef("lanca", "Lança", WeaponKind.Lanca, 5f, 1.1f, 8f, 1.9f);
+        public static readonly WeaponDef Adaga = new WeaponDef("adaga", "Adaga", WeaponKind.Adaga, 1f, 0.7f, 3f, 0.45f);
+
+        public static readonly WeaponDef[] All = { EspadaLonga, MachadoPesado, CajadoArcano, MacaPesada, Lanca, Adaga };
+
+        // Arma contundente: o "fio" não importa e não corta partes do esqueleto.
+        public bool Blunt => Kind == WeaponKind.Maca || Kind == WeaponKind.Cajado;
+        // Fração do dano que vira postura no inimigo (maça quebra postura).
+        public float PostureFactor => (Kind == WeaponKind.Maca ? 1.15f : 0.7f) * PostureBonus;
+        public bool CanStab => Kind == WeaponKind.Espada || Kind == WeaponKind.Lanca || Kind == WeaponKind.Adaga;
 
         public static WeaponDef[] LoadoutFor(ClassId cls) =>
-            cls == ClassId.Lamina ? new[] { EspadaLonga, MachadoPesado } : new[] { CajadoArcano };
+            cls == ClassId.Lamina ? new[] { EspadaLonga, MachadoPesado } : new[] { CajadoArcano, Adaga };
     }
 }
 
@@ -53,6 +77,9 @@ namespace Arena.Core
         {
             WeaponKind.Espada => 1.4f,
             WeaponKind.Machado => 3.5f,
+            WeaponKind.Maca => 2.6f,
+            WeaponKind.Lanca => 2.2f,
+            WeaponKind.Adaga => 0.5f,
             _ => 1.2f,
         };
 
@@ -101,6 +128,9 @@ namespace Arena.Core
         {
             WeaponKind.Machado => new WeaponStrike(new System.Numerics.Vector3(0f, -0.3f, 0.8f), new System.Numerics.Vector3(0f, -0.3f, 1.04f),
                                                    new System.Numerics.Vector3(0f, -1f, 0f)),
+            // Maça: só a cabeça (últimos 25 cm). Lança: só a ponta (últimos 45 cm); a haste não fere.
+            WeaponKind.Maca => new WeaponStrike(new System.Numerics.Vector3(0f, 0f, w.Length - 0.25f), new System.Numerics.Vector3(0f, 0f, w.Length), System.Numerics.Vector3.Zero),
+            WeaponKind.Lanca => new WeaponStrike(new System.Numerics.Vector3(0f, 0f, w.Length - 0.45f), new System.Numerics.Vector3(0f, 0f, w.Length), System.Numerics.Vector3.Zero),
             _ => new WeaponStrike(new System.Numerics.Vector3(0f, 0f, 0.12f), new System.Numerics.Vector3(0f, 0f, w.Length), System.Numerics.Vector3.Zero),
         };
 

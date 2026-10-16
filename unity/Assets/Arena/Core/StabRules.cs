@@ -24,7 +24,7 @@ namespace Arena.Core
             kind == EnemyKind.ReiGoblin || kind == EnemyKind.Boneco ? StabStyle.Embed : StabStyle.Skewer;
 
         public static bool CanStab(WeaponKind kind, float tipSpeed, float alignment, float contactDistanceFromTip) =>
-            kind == WeaponKind.Espada && tipSpeed >= MinSpeed && alignment >= MinAlignment && contactDistanceFromTip <= TipZone;
+            (kind == WeaponKind.Espada || kind == WeaponKind.Lanca || kind == WeaponKind.Adaga) && tipSpeed >= MinSpeed && alignment >= MinAlignment && contactDistanceFromTip <= TipZone;
 
         public static float StabDamage(float tipSpeed, WeaponDef weapon, bool sharpEdge, bool hasStamina) =>
             Combat.MeleeDamage(tipSpeed, weapon, sharpEdge, hasStamina, 1f) * DamageMultiplier;

@@ -95,7 +95,9 @@ namespace Arena
             sb.Clear();
             sb.Append(s.Class.Name).Append("  Nv ").Append(prog.Level);
             if (prog.UnspentPoints > 0) sb.Append("  <color=#ffd36b>+").Append(prog.UnspentPoints).Append(" ponto(s)</color>");
-            sb.Append('\n').Append(player.Weapon.Def?.Name);
+            var rc = WeaponModels.RarityColor(player.Weapon.Rarity);
+            sb.Append("\n<color=#").Append(ColorUtility.ToHtmlStringRGB(rc)).Append('>').Append(player.Weapon.Def?.Name).Append("</color>");
+            sb.Append("  <color=#ffd34d>").Append(s.Gold).Append(" ouro</color>");
             if (!player.Weapon.Held) sb.Append(" <color=#ff9090>(arremessada)</color>");
             int n = 1;
             foreach (var node in s.Tree.Nodes)

@@ -59,7 +59,9 @@ namespace Arena
             hitCooldown = Combat.HitCooldown;
             if (comboBreaker.RegisterHit(State.Posture.IsBroken)) { ComboBreak(); return; }
             if (head) HeadText();
-            ApplyDamage(StabRules.StabDamage(tipSpeed, weapon, ps.Has(SkillIds.FioAfiado), hasSta) * (head ? WeakPoints.HeadMultiplier : 1f), 0.9f, dir, 0f);
+            var ev = ApplyDamage(StabRules.StabDamage(tipSpeed, weapon, Combat.SharpEdge(ps.Has(SkillIds.FioAfiado), weapon), hasSta)
+                * (head ? WeakPoints.HeadMultiplier : 1f) * Combat.ExecuteMultiplier(weapon, State.HpFraction), 0.9f * weapon.PostureBonus, dir, 0f);
+            ps.OnDealtDamage(ev.Amount, weapon);
         }
         float hitCooldown, hitFlash;
         Renderer[] renderers;
@@ -178,13 +180,15 @@ namespace Arena
         {
             if (Dead || hitCooldown > 0f || SpawnGrace > 0f) return false;
             bool hasSta = ps.SpendSwingStamina(weapon);
-            float dmg = Combat.MeleeDamage(tipSpeed, weapon, ps.Has(SkillIds.FioAfiado), hasSta, edge) * damageMultiplier;
+            float dmg = Combat.MeleeDamage(tipSpeed, weapon, Combat.SharpEdge(ps.Has(SkillIds.FioAfiado), weapon), hasSta, weapon.Blunt ? 1f : edge)
+                        * damageMultiplier * Combat.ExecuteMultiplier(weapon, State.HpFraction);
             if (head) { dmg *= WeakPoints.HeadMultiplier; HeadText(); }
             if (comboBreaker.RegisterHit(State.Posture.IsBroken)) { ComboBreak(); return true; }
             if (dmg <= 0f) return false;
             ArenaAudio.Play(weapon.Weight > 5f ? Sfx.HitHeavy : Sfx.Hit, Center, 0.4f + tipSpeed / 10f);
             hitCooldown = Combat.HitCooldown;
-            ApplyDamage(dmg, 0.7f, dir, Combat.Knockback(tipSpeed, weapon));
+            var ev = ApplyDamage(dmg, weapon.PostureFactor, dir, Combat.Knockback(tipSpeed, weapon));
+            ps.OnDealtDamage(ev.Amount, weapon);
             ArenaInput.Haptic(Mathf.Min(1f, 0.3f + tipSpeed / 8f) * (weapon.Weight > 5 ? 1f : 0.7f), 0.05f + weapon.Weight * 0.004f);
             return true;
         }

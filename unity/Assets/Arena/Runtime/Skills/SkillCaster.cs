@@ -30,6 +30,8 @@ namespace Arena
             var handLocal = player.trackingSpace.InverseTransformPoint(player.RightHand.position);
             if (dt > 0f) { handVel = player.trackingSpace.TransformDirection((handLocal - handPrev) / dt); handPrev = handLocal; }
             if (player.TreeOpen) { CancelAims(); return; }
+            // Grip perto de uma arma no chão: pega (em vez de arremessar a da mão).
+            if (I.PickupPressed && WeaponPickup.TryPickup(player)) { CancelAims(); return; }
             if (S.Class.Id == ClassId.Lamina) Lamina(); else Elementalista(dt);
         }
 
@@ -127,6 +129,13 @@ namespace Arena
         void Elementalista(float dt)
         {
             var w = player.Weapon;
+            // As magias saem do cristal do cajado: com outra arma na mão, só luta corpo a corpo.
+            if (!Proficiency.CanCastSpells(S.Class.Id, w.Def.Kind))
+            {
+                CancelAims();
+                if (I.TriggerPressed || I.APressed || I.BPressed) Hint("Magias precisam do cajado (troque a arma)");
+                return;
+            }
             // Bola de Fogo: segurar carrega, soltar arremessa
             if (I.TriggerPressed && fireCharge <= 0f)
             {

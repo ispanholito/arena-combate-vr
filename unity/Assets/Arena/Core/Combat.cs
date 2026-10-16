@@ -24,6 +24,12 @@ namespace Arena.Core
             return dmg;
         }
 
+        // Fio Afiado (árvore) só vale com arma que a classe domina.
+        public static bool SharpEdge(bool hasFioAfiado, WeaponDef weapon) => hasFioAfiado && weapon.Proficient;
+        // Atributo Execução: dano extra em inimigo com pouca vida.
+        public static float ExecuteMultiplier(WeaponDef weapon, float enemyHpFraction) =>
+            enemyHpFraction < ItemInstance.ExecuteThreshold ? 1f + weapon.ExecuteBonus : 1f;
+
         public static float Knockback(float tipSpeed, WeaponDef weapon) => Math.Min(6f, tipSpeed) * 0.4f * weapon.DamageMultiplier;
 
         // Bola de Fogo: carga 0..1, cai 40% na borda, QUEIMA (+60%) em enraizados.

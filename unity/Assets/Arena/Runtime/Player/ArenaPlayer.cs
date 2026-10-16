@@ -35,8 +35,6 @@ namespace Arena
 
         public event System.Action<float> Hurt;
 
-        WeaponDef[] loadout;
-        int weaponIndex;
         float yaw, pitch;
         float dashT, chargeT, chargeLen;
         Vector3 dashDir, chargeDir;
@@ -67,11 +65,13 @@ namespace Arena
             dashT = chargeT = 0f;
         }
 
-        void SetupLoadout()
+        void SetupLoadout() => EquipActive();
+
+        // Equipa a arma do slot ativo (com raridade, atributos e ferreiro). Chamado também depois de pegar loot ou melhorar.
+        public void EquipActive()
         {
-            loadout = WeaponDef.LoadoutFor(State.Class.Id);
-            weaponIndex = 0;
-            Weapon.Equip(loadout[0]);
+            var item = State.ActiveItem;
+            if (item != null) Weapon.Equip(item.Resolve(State.Class.Id), item.Rarity);
         }
 
         public void ChangeClass(ClassId cls)
@@ -82,10 +82,11 @@ namespace Arena
 
         public void SwitchWeapon()
         {
-            if (loadout.Length < 2 || !Weapon.Held) return;
-            weaponIndex = (weaponIndex + 1) % loadout.Length;
-            Weapon.Equip(loadout[weaponIndex]);
-            if (ArenaGame.Instance) ArenaGame.Instance.Message(loadout[weaponIndex].Name, 0.9f);
+            int other = 1 - State.ActiveSlot;
+            if (State.Loadout[other] == null || !Weapon.Held) return;
+            State.ActiveSlot = other;
+            EquipActive();
+            if (ArenaGame.Instance) ArenaGame.Instance.Message(State.ActiveItem.DisplayName, 0.9f);
         }
 
         void Update()

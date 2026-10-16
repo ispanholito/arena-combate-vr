@@ -18,6 +18,11 @@ namespace Arena.Core
         public float CounterStance { get; private set; }
         public int WindCharges { get; private set; }
         public int Kills { get; private set; }
+        public int Gold { get; private set; }
+        // Duas armas equipadas (troca com o clique do analógico / Q). Pegar uma arma do chão troca a da mão.
+        public ItemInstance[] Loadout { get; } = new ItemInstance[2];
+        public int ActiveSlot { get; set; }
+        public ItemInstance ActiveItem => Loadout[ActiveSlot] ?? Loadout[0];
 
         readonly Dictionary<string, float> cooldowns = new Dictionary<string, float>();
 
@@ -43,7 +48,49 @@ namespace Arena.Core
             Tree.Grant(SkillTree.StartingSkill(cls));
             Progression.RefundPoints(refunded);
             ApplyLevelStats(fill: true);
+            EnsureClassWeapon();
         }
+
+        // Personagem novo recebe as armas iniciais. Trocando de classe, mantém o que achou, mas garante a arma
+        // principal da classe (o Elementalista precisa do cajado para as magias).
+        void EnsureClassWeapon()
+        {
+            if (Loadout[0] == null) { GiveStartingWeapons(); return; }
+            var main = WeaponDef.LoadoutFor(Class.Id)[0];
+            for (int i = 0; i < Loadout.Length; i++)
+                if (Loadout[i] != null && Loadout[i].Base.Kind == main.Kind) { ActiveSlot = i; return; }
+            Loadout[0] = ItemInstance.Basic(main);
+            ActiveSlot = 0;
+        }
+
+        // Armas iniciais da classe (comuns).
+        public void GiveStartingWeapons()
+        {
+            var defs = WeaponDef.LoadoutFor(Class.Id);
+            for (int i = 0; i < Loadout.Length; i++) Loadout[i] = i < defs.Length ? ItemInstance.Basic(defs[i]) : null;
+            ActiveSlot = 0;
+        }
+
+        // Troca a arma do slot ativo pela nova; devolve a antiga (que cai no chão).
+        public ItemInstance EquipToActive(ItemInstance item)
+        {
+            var old = Loadout[ActiveSlot];
+            Loadout[ActiveSlot] = item;
+            return old;
+        }
+
+        public void AddGold(int g) => Gold += Math.Max(0, g);
+        public void SpendGold(int g) => Gold = Math.Max(0, Gold - Math.Max(0, g));
+        public void SetGold(int g) => Gold = Math.Max(0, g);
+
+        // Roubo de vida da arma.
+        public void OnDealtDamage(float amount, WeaponDef w)
+        {
+            if (w != null && w.LifeSteal > 0f && amount > 0f) Hp.Restore(amount * w.LifeSteal);
+        }
+
+        // Arma efetiva na mão (com raridade, atributos, ferreiro e proficiência).
+        public WeaponDef ActiveWeapon => ActiveItem?.Resolve(Class.Id);
 
         void OnLevelUp(int level)
         {

@@ -23,7 +23,7 @@ namespace Arena
             panel = new GameObject("Arvore").transform;
             panel.SetParent(player.Head, false);
             panel.localPosition = new Vector3(0, 0, 1.2f);
-            ArenaUtil.Prim(PrimitiveType.Quad, panel, new Vector3(0, 0, 0.01f), new Vector3(1.25f, 0.85f, 1f), ArenaUtil.Unlit(new Color(0.08f, 0.06f, 0.1f, 0.92f)));
+            ArenaUtil.Prim(PrimitiveType.Quad, panel, new Vector3(0, 0, 0.01f), new Vector3(1.25f, 1.0f, 1f), ArenaUtil.Unlit(new Color(0.08f, 0.06f, 0.1f, 0.92f)));
             text = ArenaFx.MakeText(panel, "", 0.0055f, Color.white, TextAnchor.MiddleLeft);
             text.transform.localPosition = new Vector3(-0.58f, 0, 0);
             panel.gameObject.SetActive(false);
@@ -38,7 +38,8 @@ namespace Arena
             if (!open) return;
             var s = player.State;
             var nodes = s.Tree.Nodes.ToList();
-            int count = nodes.Count + 1;
+            const int Extra = 2;   // linha 0 = trocar de classe, linha 1 = ferreiro
+            int count = nodes.Count + Extra;
             var input = player.Input;
             if (input.MenuUp) cursor = (cursor + count - 1) % count;
             if (input.MenuDown) cursor = (cursor + 1) % count;
@@ -50,7 +51,8 @@ namespace Arena
                     if (atFire) player.ChangeClass(s.Class.Id == ClassId.Lamina ? ClassId.Elementalista : ClassId.Lamina);
                     else ArenaGame.Instance?.Message("Troque de classe na fogueira", 1f);
                 }
-                else if (!s.Tree.Unlock(nodes[cursor - 1].Id)) { ArenaGame.Instance?.Message("Não dá para liberar ainda", 0.8f); ArenaAudio.Play2D(Sfx.Deny, 0.7f); }
+                else if (cursor == 1) Smith(atFire);
+                else if (!s.Tree.Unlock(nodes[cursor - Extra].Id)) { ArenaGame.Instance?.Message("Não dá para liberar ainda", 0.8f); ArenaAudio.Play2D(Sfx.Deny, 0.7f); }
                 else ArenaAudio.Play2D(Sfx.Level, 0.6f, 1.2f);
             }
             if (input.MenuRespec)
@@ -64,19 +66,36 @@ namespace Arena
             Draw(nodes, atFire);
         }
 
+        // Ferreiro (na fogueira): melhora a arma da mão de +0 até +5 com ouro.
+        void Smith(bool atFire)
+        {
+            var s = player.State;
+            var item = s.ActiveItem;
+            if (!atFire) { ArenaGame.Instance?.Message("O ferreiro fica na fogueira", 1f); return; }
+            if (item == null || !item.CanUpgrade) { ArenaGame.Instance?.Message("Arma no máximo (+5)", 1f); ArenaAudio.Play2D(Sfx.Deny, 0.7f); return; }
+            if (!Smithy.TryUpgrade(item, s)) { ArenaGame.Instance?.Message("Ouro insuficiente (" + item.UpgradeCost + ")", 1f); ArenaAudio.Play2D(Sfx.Deny, 0.7f); return; }
+            player.EquipActive();
+            ArenaAudio.Play2D(Sfx.Parry, 0.8f, 0.8f);
+            ArenaGame.Instance?.Message(item.DisplayName + "!", 1.2f);
+        }
+
         void Draw(System.Collections.Generic.List<SkillNode> nodes, bool atFire)
         {
             var s = player.State;
             sb.Clear();
             sb.Append("<b>ÁRVORE — ").Append(s.Class.Name.ToUpper()).Append("</b>   Nível ").Append(s.Progression.Level)
               .Append("   Pontos: <color=#ffd36b>").Append(s.Progression.UnspentPoints).Append("</color>\n\n");
-            sb.Append(cursor == 0 ? "> " : "   ").Append(atFire ? "Trocar de classe" : "<color=#777>Trocar de classe (na fogueira)</color>").Append("\n\n");
+            sb.Append(cursor == 0 ? "> " : "   ").Append(atFire ? "Trocar de classe" : "<color=#777>Trocar de classe (na fogueira)</color>").Append("\n");
+            var item = s.ActiveItem;
+            string smith = item == null ? "Ferreiro" : !item.CanUpgrade ? "Ferreiro: " + item.DisplayName + " (máximo)"
+                : "Ferreiro: " + item.DisplayName + " → +" + (item.Upgrade + 1) + "  (" + item.UpgradeCost + " ouro, você tem " + s.Gold + ")";
+            sb.Append(cursor == 1 ? "> " : "   ").Append(atFire ? "<color=#ffd34d>" + smith + "</color>" : "<color=#777>Ferreiro (na fogueira)</color>").Append("\n\n");
             for (int i = 0; i < nodes.Count; i++)
             {
                 var n = nodes[i];
                 bool own = s.Tree.Has(n.Id), can = s.Tree.CanUnlock(n.Id);
                 string color = own ? "#ffd36b" : can ? "#9fd0ff" : "#8a8494";
-                sb.Append(cursor == i + 1 ? "> " : "   ")
+                sb.Append(cursor == i + 2 ? "> " : "   ")
                   .Append("<color=").Append(color).Append(">").Append(n.Name).Append(n.IsActive ? " (ativa)" : " (passiva)").Append("</color>  ")
                   .Append(own ? "<color=#ffd36b>LIBERADA</color>" : can ? "<color=#9fd0ff>liberar</color>" : $"<color=#777>nível {n.MinLevel}</color>")
                   .Append("\n      <size=40><color=#bbb>").Append(n.Description).Append("</color></size>\n");

@@ -17,6 +17,7 @@ namespace Arena
 
         public ArenaPlayer Player => player;
         public WaveDirector Director { get; } = new WaveDirector();
+        public LootTable Loot { get; } = new LootTable();
         public GoblinKing Boss { get; private set; }
         public string CurrentMessage { get; private set; } = "";
         public float MessageTime { get; private set; }
@@ -106,6 +107,7 @@ namespace Arena
 
         void ClearEnemies()
         {
+            WeaponPickup.ClearAll();
             foreach (var e in ArenaEnemy.All.ToArray()) if (e) Destroy(e.gameObject);
             ArenaEnemy.All.Clear();
             Boss = null;
@@ -182,6 +184,7 @@ namespace Arena
         {
             int levelBefore = player.State.Progression.Level;
             player.State.AddKill(e.Def.Xp);
+            DropLoot(e);
             if (e is GoblinKing)
             {
                 Director.OnBossDefeated();
@@ -191,6 +194,24 @@ namespace Arena
             }
             if (player.State.Progression.Level > levelBefore)
                 Message($"Nível {player.State.Progression.Level}! +1 ponto de habilidade (abra a árvore)", 2f);
+        }
+
+        // Ouro vai direto para o jogador; às vezes cai uma arma (o chefe sempre deixa uma rara ou melhor).
+        void DropLoot(ArenaEnemy e)
+        {
+            if (Mode == GameMode.Treino) return;
+            int gold = Loot.RollGold(e.Def.Kind);
+            if (gold > 0)
+            {
+                player.State.AddGold(gold);
+                ArenaFx.FloatText("+" + gold + " ouro", e.Center + Vector3.up * 0.9f, new Color(1f, 0.85f, 0.3f), 0.9f);
+            }
+            var item = Loot.RollDrop(e.Def.Kind);
+            if (item == null) return;
+            var dir = Random.insideUnitCircle.normalized;
+            WeaponPickup.Spawn(item, e.Center, new Vector3(dir.x * 1.5f, 3.5f, dir.y * 1.5f));
+            ArenaAudio.Play(Sfx.Pickup, e.Center, 0.8f, 0.7f);
+            if (item.Rarity >= Rarity.Raro) Message(ItemInstance.RarityName(item.Rarity) + ": " + item.DisplayName + " caiu!", 1.8f);
         }
 
         public void OnBossPhase2()

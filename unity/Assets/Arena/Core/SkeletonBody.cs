@@ -35,7 +35,7 @@ namespace Arena.Core
         }
 
         public static bool CanSever(WeaponKind weapon, float speed, float edge) =>
-            weapon != WeaponKind.Cajado && speed >= SeverSpeed && edge >= SeverMinEdge;
+            (weapon == WeaponKind.Espada || weapon == WeaponKind.Machado || weapon == WeaponKind.Adaga) && speed >= SeverSpeed && edge >= SeverMinEdge;
 
         // Tenta arrancar a parte. Retorna true se caiu agora.
         public bool Sever(Limb l)

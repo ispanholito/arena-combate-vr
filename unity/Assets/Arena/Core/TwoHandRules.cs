@@ -18,6 +18,9 @@ namespace Arena.Core
         {
             WeaponKind.Espada => (-0.12f, 0.08f),     // cabo e pomo
             WeaponKind.Machado => (0.0f, 0.8f),       // cabo inteiro até a cabeça
+            WeaponKind.Maca => (0.0f, 0.5f),
+            WeaponKind.Lanca => (0.0f, 1.3f),          // haste longa: mãos bem afastadas
+            WeaponKind.Adaga => (-0.06f, 0.0f),
             _ => (0.0f, 1.0f),                        // cajado
         };
 

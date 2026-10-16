@@ -68,12 +68,14 @@ namespace Arena
             ghost.gameObject.SetActive(false);
         }
 
-        public void Equip(WeaponDef def)
+        public Rarity Rarity { get; private set; }
+
+        public void Equip(WeaponDef def, Rarity rarity = Rarity.Comum)
         {
             if (body) ReleaseStab(false);
-            Def = def;
+            Def = def; Rarity = rarity;
             if (visual) Destroy(visual.gameObject);
-            visual = BuildVisual(def).transform;
+            visual = BuildVisual(def, rarity).transform;
             if (!hasTarget) { targetPos = player.RightHand.position; targetRot = player.RightHand.rotation; }
             Attach();
             hasPrev = false;
@@ -137,49 +139,12 @@ namespace Arena
             };
         }
 
-        GameObject BuildVisual(WeaponDef def)
+        GameObject BuildVisual(WeaponDef def, Rarity rarity)
         {
             var root = new GameObject(def.Name);
-            var t = root.transform;
-            staffCrystal = null;
-            float mass = WeaponPhysics.Mass(def);
-            switch (def.Kind)
-            {
-                case WeaponKind.Espada:
-                {
-                    var metal = ArenaUtil.Lit(new Color(0.78f, 0.8f, 0.84f), new Color(0.08f, 0.08f, 0.1f));
-                    ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(0, 0, 0.55f), new Vector3(0.05f, 0.012f, 0.85f), metal);
-                    ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(0, 0, 1.0f), new Vector3(0.035f, 0.01f, 0.1f), metal);
-                    ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(0, 0, 0.11f), new Vector3(0.22f, 0.03f, 0.04f), ArenaUtil.Lit(new Color(0.54f, 0.42f, 0.16f)));
-                    var h = ArenaUtil.Prim(PrimitiveType.Cylinder, t, Vector3.zero, new Vector3(0.036f, 0.1f, 0.036f), ArenaUtil.Lit(new Color(0.23f, 0.14f, 0.08f))).transform;
-                    h.localRotation = Quaternion.Euler(90, 0, 0);
-                    AddBox(root, new Vector3(0, 0, 0.6f), new Vector3(0.05f, 0.03f, 0.95f));     // lâmina
-                    AddBox(root, new Vector3(0, 0, 0.11f), new Vector3(0.22f, 0.03f, 0.04f));    // guarda
-                    Setup(root, mass, new Vector3(0, 0, 0.15f));                                   // equilíbrio perto da guarda
-                    break;
-                }
-                case WeaponKind.Machado:
-                {
-                    var h = ArenaUtil.Prim(PrimitiveType.Cylinder, t, new Vector3(0, 0, 0.45f), new Vector3(0.05f, 0.575f, 0.05f), ArenaUtil.Lit(new Color(0.35f, 0.23f, 0.12f))).transform;
-                    h.localRotation = Quaternion.Euler(90, 0, 0);
-                    var steel = ArenaUtil.Lit(new Color(0.6f, 0.63f, 0.67f), new Color(0.06f, 0.06f, 0.07f));
-                    ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(0, -0.13f, 0.92f), new Vector3(0.06f, 0.38f, 0.26f), steel);
-                    ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(0, 0.06f, 0.92f), new Vector3(0.05f, 0.1f, 0.1f), steel);
-                    AddBox(root, new Vector3(0, 0, 0.5f), new Vector3(0.05f, 0.05f, 0.9f));      // cabo
-                    AddBox(root, new Vector3(0, -0.08f, 0.92f), new Vector3(0.06f, 0.48f, 0.26f)); // cabeça
-                    Setup(root, mass, new Vector3(0, -0.05f, 0.75f));                              // peso na cabeça: pende
-                    break;
-                }
-                default:
-                {
-                    var h = ArenaUtil.Prim(PrimitiveType.Cylinder, t, new Vector3(0, 0, 0.45f), new Vector3(0.05f, 0.65f, 0.05f), ArenaUtil.Lit(new Color(0.29f, 0.2f, 0.14f))).transform;
-                    h.localRotation = Quaternion.Euler(90, 0, 0);
-                    staffCrystal = ArenaUtil.Prim(PrimitiveType.Sphere, t, new Vector3(0, 0, 1.14f), Vector3.one * 0.12f, ArenaUtil.Lit(new Color(0.5f, 0.7f, 1f), new Color(0.3f, 0.5f, 1f))).transform;
-                    AddBox(root, new Vector3(0, 0, 0.55f), new Vector3(0.06f, 0.06f, 1.2f));
-                    Setup(root, mass, new Vector3(0, 0, 0.4f));
-                    break;
-                }
-            }
+            staffCrystal = WeaponModels.Build(root.transform, def, rarity);
+            foreach (var b in WeaponModels.Colliders(def)) AddBox(root, b.Center, b.Size);
+            Setup(root, WeaponPhysics.Mass(def), WeaponModels.CenterOfMass(def));
             return root;
         }
 
