@@ -2,7 +2,7 @@ using System;
 
 namespace Arena.Core
 {
-    public enum EnemyKind { Slime, Goblin, ReiGoblin, Boneco, Esqueleto, Mimico, Arqueiro }
+    public enum EnemyKind { Slime, Goblin, ReiGoblin, Boneco, Esqueleto, Mimico, Arqueiro, Orc }
 
     public sealed class EnemyDef
     {
@@ -38,6 +38,9 @@ namespace Arena.Core
 
         // Esqueleto: espada, mais rápido e frágil que o goblin; desmembra e se remonta (SkeletonBody).
         public static readonly EnemyDef Esqueleto = new EnemyDef(EnemyKind.Esqueleto, "Esqueleto", 55f, 80f, 30, 12f, 0.6f, 0.28f, 1.35f, 0.9f, 1.9f);
+
+        // Orc: brutamonte lento de machado grande. Golpe bem anunciado e muito forte; aguenta muito e não cambaleia à toa.
+        public static readonly EnemyDef Orc = new EnemyDef(EnemyKind.Orc, "Orc", 160f, 170f, 70, 26f, 1.05f, 0.42f, 1.7f, 2.8f, 1.35f, 1.3f);
 
         // Mímico: baú que morde. Ataque anunciado (a tampa abre e brilha) e bote curto; muita vida e postura.
         public static readonly EnemyDef Mimico = new EnemyDef(EnemyKind.Mimico, "Mímico", 110f, 120f, 50, 18f, 0.55f, 0.42f, 0.8f, 2.2f, 2.2f);

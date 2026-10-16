@@ -15,12 +15,13 @@ namespace Arena.Core
             EnemyKind.Goblin => 5,
             EnemyKind.Esqueleto => 5,
             EnemyKind.Mimico => 4,
+            EnemyKind.Orc => 5,
             EnemyKind.ReiGoblin => 4,
             _ => 0,                                       // slime e boneco não reagem
         };
 
         // O chefe só cambaleia com a postura quebrada (antes ficava travado em mini-atordoamentos).
-        public static bool CanBeStaggered(EnemyKind kind, bool postureBroken) => kind != EnemyKind.ReiGoblin || postureBroken;
+        public static bool CanBeStaggered(EnemyKind kind, bool postureBroken) => (kind != EnemyKind.ReiGoblin && kind != EnemyKind.Orc) || postureBroken;
 
         readonly int threshold;
         readonly Queue<float> hits = new Queue<float>();

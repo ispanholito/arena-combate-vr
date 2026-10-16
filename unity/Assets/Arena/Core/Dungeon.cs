@@ -279,7 +279,7 @@ namespace Arena.Core
             {
                 double r = rng.NextDouble();
                 if (floor <= 1) list.Add(r < 0.45 ? EnemyDef.Slime(1f) : r < 0.85 ? EnemyDef.Goblin : EnemyDef.Arqueiro);
-                else list.Add(r < 0.15 ? EnemyDef.Slime(1f) : r < 0.45 ? EnemyDef.Goblin : r < 0.8 ? EnemyDef.Esqueleto : EnemyDef.Arqueiro);
+                else list.Add(r < 0.12 ? EnemyDef.Slime(1f) : r < 0.4 ? EnemyDef.Goblin : r < 0.7 ? EnemyDef.Esqueleto : r < 0.88 ? EnemyDef.Arqueiro : EnemyDef.Orc);
             }
             return list;
         }

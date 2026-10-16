@@ -29,6 +29,7 @@ namespace Arena.Core
         {
             EnemyKind.Goblin => 0.3f,
             EnemyKind.Esqueleto => 0.2f,
+            EnemyKind.Orc => 0.15f,
             _ => 0f,
         };
 

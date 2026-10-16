@@ -71,6 +71,29 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void Orcs_OnlyOnFloorTwo_AndArenaFromLevel5_AndHardToStagger()
+        {
+            var rng = new System.Random(5);
+            int f1 = 0, f2 = 0;
+            for (int i = 0; i < 300; i++)
+            {
+                f1 += DungeonGenerator.RollEnemies(rng, 1, 2).Count(e => e.Kind == EnemyKind.Orc);
+                f2 += DungeonGenerator.RollEnemies(rng, 2, 2).Count(e => e.Kind == EnemyKind.Orc);
+            }
+            Assert.AreEqual(0, f1);
+            Assert.Greater(f2, 20);
+            var low = new WaveDirector(seed: 3);
+            for (int i = 0; i < 300; i++) Assert.AreNotEqual(EnemyKind.Orc, low.Tick(5f, 0, 0, 4, 0)?.Kind);
+            var high = new WaveDirector(seed: 3);
+            bool saw = false;
+            for (int i = 0; i < 300; i++) saw |= high.Tick(5f, 0, 0, 6, 0)?.Kind == EnemyKind.Orc;
+            Assert.IsTrue(saw);
+            Assert.IsFalse(ComboBreaker.CanBeStaggered(EnemyKind.Orc, false));
+            Assert.IsTrue(ComboBreaker.CanBeStaggered(EnemyKind.Orc, true));
+            Assert.AreEqual(StabStyle.Embed, StabRules.StyleFor(EnemyKind.Orc));
+        }
+
+        [Test]
         public void ArrowLob_GrowsWithDistance_AndCaps()
         {
             Assert.AreEqual(0f, ArrowRules.LobAngle(0f, ArrowRules.Speed));

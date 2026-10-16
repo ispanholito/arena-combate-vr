@@ -171,6 +171,7 @@ namespace Arena.Core
             EnemyKind.Esqueleto => 0.28f,
             EnemyKind.Arqueiro => 0.2f,
             EnemyKind.Mimico => 1f,
+            EnemyKind.Orc => 0.35f,
             EnemyKind.ReiGoblin => 1f,
             _ => 0f,
         };
@@ -182,6 +183,7 @@ namespace Arena.Core
             EnemyKind.Esqueleto => 7,
             EnemyKind.Arqueiro => 6,
             EnemyKind.Mimico => 25,
+            EnemyKind.Orc => 14,
             EnemyKind.ReiGoblin => 60,
             _ => 0,
         };
