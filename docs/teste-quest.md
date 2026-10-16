@@ -25,6 +25,7 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 - [ ] **HUD no pulso esquerdo**: dá para ler olhando para o pulso? O escudo cobre? (posição foi chutada)
 - [ ] Dificuldade (fácil/normal/difícil): no difícil os goblins aguentam mais e batem mais forte.
 - [ ] Mostrar FPS.
+- [ ] **Música** (ligar/desligar): calma no santuário, escura na dungeon, com tambor quando há inimigos perto. Cansa? Volume bom?
 
 ## 3. Correções do seu último teste (ainda não conferidas)
 - [ ] Espada **não treme ao andar** (a arma agora anda junto com o corpo; física a 72 Hz).
@@ -49,7 +50,7 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 - [ ] Testar as 6 armas: Espada, Machado, Cajado, **Maça** (só a cabeça fere, quebra postura), **Lança** (1,9 m, só a ponta fere), **Adaga** (leve). O peso de cada uma faz sentido?
 - [ ] Arma fora da classe: aviso de −15%. Elementalista sem o cajado: "Magias precisam do cajado".
 - [ ] **Bigorna** no santuário (grip perto dela): melhora a arma (+1…+5) gastando ouro.
-- [ ] Arma trocada e esquecida no chão volta **ao lado da fogueira do santuário**.
+- [ ] **Suporte de armas** (parede leste do santuário, até 12): grip numa arma pendurada troca pela sua; grip num gancho vazio guarda a sua 2ª arma. Arma esquecida na dungeon aparece pendurada lá.
 
 ## 6. Habilidade da arma (gesto novo)
 - [ ] **Erguer a arma acima da cabeça com a ponta para cima** ~0,5 s: vibra e a ponta brilha. Golpe rápido em até 4 s solta.
@@ -65,16 +66,19 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 - [ ] **Espinhos**: a placa pisca vermelho 0,7 s antes de subir. Dá tempo de sair? Atrair goblins para cima funciona?
 - [ ] Tochas nas paredes; iluminação suficiente?
 - [ ] Morrer volta à última fogueira e a sala em combate recomeça.
+- [ ] **Minimapa**: pause na dungeon — aparece à direita do menu (salas visitadas coloridas, as seguintes apagadas, você = ponto amarelo com seta). Dá para ler? Está do lado certo?
 - [ ] **FPS na dungeon** com 5–6 inimigos (anote o número).
 
 ## 8. Inimigos novos e IA
 - [ ] **Esqueleto**: golpes fortes de fio arrancam cabeça/braço/perna; sem braço não ataca, sem pernas rasteja; as peças voltam em 4 s, a menos que você quebre a peça no chão.
 - [ ] **Goblin Arqueiro**: fica longe e atira (o arco brilha ao puxar). Escudo bloqueia. **Rebater a flecha com a espada** é possível? (ela é rápida: 14 m/s)
 - [ ] Goblins em grupo **cercam pelos lados**; goblin muito ferido às vezes **recua** ("RECUOU").
+- [ ] **Orc** (andar 2 da dungeon; arena a partir do nível 5): grande, lento, golpe de machado muito forte e bem anunciado; só cambaleia com a postura quebrada. Aparar dá certo? Ele assusta?
 - [ ] Goblin/esqueleto **bloqueiam** com a arma ("BLOQUEOU") quando você bate de frente; golpe forte, machado ou duas mãos atravessam. Fica chato ou bom?
 
 ## 9. Som
 - [ ] Sons de golpe, aparo, bloqueio, cravar, magias, rugido, ossos, loot, espinhos. Algum alto/baixo demais ou irritante?
+- [ ] **Passos** ao andar com o analógico: ajudam ou irritam?
 
 ## 10. Ainda pendente (não precisa testar)
 - Teste multimodal antigo (MULTIMODAL: FUNCIONANDO) — se tiver tempo.

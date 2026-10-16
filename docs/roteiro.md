@@ -16,7 +16,7 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 ## Combate (núcleo do jogo)
 - **A** Rei Goblin: rugido precisa **jogar o jogador longe** (hoje empurra pouco); revisar a luta inteira (você pediu para fazer depois).
 - **A** Calibrar com o boneco de treino: dano de cada arma e habilidade, estamina por golpe, força do arremesso.
-- ~~Som~~ feito (28 efeitos sintetizados). **C** Passos, música ambiente e sons gravados de verdade.
+- ~~Som, passos e música ambiente~~ feitos (sintetizados). **C** Sons gravados de verdade.
 - **B** Efeitos de impacto melhores (faíscas no aparo, sangue/gosma, rastro da lâmina).
 - **B** Mãos com dedos fechando na arma (poses de empunhadura) e mão esquerda visível.
 - ~~Desmembrar~~ feito no esqueleto. **C** Estender a goblins/orcs (sem remontar).
@@ -36,13 +36,13 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 ## Inimigos
 - ~~Esqueleto~~ feito (desmembra e se remonta).
 - ~~Goblin recuar e cercar pelos lados~~ feito; ~~Goblin Arqueiro~~ feito. ~~Goblin bloquear~~ feito. **B** Chefe com mais ataques.
-- ~~Mímico~~ feito. **C** Orcs, lobos, morcegos, aranhas.
+- ~~Mímico e Orc~~ feitos. **C** Lobos, morcegos, aranhas.
 
 ## Conteúdo e progressão (MVP)
 - **B** Modelos 3D de verdade (personagens, armas, cenário) no lugar das primitivas.
 - ~~Santuário~~ feito (fogueira, bigorna, 3 portais). **C** NPCs, loja, baú de guardar armas.
-- ~~Dungeon de 2 andares + chefe~~ feita (gerada por semente). ~~Portas que trancam e baús~~ feitos. ~~Armadilhas, tochas e mímico~~ feitos. **B** Salas com formas diferentes, minimapa.
-- ~~6 armas e loot (5 raridades, 0–3 atributos), ouro, ferreiro +1 a +5~~ feito. **B** Inventário maior que 2 slots e vender/desmontar armas.
+- ~~Dungeon de 2 andares + chefe~~ feita (gerada por semente). ~~Portas que trancam e baús~~ feitos. ~~Armadilhas, tochas e mímico~~ feitos. ~~Minimapa~~ feito (na pausa). **B** Salas com formas diferentes.
+- ~~6 armas e loot (5 raridades, 0–3 atributos), ouro, ferreiro +1 a +5~~ feito. ~~Guardar armas~~ feito (suporte com 12 no santuário). **B** Vender/desmontar armas.
 - ~~Salvar o progresso~~ feito (nível, árvore, ouro, armas, chefes vencidos).
 - ~~Equipamento esquecido volta~~ feito (no santuário). Chamar a arma: já existe (gatilho com a arma arremessada).
 - ~~Escala de dificuldade~~ feita (opção na pausa). **C** Companheiros IA opcionais.
@@ -58,4 +58,4 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 - **D** PvP.
 
 ## Já feito (resumo)
-Projeto Unity no Quest; arena jogável; Lâmina e Elementalista com árvore; poderes da mão livre; Slime, Goblin, Rei Goblin; menu (continuar/novo; Arena/Dungeon/Treino) com boneco de DPS; pausa; escudo; espada física (fases 1–4); espetar/cravar; ponto fraco; som sintetizado; Esqueleto que desmembra; 6 armas com raridades, atributos, ouro e ferreiro; salvar; dungeon de 2 andares com o Rei Goblin, portas e baús; habilidades das armas; santuário; opções de conforto; armas esquecidas; espinhos, mímico, Goblin Arqueiro, goblins que cercam; HUD no pulso; dificuldade; medidor de FPS; goblins que bloqueiam; lendárias únicas; 145 testes automáticos.
+Projeto Unity no Quest; arena jogável; Lâmina e Elementalista com árvore; poderes da mão livre; Slime, Goblin, Rei Goblin; menu (continuar/novo; Arena/Dungeon/Treino) com boneco de DPS; pausa; escudo; espada física (fases 1–4); espetar/cravar; ponto fraco; som sintetizado; Esqueleto que desmembra; 6 armas com raridades, atributos, ouro e ferreiro; salvar; dungeon de 2 andares com o Rei Goblin, portas e baús; habilidades das armas; santuário; opções de conforto; armas esquecidas; espinhos, mímico, Goblin Arqueiro, goblins que cercam; HUD no pulso; dificuldade; medidor de FPS; goblins que bloqueiam; lendárias únicas; minimapa; Orc; música e passos; suporte de armas; 149 testes automáticos.
