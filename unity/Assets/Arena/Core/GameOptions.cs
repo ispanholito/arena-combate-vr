@@ -12,6 +12,7 @@ namespace Arena.Core
         public int turn = (int)TurnMode.Rapido30;
         public bool moveVignette = true;     // escurece as bordas ao andar/girar com o analógico (menos enjoo)
         public bool seated = false;          // jogar sentado: sobe a câmera
+        public bool wristHud = false;        // HUD no pulso esquerdo (como um relógio) em vez de preso à cabeça
 
         public const float SeatedBoost = 0.45f;     // metros a mais na altura dos olhos
         public const float SmoothTurnSpeed = 100f;  // graus/s

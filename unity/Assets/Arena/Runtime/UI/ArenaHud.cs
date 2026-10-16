@@ -79,6 +79,27 @@ namespace Arena
             return q.GetComponent<Renderer>();
         }
 
+        // HUD na cabeça (padrão) ou no pulso esquerdo como um relógio (opção da pausa; só no VR).
+        void PlaceHud()
+        {
+            bool wrist = SaveSystem.Options.wristHud && player.IsVr && player.leftHand;
+            var parent = wrist ? player.leftHand : player.Head;
+            if (root.parent == parent) return;
+            root.SetParent(parent, false);
+            if (wrist)
+            {
+                root.localPosition = new Vector3(0.06f, 0.04f, -0.14f);   // em cima do pulso, olhando para cima
+                root.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                root.localScale = Vector3.one * 0.7f;
+            }
+            else
+            {
+                root.localPosition = new Vector3(-0.32f, -0.3f, 0.9f);
+                root.localRotation = Quaternion.Euler(10f, -12f, 0f);
+                root.localScale = Vector3.one;
+            }
+        }
+
         static void SetFill(Transform t, float f) => t.localScale = new Vector3(Mathf.Clamp(f, 0.001f, 1f), 1, 1);
 
         void LateUpdate()
@@ -86,6 +107,7 @@ namespace Arena
             // Se o código for recarregado com o jogo rodando, as referências criadas no Start somem: fica quieto.
             if (!player || !pausePanel || player.State == null) return;
             pausePanel.gameObject.SetActive(false);   // a pausa agora é o PauseMenu (com opções)
+            PlaceHud();
             var s = player.State;
             SetFill(hp, s.Hp.Fraction);
             SetFill(sta, s.Stamina.Fraction);
