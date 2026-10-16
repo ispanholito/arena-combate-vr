@@ -55,7 +55,8 @@ namespace Arena
             ArenaUtil.Prim(PrimitiveType.Quad, pausePanel, new Vector3(0, 0, 0.01f), new Vector3(0.9f, 0.5f, 1f), ArenaUtil.Unlit(new Color(0.05f, 0.04f, 0.07f, 0.9f)));
             var pt = ArenaFx.MakeText(pausePanel,
                 "<b>PAUSADO</b>\n\n<size=44>Para continuar: botão Menu (☰) do controle esquerdo\n" +
-                "ou o gesto de menu da mão esquerda\n(palma virada para você + pinça)\n\nDesktop: P ou Esc</size>",
+                "ou o gesto de menu da mão esquerda (palma virada para você + pinça), ou A\n\n" +
+                "B: voltar ao menu inicial\n\nDesktop: P/Esc ou Enter continua · R menu inicial</size>",
                 0.006f, Color.white);
             pt.transform.localPosition = Vector3.zero;
             pausePanel.gameObject.SetActive(false);

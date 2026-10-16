@@ -34,7 +34,7 @@ namespace Arena
 
         void Update()
         {
-            if (ArenaGame.Paused) return;
+            if (ArenaGame.Blocked) return;
             float dt = Time.deltaTime;
             gunCooldown -= dt;
             if (player.IsVr) TrackHand(dt); else HandTracked = false;

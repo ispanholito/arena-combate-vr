@@ -31,7 +31,7 @@ namespace Arena
 
         void Update()
         {
-            if (ArenaGame.Paused) { if (panel) panel.gameObject.SetActive(false); return; }
+            if (ArenaGame.Blocked) { if (panel) panel.gameObject.SetActive(false); return; }
             bool open = player.TreeOpen;
             if (panel.gameObject.activeSelf != open) panel.gameObject.SetActive(open);
             if (!open) return;

@@ -69,8 +69,8 @@ namespace Arena
                 DesktopRaised = raise;
                 DesktopRaisedFor += Time.deltaTime;
                 var cam = player.Head;
-                var lp = raise ? new Vector3(-0.12f, -0.12f, 0.42f) : new Vector3(-0.32f, -0.42f, 0.32f);
-                var lr = raise ? Quaternion.identity : Quaternion.Euler(20f, -50f, 0f);
+                var lp = raise ? new Vector3(-0.12f, -0.12f, 0.42f) : new Vector3(-0.5f, -0.55f, 0.3f);
+                var lr = raise ? Quaternion.identity : Quaternion.Euler(30f, -75f, 0f);
                 float k = 1f - Mathf.Exp(-25f * Time.deltaTime);
                 visual.position = Vector3.Lerp(visual.position, cam.TransformPoint(lp), k);
                 visual.rotation = Quaternion.Slerp(visual.rotation, cam.rotation * lr, k);

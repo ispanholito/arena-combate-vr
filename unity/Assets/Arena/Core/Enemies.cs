@@ -2,7 +2,7 @@ using System;
 
 namespace Arena.Core
 {
-    public enum EnemyKind { Slime, Goblin, ReiGoblin }
+    public enum EnemyKind { Slime, Goblin, ReiGoblin, Boneco }
 
     public sealed class EnemyDef
     {
@@ -35,6 +35,9 @@ namespace Arena.Core
         public static bool SlimeSplits(float size) => size > SlimeSplitMinSize;
 
         public static readonly EnemyDef Goblin = new EnemyDef(EnemyKind.Goblin, "Goblin", 70f, 100f, 35, 15f, 0.75f, 0.32f, 1.15f, 1.2f, 1.6f);
+
+        // Boneco de treino (modo Treino): não ataca nem anda, vida enorme que volta cheia, postura de goblin forte.
+        public static readonly EnemyDef Boneco = new EnemyDef(EnemyKind.Boneco, "Boneco de treino", 100000f, 150f, 0, 0f, 0f, 0.3f, 1.6f, 1000f, 0f);
 
         // Rei Goblin: fica mais forte a cada vitória.
         public static EnemyDef ReiGoblin(int timesDefeated = 0) => new EnemyDef(EnemyKind.ReiGoblin, "Rei Goblin",
@@ -94,6 +97,7 @@ namespace Arena.Core
         public void ApplySlow(float s) => Slow = Math.Max(Slow, s);
         public void ApplyFreeze(float s) => Frozen = Math.Max(Frozen, s);
         public void ApplyRoot(float s) => Rooted = Math.Max(Rooted, s);
+        public void HealFull() => Hp = Def.MaxHp;
 
         public void Tick(float dt)
         {

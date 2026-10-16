@@ -47,16 +47,23 @@ namespace Arena
 
         void Awake()
         {
-            State = new PlayerState(startClass);
             Weapon = new GameObject("ArmaDoJogador").AddComponent<PlayerWeapon>();
             Weapon.Init(this);
             Shield = GetComponent<PlayerShield>();
-            SetupLoadout();
+            ResetCharacter(startClass);
+            yaw = rigRoot.eulerAngles.y;
+        }
+
+        // Personagem novo (nível 1) da classe escolhida. Usado pelo menu inicial a cada partida.
+        public void ResetCharacter(ClassId cls)
+        {
+            State = new PlayerState(cls);
             State.Died += lost =>
             {
                 if (ArenaGame.Instance) ArenaGame.Instance.OnPlayerDied(lost);
             };
-            yaw = rigRoot.eulerAngles.y;
+            SetupLoadout();
+            dashT = chargeT = 0f;
         }
 
         void SetupLoadout()
@@ -85,9 +92,12 @@ namespace Arena
             float dt = Time.deltaTime;
             IsVr = XRSettings.isDeviceActive;
             Input.Update(IsVr, Time.unscaledDeltaTime);   // entrada e altura funcionam também pausado
-            if (Input.PausePressed && ArenaGame.Instance) ArenaGame.Instance.SetPaused(!ArenaGame.Paused);
+            var game = ArenaGame.Instance;
+            if (Input.PausePressed && game && !ArenaGame.InMenu) game.SetPaused(!ArenaGame.Paused);
             if (ArenaGame.Paused)
             {
+                if (Input.MenuConfirm) game.SetPaused(false);          // A / Enter: continuar
+                else if (Input.MenuRespec) game.ReturnToMenu();      // B / R: menu inicial
                 if (!IsVr) Cursor.lockState = CursorLockMode.None;
                 else VrHeight(Time.unscaledDeltaTime);
                 return;
@@ -95,7 +105,7 @@ namespace Arena
             if (!IsVr) DesktopLook();
             else VrHeight(dt);
 
-            if (Input.ToggleTree) TreeOpen = !TreeOpen;
+            if (Input.ToggleTree && !ArenaGame.InMenu) TreeOpen = !TreeOpen;
             if (!TreeOpen)
             {
                 if (Input.SwitchWeapon) SwitchWeapon();

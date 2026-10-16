@@ -52,10 +52,53 @@ namespace Arena
             if (Instance == this) Instance = null;
         }
 
-        void Start()
+        // ---------- Modos: menu inicial, Arena (ondas + chefe) e Treino (boneco parado) ----------
+        public enum GameMode { Menu, Arena, Treino }
+        public GameMode Mode { get; private set; } = GameMode.Menu;
+        public static bool InMenu => Instance && Instance.Mode == GameMode.Menu;
+        // Bloqueia habilidades, poderes e árvore (pausado ou no menu inicial).
+        public static bool Blocked => Paused || InMenu;
+
+        void Start() => ReturnToMenu();
+
+        public void ReturnToMenu()
         {
+            SetPaused(false);
+            ClearEnemies();
+            Mode = GameMode.Menu;
+            spawnWaves = false;
+            player.TreeOpen = false;
             player.TeleportTo(BonfireStandPoint, Vector3.zero);
-            Message($"{player.State.Class.Name}: sobreviva às ondas. Fogueira = cura.", 3f);
+        }
+
+        public void StartMode(GameMode mode, ClassId cls)
+        {
+            ClearEnemies();
+            player.ResetCharacter(cls);
+            Mode = mode;
+            player.TeleportTo(BonfireStandPoint, Vector3.zero);
+            if (mode == GameMode.Arena)
+            {
+                spawnWaves = true;
+                Director.Reset(2f);
+                Message($"{player.State.Class.Name}: sobreviva às ondas. Fogueira = cura.", 3f);
+            }
+            else
+            {
+                spawnWaves = false;
+                // Treino: nível máximo do MVP com os pontos livres, sem tomar dano, recursos voltam rápido.
+                var p = player.State.Progression;
+                p.GainXp(1000000);
+                Spawn(EnemyDef.Boneco, new Vector3(0f, 0f, 0f), false);
+                Message("Treino: nível " + p.Level + ", " + p.UnspentPoints + " pontos para gastar na árvore (A+B)", 4f);
+            }
+        }
+
+        void ClearEnemies()
+        {
+            foreach (var e in ArenaEnemy.All.ToArray()) if (e) Destroy(e.gameObject);
+            ArenaEnemy.All.Clear();
+            Boss = null;
         }
 
         Vector3 BonfireStandPoint => bonfire.position + (Vector3.zero - bonfire.position).Flat().normalized * 1.5f;
@@ -64,7 +107,13 @@ namespace Arena
         {
             float dt = Time.deltaTime;
             MessageTime -= dt;
-            if (spawnWaves && !player.TreeOpen)
+            if (Mode == GameMode.Treino)
+            {
+                player.State.SetInvulnerable(1f);
+                player.State.Stamina.Restore(60f * dt);
+                player.State.Mana.Restore(40f * dt);
+            }
+            if (Mode == GameMode.Arena && spawnWaves && !player.TreeOpen)
             {
                 int alive = 0, goblins = 0;
                 foreach (var e in ArenaEnemy.All) { if (e == null || e.Dead) continue; alive++; if (e is GoblinEnemy && !(e is GoblinKing)) goblins++; }
@@ -108,6 +157,7 @@ namespace Arena
             {
                 EnemyKind.Slime => go.AddComponent<SlimeEnemy>(),
                 EnemyKind.Goblin => go.AddComponent<GoblinEnemy>(),
+                EnemyKind.Boneco => go.AddComponent<TrainingDummy>(),
                 _ => go.AddComponent<GoblinKing>(),
             };
             e.Init(def);

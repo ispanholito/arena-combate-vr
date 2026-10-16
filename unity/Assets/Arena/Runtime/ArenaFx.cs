@@ -33,7 +33,9 @@ namespace Arena
             go.transform.SetParent(parent, false);
             var tm = go.AddComponent<TextMesh>();
             tm.font = I.font;
-            go.GetComponent<MeshRenderer>().sharedMaterial = I.font.material;
+            var mr = go.GetComponent<MeshRenderer>();
+            mr.sharedMaterial = I.font.material;
+            mr.sortingOrder = 10;   // texto sempre por cima do fundo dos painéis
             tm.fontSize = 64; tm.characterSize = charSize; tm.anchor = anchor;
             tm.alignment = anchor == TextAnchor.MiddleLeft || anchor == TextAnchor.UpperLeft ? TextAlignment.Left : TextAlignment.Center;
             tm.color = color; tm.text = text; tm.richText = true;
