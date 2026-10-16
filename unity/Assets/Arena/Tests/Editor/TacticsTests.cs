@@ -15,6 +15,20 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void Block_OnlyFromFront_WithLuck_AndHeavyHitsBreakThrough()
+        {
+            Assert.AreEqual(GoblinTactics.BlockOutcome.Blocked, GoblinTactics.ResolveBlock(EnemyKind.Goblin, true, 1f, 0.1, 4f, 2.5f, false));
+            Assert.AreEqual(GoblinTactics.BlockOutcome.None, GoblinTactics.ResolveBlock(EnemyKind.Goblin, true, 0.2f, 0.1, 4f, 2.5f, false));   // de lado
+            Assert.AreEqual(GoblinTactics.BlockOutcome.None, GoblinTactics.ResolveBlock(EnemyKind.Goblin, false, 1f, 0.1, 4f, 2.5f, false));
+            Assert.AreEqual(GoblinTactics.BlockOutcome.None, GoblinTactics.ResolveBlock(EnemyKind.Goblin, true, 1f, 0.9, 4f, 2.5f, false));
+            Assert.AreEqual(GoblinTactics.BlockOutcome.BrokeThrough, GoblinTactics.ResolveBlock(EnemyKind.Goblin, true, 1f, 0.1, 9f, 2.5f, false));
+            Assert.AreEqual(GoblinTactics.BlockOutcome.BrokeThrough, GoblinTactics.ResolveBlock(EnemyKind.Goblin, true, 1f, 0.1, 4f, 14f, false));   // machado
+            Assert.AreEqual(GoblinTactics.BlockOutcome.BrokeThrough, GoblinTactics.ResolveBlock(EnemyKind.Goblin, true, 1f, 0.1, 4f, 2.5f, true));   // duas mãos
+            Assert.AreEqual(GoblinTactics.BlockOutcome.None, GoblinTactics.ResolveBlock(EnemyKind.Slime, true, 1f, 0.0, 4f, 2.5f, false));
+            Assert.Less(GoblinTactics.BlockChance(EnemyKind.Esqueleto), GoblinTactics.BlockChance(EnemyKind.Goblin));
+        }
+
+        [Test]
         public void Retreat_OnlyHurtGoblin_Once()
         {
             Assert.IsTrue(GoblinTactics.ShouldRetreat(EnemyKind.Goblin, 0.2f, false, 0.1));

@@ -190,6 +190,14 @@ namespace Arena
                 dmg *= WeaponAbilities.BackstabMultiplier;
                 ArenaFx.FloatText("PELAS COSTAS!", Center + Vector3.up * (0.75f + bodyTop * 0.3f), new Color(0.75f, 0.5f, 1f), 1.2f);
             }
+            // Defesa com a arma (goblin/esqueleto): 0 = bloqueou tudo (só postura), 0,5 = golpe forte atravessou.
+            float block = BlockMultiplier(tipSpeed, weapon, dmg);
+            if (block <= 0f)
+            {
+                hitCooldown = Combat.HitCooldown;
+                return true;
+            }
+            dmg *= block;
             ArenaAudio.Play(weapon.Weight > 5f ? Sfx.HitHeavy : Sfx.Hit, Center, 0.4f + tipSpeed / 10f);
             hitCooldown = Combat.HitCooldown;
             var ev = ApplyDamage(dmg, weapon.PostureFactor, dir, Combat.Knockback(tipSpeed, weapon));
@@ -229,6 +237,9 @@ namespace Arena
             OnHit(ev);
             if (ev.Killed) Die();
         }
+
+        // Inimigos que bloqueiam golpes com a arma sobrescrevem (multiplicador do dano: 1 = não bloqueou).
+        protected virtual float BlockMultiplier(float tipSpeed, WeaponDef weapon, float damage) => 1f;
 
         protected virtual void OnHit(DamageEvent ev) { }
 

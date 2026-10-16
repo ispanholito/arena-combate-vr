@@ -102,6 +102,39 @@ namespace Arena
             }
         }
 
+        // Bloqueio com a clava (GoblinTactics): só de frente, parado ou se recuperando, sem estar atordoado.
+        float blockCd;
+        protected override float BlockMultiplier(float tipSpeed, WeaponDef weapon, float damage)
+        {
+            if (this is GoblinKing || this is ArcherEnemy) return 1f;
+            bool canBlock = blockCd <= 0f && State.CanAct && !State.Posture.IsBroken && (state == AiState.Approach || state == AiState.Recover)
+                            && (this is not SkeletonEnemy || CanAttackNow);   // esqueleto sem o braço da espada não bloqueia
+            var from = (Player.FeetPosition - transform.position).Flat();
+            float facing = from.sqrMagnitude > 1e-4f ? Vector3.Dot(transform.forward, from.normalized) : 0f;
+            var r = GoblinTactics.ResolveBlock(Def.Kind, canBlock, facing, Random.value, tipSpeed, weapon.Weight, Player.Weapon.TwoHanded);
+            if (r == GoblinTactics.BlockOutcome.None) return 1f;
+            blockCd = GoblinTactics.BlockCooldown;
+            var at = arm.TransformPoint(new Vector3(0, 0.5f, 0));
+            SetArm(-80f);   // clava atravessada na frente
+            State.AddPosture(damage * GoblinTactics.BlockPostureFactor);
+            ArenaAudio.Play(Sfx.Block, at, 0.9f, 0.9f);
+            ArenaFx.Burst(at, new Color(1f, 0.82f, 0.56f), 8, 2.5f);
+            ArenaInput.Haptic(0.6f, 0.06f);
+            if (r == GoblinTactics.BlockOutcome.Blocked)
+            {
+                ArenaFx.FloatText("BLOQUEOU", at + Vector3.up * 0.2f, new Color(0.85f, 0.85f, 0.85f), 0.9f);
+                return 0f;
+            }
+            ArenaFx.FloatText("ATRAVESSOU A DEFESA", at + Vector3.up * 0.2f, new Color(1f, 0.7f, 0.4f), 0.9f);
+            return 0.5f;
+        }
+
+        protected override void Update()
+        {
+            blockCd -= Time.deltaTime;
+            base.Update();
+        }
+
         // Override para o chefe; retorna true se assumiu o controle neste frame.
         protected virtual bool ExtraAI(float dt, float d) => false;
 
