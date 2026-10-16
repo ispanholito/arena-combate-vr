@@ -184,7 +184,7 @@ namespace Arena.Core.Tests
             Assert.AreEqual(EnemyKind.ReiGoblin, boss.Kind);
             Assert.AreEqual(0, d.TargetCount(1), "fase 1 do chefe: sozinho");
             d.BossPhase = 2;
-            Assert.AreEqual(2, d.TargetCount(1));
+            Assert.AreEqual(0, d.TargetCount(1), "fase 2 também sozinho (estilo Souls)");
             d.OnBossDefeated();
             Assert.AreEqual(1, d.BossesDefeated);
         }

@@ -215,7 +215,9 @@ namespace Arena
                                        Color? color = null, bool burn = false, bool canCrit = true)
         {
             if (Dead || SpawnGrace > 0f) return default;
-            var ev = State.TakeDamage(amount, postureFactor, canCrit, burn);
+            // Chefe estilo Souls se defende fora da postura quebrada: menos vida, mas a postura sobe igual.
+            float guard = IncomingDamageMultiplier;
+            var ev = State.TakeDamage(amount * guard, postureFactor / Mathf.Max(guard, 0.01f) * IncomingPostureMultiplier, canCrit, burn);
             if (dir.HasValue && knockback > 0f)
             {
                 var d = dir.Value.Flat();
@@ -240,6 +242,9 @@ namespace Arena
 
         // Inimigos que bloqueiam golpes com a arma sobrescrevem (multiplicador do dano: 1 = não bloqueou).
         protected virtual float BlockMultiplier(float tipSpeed, WeaponDef weapon, float damage) => 1f;
+        // Multiplicador do dano recebido (o chefe se defende fora da postura quebrada).
+        protected virtual float IncomingDamageMultiplier => 1f;
+        protected virtual float IncomingPostureMultiplier => 1f;
 
         protected virtual void OnHit(DamageEvent ev) { }
 

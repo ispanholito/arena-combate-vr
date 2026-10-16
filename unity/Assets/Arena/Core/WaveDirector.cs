@@ -21,7 +21,7 @@ namespace Arena.Core
         public WaveDirector(int seed = 0) { rng = seed == 0 ? new Random() : new Random(seed); }
 
         public int TargetCount(int playerLevel) =>
-            BossAlive ? (BossPhase == 2 ? 2 : 0) : Math.Min(6, 2 + playerLevel / 2);
+            BossAlive ? 0 : Math.Min(6, 2 + playerLevel / 2);   // chefe estilo Souls: luta sozinho, sem ondas junto
 
         public int MaxGoblins(int playerLevel) => 1 + playerLevel / 3;
 

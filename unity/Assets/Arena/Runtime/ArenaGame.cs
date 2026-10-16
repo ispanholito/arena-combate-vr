@@ -276,7 +276,8 @@ namespace Arena
 
         public ArenaEnemy Spawn(EnemyDef def, Vector3 pos, bool fromDirector)
         {
-            if (def.Kind != EnemyKind.Boneco) def = def.WithHp(DifficultyRules.EnemyHp(SaveSystem.Options.Difficulty) * ArcadeRules.HpMultiplier(CurrentTier));
+            var diff = SaveSystem.Options.Difficulty;
+            if (def.Kind != EnemyKind.Boneco) def = def.Scaled(DifficultyRules.EnemyHp(diff) * ArcadeRules.HpMultiplier(CurrentTier), DifficultyRules.WindupMultiplier(diff));
             var go = new GameObject(def.Name);
             go.transform.SetParent(enemyRoot, false);
             go.transform.position = ArenaUtil.ClampToArena(new Vector3(pos.x, 0, pos.z));

@@ -38,7 +38,7 @@ namespace Arena.Core
         public static float ExplosionFalloff(float distance, float radius) => 1f - 0.4f * Math.Min(1f, distance / Math.Max(0.01f, radius));
         public const float BurnMultiplier = 1.6f;
 
-        public const float IceDamage = 18f, IcePosture = 0.9f, IceSlowSeconds = 2.5f, IceFreezeSeconds = 1.5f;
+        public const float IceDamage = 22f, IcePosture = 0.9f, IceSlowSeconds = 2.5f, IceFreezeSeconds = 1.5f;
         public const int IcePierce = 3;
         public const float RootSeconds = 3f, RootRadius = 2.2f;
         public const float RootMaxRange = 12f;

@@ -41,6 +41,19 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void Difficulty_ChangesAttackWarningTime()
+        {
+            Assert.Greater(DifficultyRules.WindupMultiplier(Difficulty.Facil), 1f);
+            Assert.Less(DifficultyRules.WindupMultiplier(Difficulty.Dificil), 1f);
+            var g = EnemyDef.Goblin.Scaled(1.3f, 0.85f);
+            Assert.AreEqual(EnemyDef.Goblin.Windup * 0.85f, g.Windup, 1e-4);
+            Assert.AreEqual(91f, g.MaxHp);
+            Assert.Less(BossRules.HitPostureMultiplier, 1f);
+            Assert.AreEqual(1.2f, WeaponAbilities.DamagePower(Rarity.Lendario));
+            Assert.Greater(Combat.IceDamage / 15f, 1.4f);   // Lança de Gelo: dano por mana
+        }
+
+        [Test]
         public void Sanitize_FixesBadValues()
         {
             var o = new GameOptions { volume = 7f, turn = 99 }.Sanitized();

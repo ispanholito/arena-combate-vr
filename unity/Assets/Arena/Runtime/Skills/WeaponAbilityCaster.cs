@@ -91,7 +91,7 @@ namespace Arena
             var w = player.Weapon;
             var def = w.Def;
             float power = WeaponAbilities.Power(item.Rarity);
-            float dmg = WeaponAbilities.BaseDamage(item.Ability.Kind) * def.DamageMultiplier * power;
+            float dmg = WeaponAbilities.BaseDamage(item.Ability.Kind) * def.DamageMultiplier * WeaponAbilities.DamagePower(item.Rarity);
             var feet = player.FeetPosition;
             var color = WeaponModels.RarityColor(item.Rarity == Rarity.Comum ? Rarity.Raro : item.Rarity);
             ArenaGame.Instance?.Message(item.Ability.Name + "!", 0.9f);

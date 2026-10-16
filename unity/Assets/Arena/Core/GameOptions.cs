@@ -10,6 +10,8 @@ namespace Arena.Core
     {
         public static float DamageTaken(Difficulty d) => d switch { Difficulty.Facil => 0.6f, Difficulty.Dificil => 1.4f, _ => 1f };
         public static float EnemyHp(Difficulty d) => d switch { Difficulty.Facil => 0.75f, Difficulty.Dificil => 1.3f, _ => 1f };
+        // Agressividade: tempo de aviso dos ataques (fácil dá mais tempo para reagir).
+        public static float WindupMultiplier(Difficulty d) => d switch { Difficulty.Facil => 1.25f, Difficulty.Dificil => 0.85f, _ => 1f };
         public static string Label(Difficulty d) => d switch { Difficulty.Facil => "Fácil", Difficulty.Dificil => "Difícil", _ => "Normal" };
     }
 

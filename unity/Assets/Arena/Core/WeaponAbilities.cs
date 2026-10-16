@@ -53,6 +53,8 @@ namespace Arena.Core
 
         // Lendária: nome próprio, habilidade desperta (efeito ×1,5, recarga −40%) e um efeito extra único por tipo de arma.
         public static float Power(Rarity r) => r == Rarity.Lendario ? 1.5f : 1f;
+        // Para o DANO a lendária ganha só +20% (o ×1,5 vale para alcance e duração): antes a Fenda lendária dava 98 e matava goblin de um golpe.
+        public static float DamagePower(Rarity r) => r == Rarity.Lendario ? 1.2f : 1f;
 
         public static string LegendaryName(WeaponKind k) => k switch
         {
