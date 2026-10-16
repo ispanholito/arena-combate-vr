@@ -18,6 +18,7 @@ namespace Arena
         public Vector2 Move, Look;
         public bool Dash, ToggleTree, SwitchWeapon, ShieldToggle, PausePressed;
         public int SnapTurn;                       // -1, 0, +1
+        public float TurnAxis;                     // giro suave (analógico direito com dois controles)
         public bool APressed, BPressed, BHeld, BReleased;
         public bool TriggerPressed, TriggerHeld, TriggerReleased, GripPressed, PickupPressed;   // pegar loot: grip (VR) ou E (desktop)
         public bool DesktopSwing, DesktopParry, DesktopThrust, DesktopThrustHeld, DesktopTwoHand;    // desktop: golpe animado / pose de aparo
@@ -39,7 +40,7 @@ namespace Arena
         void Reset()
         {
             Move = Look = Vector2.zero;
-            Dash = ToggleTree = SwitchWeapon = ShieldToggle = PausePressed = false; SnapTurn = 0;
+            Dash = ToggleTree = SwitchWeapon = ShieldToggle = PausePressed = false; SnapTurn = 0; TurnAxis = 0f;
             APressed = BPressed = BHeld = BReleased = false;
             TriggerPressed = TriggerHeld = TriggerReleased = GripPressed = PickupPressed = false;
             DesktopSwing = DesktopParry = DesktopThrust = DesktopThrustHeld = DesktopTwoHand = DesktopLaser = DesktopSlam = DesktopPalm = WeaponAbility = false;
@@ -60,6 +61,7 @@ namespace Arena
                 ShieldToggle = OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger, L); // gatilho esquerdo: escudo nas costas / na mão
                 ToggleTree = OVRInput.GetDown(OVRInput.Button.Two, L);    // Y
                 SwitchWeapon = OVRInput.GetDown(OVRInput.Button.PrimaryThumbstick, L);
+                TurnAxis = rStick.x;
                 if (Mathf.Abs(rStick.x) > 0.7f && snapReady) { snapReady = false; SnapTurn = rStick.x > 0 ? 1 : -1; }
                 else if (Mathf.Abs(rStick.x) < 0.3f) snapReady = true;
             }

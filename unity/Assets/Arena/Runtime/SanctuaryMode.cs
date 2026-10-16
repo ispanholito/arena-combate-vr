@@ -124,7 +124,7 @@ namespace Arena
             ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(1.05f, 1.3f, 0), new Vector3(0.25f, 2.6f, 0.25f), stone, keepCollider: true);
             ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(0, 2.7f, 0), new Vector3(2.4f, 0.3f, 0.3f), stone);
             ArenaUtil.Prim(PrimitiveType.Quad, t, new Vector3(0, 1.3f, 0), new Vector3(1.8f, 2.5f, 1f), ArenaUtil.Unlit(new Color(c.r, c.g, c.b, 0.35f)));   // véu do portal (visto do sul)
-            var label = ArenaFx.MakeText(t, title + "\n<size=40>" + desc + "</size>", 0.007f, Color.white);
+            var label = ArenaFx.MakeText(t, title + "\n<size=40>" + desc + "</size>", 0.012f, Color.white);
             label.transform.localPosition = new Vector3(0, 3.3f, 0);
             label.transform.localRotation = Quaternion.LookRotation(Vector3.forward);
             var l = new GameObject("Luz").AddComponent<Light>();

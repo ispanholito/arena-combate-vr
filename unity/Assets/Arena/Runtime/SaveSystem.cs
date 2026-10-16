@@ -48,6 +48,36 @@ namespace Arena
             catch (Exception e) { Debug.LogWarning("[Save] Salvo ilegível: " + e.Message); return null; }
         }
 
+        // ---------- Opções (arquivo à parte: apagar o salvo não zera as opções) ----------
+        static GameOptions options;
+        public static GameOptions Options
+        {
+            get
+            {
+                if (options != null) return options;
+                try
+                {
+                    var path = Path.Combine(Folder, "arena_options.json");
+                    options = File.Exists(path) ? JsonUtility.FromJson<GameOptions>(File.ReadAllText(path)) : null;
+                }
+                catch (Exception e) { Debug.LogWarning("[Save] Opções ilegíveis: " + e.Message); }
+                options = (options ?? new GameOptions()).Sanitized();
+                ArenaAudio.MasterVolume = options.volume;
+                return options;
+            }
+        }
+
+        public static void SaveOptions()
+        {
+            ArenaAudio.MasterVolume = Options.volume;
+            try
+            {
+                Directory.CreateDirectory(Folder);
+                File.WriteAllText(Path.Combine(Folder, "arena_options.json"), JsonUtility.ToJson(Options, true));
+            }
+            catch (Exception e) { Debug.LogWarning("[Save] Falha ao salvar opções: " + e.Message); }
+        }
+
         public static void Delete()
         {
             try { if (File.Exists(FilePath)) File.Delete(FilePath); }

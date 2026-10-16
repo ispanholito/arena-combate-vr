@@ -85,7 +85,7 @@ namespace Arena
         {
             // Se o código for recarregado com o jogo rodando, as referências criadas no Start somem: fica quieto.
             if (!player || !pausePanel || player.State == null) return;
-            pausePanel.gameObject.SetActive(ArenaGame.Paused);
+            pausePanel.gameObject.SetActive(false);   // a pausa agora é o PauseMenu (com opções)
             var s = player.State;
             SetFill(hp, s.Hp.Fraction);
             SetFill(sta, s.Stamina.Fraction);

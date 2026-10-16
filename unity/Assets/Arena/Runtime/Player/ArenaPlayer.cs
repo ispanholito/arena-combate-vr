@@ -40,6 +40,7 @@ namespace Arena
         Vector3 dashDir, chargeDir;
         readonly HashSet<ArenaEnemy> chargeHits = new HashSet<ArenaEnemy>();
         float vignette;
+        PauseMenu pauseMenu;
 
         public float VignetteLevel => vignette;
 
@@ -49,6 +50,8 @@ namespace Arena
             Weapon.Init(this);
             Shield = GetComponent<PlayerShield>();
             if (!GetComponent<WeaponAbilityCaster>()) gameObject.AddComponent<WeaponAbilityCaster>();   // cenas antigas não têm
+            pauseMenu = GetComponent<PauseMenu>();
+            if (!pauseMenu) pauseMenu = gameObject.AddComponent<PauseMenu>();
             ResetCharacter(startClass);
             yaw = rigRoot.eulerAngles.y;
         }
@@ -105,8 +108,7 @@ namespace Arena
             if (Input.PausePressed && game && !ArenaGame.InMenu) game.SetPaused(!ArenaGame.Paused);
             if (ArenaGame.Paused)
             {
-                if (Input.MenuConfirm) game.SetPaused(false);          // A / Enter: continuar
-                else if (Input.MenuRespec) game.BackFromPause();     // B / R: santuário (do santuário: menu inicial)
+                pauseMenu.HandleInput();   // continuar, opções, voltar ao santuário
                 if (!IsVr) Cursor.lockState = CursorLockMode.None;
                 else VrHeight(Time.unscaledDeltaTime);
                 return;
@@ -119,7 +121,16 @@ namespace Arena
             {
                 if (Input.SwitchWeapon) SwitchWeapon();
                 if (Input.Dash) TryDash();
-                if (Input.SnapTurn != 0) SnapTurn(Input.SnapTurn * 30f);
+                var opts = SaveSystem.Options;
+                if (opts.Turn == TurnMode.Suave)
+                {
+                    if (Mathf.Abs(Input.TurnAxis) > 0.2f)
+                    {
+                        SnapTurn(Input.TurnAxis * GameOptions.SmoothTurnSpeed * dt);
+                        if (opts.moveVignette) vignette = Mathf.Max(vignette, GameOptions.MoveVignetteLevel);
+                    }
+                }
+                else if (Input.SnapTurn != 0) SnapTurn(Input.SnapTurn * opts.SnapDegrees);
                 Locomotion(dt);
             }
             State.Tick(dt);
@@ -148,7 +159,7 @@ namespace Arena
                 heightCheckT -= dt;
                 if (heightCheckT <= 0f) heightOffset = eye < MinPlausibleEye ? standingEye - eye : 0f;
             }
-            trackingSpace.localPosition = new Vector3(0f, heightOffset, 0f);
+            trackingSpace.localPosition = new Vector3(0f, heightOffset + (SaveSystem.Options.seated ? GameOptions.SeatedBoost : 0f), 0f);
         }
 
         // ---------- Movimento ----------
@@ -190,6 +201,8 @@ namespace Arena
             {
                 var mv = Input.Move;
                 rigRoot.position += (f * mv.y + r * mv.x) * Combat.MoveSpeed * dt;
+                if (IsVr && SaveSystem.Options.moveVignette && mv.magnitude > 0.15f)
+                    vignette = Mathf.Max(vignette, GameOptions.MoveVignetteLevel * Mathf.Min(1f, mv.magnitude));
             }
             if (pushVel.sqrMagnitude > 1e-4f) { rigRoot.position += pushVel * dt; pushVel *= Mathf.Exp(-6f * dt); }
             // Mantém a cabeça dentro da arena (vale também para quem anda no quarto)
