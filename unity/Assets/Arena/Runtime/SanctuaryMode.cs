@@ -68,6 +68,12 @@ namespace Arena
                                         0.008f, new Color(0.95f, 0.9f, 0.8f));
             sign.transform.position = new Vector3(0, 3.6f, -7.7f);
             sign.transform.rotation = Quaternion.LookRotation(Vector3.back);
+            // Armas esquecidas voltam aqui, ao lado da fogueira (saem da lista quando o jogador pega).
+            var lost = game.Player.State.LostItems;
+            for (int i = 0; i < lost.Count; i++)
+                WeaponPickup.Spawn(lost[i], new Vector3(2.2f + (i % 3) * 0.9f, 0f, -3.3f + (i / 3) * 1f)).Owned = true;
+            if (lost.Count > 0) game.Message(lost.Count + " arma(s) esquecida(s) voltaram para perto da fogueira", 2.5f);
+
             portalCd = 1.5f;
             game.Player.TeleportTo(game.BonfireStandPoint, new Vector3(0, 0, 6f));
         }

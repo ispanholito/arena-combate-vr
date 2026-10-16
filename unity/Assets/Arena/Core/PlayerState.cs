@@ -97,6 +97,17 @@ namespace Arena.Core
             return old;
         }
 
+        // Armas do jogador largadas e esquecidas (trocou e não pegou de volta antes de sair do andar):
+        // reaparecem no santuário, perto da fogueira. Guarda as 6 mais recentes.
+        public const int MaxLostItems = 6;
+        public List<ItemInstance> LostItems { get; } = new List<ItemInstance>();
+        public void AddLostItem(ItemInstance item)
+        {
+            if (item == null || LostItems.Contains(item)) return;
+            LostItems.Add(item);
+            while (LostItems.Count > MaxLostItems) LostItems.RemoveAt(0);
+        }
+
         public void AddGold(int g) => Gold += Math.Max(0, g);
         public void SpendGold(int g) => Gold = Math.Max(0, Gold - Math.Max(0, g));
         public void SetGold(int g) => Gold = Math.Max(0, g);

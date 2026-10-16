@@ -20,6 +20,7 @@ namespace Arena.Core
         public int bossesDefeated;
         public List<string> skills = new List<string>();
         public List<ItemSave> items = new List<ItemSave>();
+        public List<ItemSave> lostItems = new List<ItemSave>();   // armas esquecidas (voltam no santuário)
 
         public static SaveData From(PlayerState ps)
         {
@@ -33,6 +34,7 @@ namespace Arena.Core
                 skills = ps.Tree.Unlocked.ToList(),
             };
             foreach (var it in ps.Loadout) d.items.Add(ItemSave.From(it));
+            foreach (var it in ps.LostItems) d.lostItems.Add(ItemSave.From(it));
             return d;
         }
 
@@ -49,6 +51,8 @@ namespace Arena.Core
                     var it = items[i]?.ToItem();
                     if (it != null) ps.Loadout[i] = it;
                 }
+            if (lostItems != null)
+                foreach (var s in lostItems) { var it = s?.ToItem(); if (it != null) ps.AddLostItem(it); }
             ps.ActiveSlot = Math.Clamp(activeSlot, 0, ps.Loadout.Length - 1);
             if (ps.Loadout[ps.ActiveSlot] == null) ps.ActiveSlot = 0;
             return ps;

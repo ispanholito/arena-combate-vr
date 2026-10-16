@@ -195,7 +195,7 @@ namespace Arena
         {
             foreach (var e in ArenaEnemy.All.ToArray()) if (e) Destroy(e.gameObject);
             ArenaEnemy.All.Clear();
-            WeaponPickup.ClearAll();
+            WeaponPickup.ClearAll(game.Player.State);
         }
 
         void SpawnRoom(DungeonRoom room)

@@ -49,6 +49,26 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void LostItems_AreCapped_Deduped_AndSaved()
+        {
+            var ps = new PlayerState(ClassId.Lamina);
+            var first = new ItemInstance(WeaponDef.Adaga, Rarity.Raro, null, 0, WeaponPassive.Impeto);
+            ps.AddLostItem(first);
+            ps.AddLostItem(first);
+            Assert.AreEqual(1, ps.LostItems.Count);
+            for (int i = 0; i < PlayerState.MaxLostItems; i++) ps.AddLostItem(ItemInstance.Basic(WeaponDef.MacaPesada));
+            Assert.AreEqual(PlayerState.MaxLostItems, ps.LostItems.Count);
+            Assert.IsFalse(ps.LostItems.Contains(first));   // a mais antiga sai
+
+            var p2 = new PlayerState(ClassId.Lamina);
+            p2.AddLostItem(first);
+            var loaded = SaveData.From(p2).ToPlayer();
+            Assert.AreEqual(1, loaded.LostItems.Count);
+            Assert.AreEqual(WeaponKind.Adaga, loaded.LostItems[0].Base.Kind);
+            Assert.AreEqual(WeaponPassive.Impeto, loaded.LostItems[0].Passive);
+        }
+
+        [Test]
         public void InvalidData_IsIgnored()
         {
             var data = new SaveData { classId = 99, level = 500, xp = -5, gold = -10, activeSlot = 7 };

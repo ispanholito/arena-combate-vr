@@ -14,6 +14,7 @@ namespace Arena
         public const float VrHandRange = 0.8f, FeetRange = 1.2f, DesktopRange = 2.2f, LabelRange = 4f;
 
         public ItemInstance Item { get; private set; }
+        public bool Owned;   // arma do próprio jogador (trocada): se ficar para trás, volta no santuário
         Transform model, beam;
         TextMesh label;
         float t, settle;
@@ -91,9 +92,15 @@ namespace Arena
 
         void OnDestroy() => All.Remove(this);
 
-        public static void ClearAll()
+        // Some com o loot do chão. As armas do próprio jogador vão para os "esquecidos" (voltam no santuário).
+        public static void ClearAll(PlayerState keeper = null)
         {
-            for (int i = All.Count - 1; i >= 0; i--) if (All[i]) Destroy(All[i].gameObject);
+            for (int i = All.Count - 1; i >= 0; i--)
+            {
+                if (!All[i]) continue;
+                if (keeper != null && All[i].Owned) keeper.AddLostItem(All[i].Item);
+                Destroy(All[i].gameObject);
+            }
             All.Clear();
         }
 
@@ -126,9 +133,10 @@ namespace Arena
             var pos = best.transform.position;
             All.Remove(best);
             Destroy(best.gameObject);
+            player.State.LostItems.Remove(item);   // era uma arma esquecida: achou
             var old = player.State.EquipToActive(item);
             player.EquipActive();
-            if (old != null) Spawn(old, pos + Vector3.up * 0.05f);
+            if (old != null) Spawn(old, pos + Vector3.up * 0.05f).Owned = true;
             ArenaAudio.Play2D(Sfx.Pickup, 0.9f);
             ArenaGame.Instance?.RequestSave();
             ArenaInput.Haptic(0.5f, 0.08f);

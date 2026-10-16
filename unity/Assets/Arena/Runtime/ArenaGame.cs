@@ -112,9 +112,9 @@ namespace Arena
 
         public void ReturnToMenu()
         {
-            if (Persistent) SaveNow();
             SetPaused(false);
-            ClearEnemies();
+            ClearEnemies();   // antes de salvar: armas esquecidas entram no salvo
+            if (Persistent) SaveNow();
             LeaveDungeon();
             Mode = GameMode.Menu;
             spawnWaves = false;
@@ -146,8 +146,8 @@ namespace Arena
             {
                 spawnWaves = false;
                 if (arenaWorld) arenaWorld.gameObject.SetActive(false);
-                sanctuary.Begin();
                 Message("Santuário: escolha um portal. Fogueira cura e abre a árvore.", 3f);
+                sanctuary.Begin();   // depois da mensagem geral (ela avisa das armas esquecidas)
                 return;
             }
             if (mode == GameMode.Arena)
@@ -177,7 +177,7 @@ namespace Arena
 
         void ClearEnemies()
         {
-            WeaponPickup.ClearAll();
+            WeaponPickup.ClearAll(Mode == GameMode.Treino || Mode == GameMode.Menu ? null : player.State);
             foreach (var e in ArenaEnemy.All.ToArray()) if (e) Destroy(e.gameObject);
             ArenaEnemy.All.Clear();
             Boss = null;
