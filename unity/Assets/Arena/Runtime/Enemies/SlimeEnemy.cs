@@ -47,6 +47,8 @@ namespace Arena
             }
         }
 
+        protected override bool LeavesCorpse => false;   // slime se divide em vez de virar corpo
+
         protected override void Die()
         {
             if (EnemyDef.SlimeSplits(Def.Size) && ArenaGame.Instance)

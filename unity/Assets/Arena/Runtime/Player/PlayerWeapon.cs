@@ -294,6 +294,14 @@ namespace Arena
         // Chamado pelo WeaponImpactRelay: vibração proporcional ao impacto.
         public void OnImpact(Collision c)
         {
+            // Fase 2: o inimigo atingido reage ao impulso (empurrão, inclinação, cambaleio).
+            var enemy = c.collider.GetComponentInParent<ArenaEnemy>();
+            if (enemy && mode != Mode.Recalling)
+            {
+                var dir = TipVelocity.sqrMagnitude > 0.25f ? TipVelocity
+                        : enemy.transform.position - (c.contactCount > 0 ? c.GetContact(0).point : visual.position);
+                enemy.PhysicalImpact(c.impulse.magnitude, dir);
+            }
             if (mode != Mode.Held || hapticCd > 0f || !player.IsVr) return;
             float amp = WeaponPhysics.HapticFromImpulse(c.impulse.magnitude, Def);
             if (amp < 0.08f) return;

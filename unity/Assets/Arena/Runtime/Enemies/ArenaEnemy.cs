@@ -20,6 +20,11 @@ namespace Arena
         protected Color bloodColor = new Color(0.7f, 0.12f, 0.16f);
 
         Transform barRoot, hpFill, postureFill;
+        Transform visualPivot;                 // todo o modelo fica aqui dentro: inclina no impacto e vira ragdoll ao morrer
+        Vector2 lean, leanVel;                 // inclinação (x = para trás/frente, y = lado) em rad
+        Vector3 lastHitDir = Vector3.forward;
+        float lastHitSpeed, staggerCd, impactCd;
+        protected virtual bool LeavesCorpse => true;
         float hitCooldown, hitFlash;
         Renderer[] renderers;
         readonly List<Color> baseColors = new List<Color>();
@@ -29,11 +34,57 @@ namespace Arena
             State = new EnemyState(def);
             State.Damaged += OnDamaged;
             BuildModel();
+            BuildVisualPivot();
             AddBodyCollider();
             BuildBars();
             renderers = GetComponentsInChildren<Renderer>();
             foreach (var r in renderers) baseColors.Add(r.sharedMaterial.color);
             All.Add(this);
+        }
+
+        void BuildVisualPivot()
+        {
+            visualPivot = new GameObject("Visual").transform;
+            visualPivot.SetParent(transform, false);
+            var kids = new List<Transform>();
+            foreach (Transform c in transform) if (c != visualPivot) kids.Add(c);
+            foreach (var c in kids) c.SetParent(visualPivot, false);
+        }
+
+        // ---------- Fase 2: reação física ao impacto da arma ----------
+        // impulse: impulso da colisão (N·s); dir: direção em que a arma empurrou.
+        public void PhysicalImpact(float impulse, Vector3 dir)
+        {
+            if (Dead || impulse <= 0f || impactCd > 0f) return;   // a lâmina deslizando gera vários eventos seguidos
+            impactCd = 0.15f;
+            var flat = dir.Flat();
+            if (flat.sqrMagnitude < 1e-4f) return;
+            flat.Normalize();
+            float mass = Def.Mass;
+            knock = Vector3.ClampMagnitude(knock + flat * ImpactReaction.KnockSpeed(impulse, mass), ImpactReaction.MaxKnockSpeed);
+            // Inclina o corpo para longe do golpe (em coordenadas locais do inimigo).
+            var local = transform.InverseTransformDirection(flat);
+            float kick = ImpactReaction.LeanKick(impulse, mass) * 12f;
+            leanVel += new Vector2(local.z, -local.x) * kick;
+            lastHitDir = flat; lastHitSpeed = Mathf.Max(lastHitSpeed, ImpactReaction.ImpactSpeed(impulse, mass));
+            if (staggerCd <= 0f && ImpactReaction.Staggers(impulse, mass) && State.Posture.Enabled)
+            {
+                staggerCd = ImpactReaction.StaggerCooldown;
+                State.ApplyStun(ImpactReaction.StaggerSeconds);
+                OnStagger();
+            }
+        }
+
+        protected virtual void OnStagger() { }
+
+        void UpdateLean(float dt)
+        {
+            // Mola que endireita o corpo.
+            leanVel += (-ImpactReaction.LeanStiffness * lean - ImpactReaction.LeanDamping * leanVel) * dt;
+            lean += leanVel * dt;
+            lean = Vector2.ClampMagnitude(lean, ImpactReaction.MaxLean);
+            visualPivot.localRotation = Quaternion.Euler(lean.x * Mathf.Rad2Deg, 0f, lean.y * Mathf.Rad2Deg);
+            lastHitSpeed = Mathf.MoveTowards(lastHitSpeed, 0f, dt * 4f);
         }
 
         // Corpo sólido para a arma física bater e parar (Fase 1). Cinemático: quem move o inimigo é a IA, não a física.
@@ -83,7 +134,7 @@ namespace Arena
             if (dir.HasValue && knockback > 0f)
             {
                 var d = dir.Value.Flat();
-                if (d.sqrMagnitude > 1e-4f) knock += d.normalized * knockback / Def.Mass;
+                if (d.sqrMagnitude > 1e-4f) { knock += d.normalized * knockback / Def.Mass; lastHitDir = d.normalized; lastHitSpeed = Mathf.Max(lastHitSpeed, knockback); }
             }
             var c = color ?? (ev.Crit ? new Color(1f, 0.83f, 0.42f) : Color.white);
             ArenaFx.FloatText(ev.Crit ? ev.Amount + "!" : ev.Amount.ToString(), Center + Vector3.up * (0.25f + bodyTop * 0.3f), c, ev.Crit ? 1.3f : 1f);
@@ -106,6 +157,11 @@ namespace Arena
         {
             ArenaFx.Burst(Center, bloodColor, 20, 4f, 1.4f);
             if (ArenaGame.Instance) ArenaGame.Instance.OnEnemyKilled(this);
+            if (LeavesCorpse && visualPivot)
+            {
+                visualPivot.SetParent(null, true);
+                RagdollCorpse.Create(visualPivot, lastHitDir, lastHitSpeed);
+            }
             Destroy(gameObject);
         }
 
@@ -117,6 +173,10 @@ namespace Arena
             State.Tick(dt);
             hitCooldown -= dt;
             SpawnGrace -= dt;
+            staggerCd -= dt; impactCd -= dt;
+            if (State.Rooted > 0f || State.Frozen > 0f) knock = Vector3.zero;   // preso: só inclina
+            knock = Vector3.ClampMagnitude(knock, ImpactReaction.MaxKnockSpeed);
+            UpdateLean(dt);
             knock *= Mathf.Exp(-4f * dt);
             transform.position = ArenaUtil.ClampToArena(transform.position + knock * dt);
             UpdateBars();
