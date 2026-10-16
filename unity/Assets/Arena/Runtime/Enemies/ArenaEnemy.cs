@@ -25,6 +25,27 @@ namespace Arena
         Vector3 lastHitDir = Vector3.forward;
         float lastHitSpeed, staggerCd, impactCd;
         protected virtual bool LeavesCorpse => true;
+
+        // ---------- Fase 3: empalado pela espada ----------
+        public bool Impaled { get; private set; }
+        public Rigidbody Body { get; private set; }
+        public Collider BodyCollider { get; private set; }
+        public void SetImpaled(bool v) { Impaled = v; if (v) knock = Vector3.zero; }
+        // Arrastado pela mão do jogador enquanto empalado (raízes e gelo seguram).
+        public void Drag(Vector3 velocity, float dt)
+        {
+            if (Dead || State.Rooted > 0f || State.Frozen > 0f) return;
+            transform.position = ArenaUtil.ClampToArena(transform.position + velocity.Flat() * dt);
+        }
+
+        public void TakeStab(float tipSpeed, Vector3 dir, WeaponDef weapon, PlayerState ps)
+        {
+            if (Dead || SpawnGrace > 0f) return;
+            bool hasSta = ps.SpendSwingStamina(weapon);
+            hitCooldown = Combat.HitCooldown;
+            ArenaFx.FloatText("CRAVOU!", Center + Vector3.up * (0.6f + bodyTop * 0.3f), new Color(1f, 0.55f, 0.45f), 1.1f);
+            ApplyDamage(StabRules.StabDamage(tipSpeed, weapon, ps.Has(SkillIds.FioAfiado), hasSta), 0.9f, dir, 0f);
+        }
         float hitCooldown, hitFlash;
         Renderer[] renderers;
         readonly List<Color> baseColors = new List<Color>();
@@ -91,10 +112,12 @@ namespace Arena
         void AddBodyCollider()
         {
             var col = gameObject.AddComponent<CapsuleCollider>();
+            BodyCollider = col;
             col.radius = Def.Radius;
             col.height = Mathf.Max(bodyTop - bodyBottom + Def.Radius * 2f, Def.Radius * 2f);
             col.center = Vector3.up * (bodyBottom + bodyTop) * 0.5f;
             var rb = gameObject.AddComponent<Rigidbody>();
+            Body = rb;
             rb.isKinematic = true;
             rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
         }
@@ -102,7 +125,13 @@ namespace Arena
         protected abstract void BuildModel();
         protected abstract void Think(float dt, Vector3 toPlayer, float distance);
 
-        protected virtual void OnDestroy() { All.Remove(this); }
+        protected virtual void OnDestroy() { ReleaseWeapon(); All.Remove(this); }
+
+        void ReleaseWeapon()
+        {
+            var pl = Player;
+            if (pl && pl.Weapon) pl.Weapon.OnEnemyRemoved(this);
+        }
 
         public Vector3 Center => transform.position + Vector3.up * (bodyBottom + bodyTop) * 0.5f;
         public float Radius => Def.Radius;
@@ -157,6 +186,7 @@ namespace Arena
         {
             ArenaFx.Burst(Center, bloodColor, 20, 4f, 1.4f);
             if (ArenaGame.Instance) ArenaGame.Instance.OnEnemyKilled(this);
+            ReleaseWeapon();   // solta a espada cravada antes de o corpo sumir
             if (LeavesCorpse && visualPivot)
             {
                 visualPivot.SetParent(null, true);
@@ -174,7 +204,7 @@ namespace Arena
             hitCooldown -= dt;
             SpawnGrace -= dt;
             staggerCd -= dt; impactCd -= dt;
-            if (State.Rooted > 0f || State.Frozen > 0f) knock = Vector3.zero;   // preso: só inclina
+            if (State.Rooted > 0f || State.Frozen > 0f || Impaled) knock = Vector3.zero;   // preso: só inclina
             knock = Vector3.ClampMagnitude(knock, ImpactReaction.MaxKnockSpeed);
             UpdateLean(dt);
             knock *= Mathf.Exp(-4f * dt);
@@ -194,7 +224,7 @@ namespace Arena
 
         protected void Move(Vector3 velocity, float dt)
         {
-            if (!State.CanMove) return;
+            if (!State.CanMove || Impaled) return;
             transform.position = ArenaUtil.ClampToArena(transform.position + velocity * State.SpeedMultiplier * dt);
         }
 

@@ -117,6 +117,8 @@ namespace Arena
             vignette = Mathf.MoveTowards(vignette, 0f, dt * 2f);
             Weapon.Tick(dt, IsVr, !IsVr && Input.DesktopParry);
             if (!IsVr && !TreeOpen && Input.DesktopSwing) Weapon.DesktopSwing();
+            if (!IsVr && !TreeOpen && Input.DesktopThrust) Weapon.DesktopThrust();
+            if (!IsVr) Weapon.DesktopThrustHold(Input.DesktopThrustHeld);
         }
 
         // ---------- Altura no VR ----------

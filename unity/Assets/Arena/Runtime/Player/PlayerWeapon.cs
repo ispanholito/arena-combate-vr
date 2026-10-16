@@ -37,6 +37,15 @@ namespace Arena
         Quaternion targetRot = Quaternion.identity;
         float desktopSwingT = -1f, desktopPointT, farTime, hapticCd;
         bool hasPrev, hasTarget;
+        // Fase 3: lâmina cravada
+        ArenaEnemy stuckEnemy;
+        ConfigurableJoint stabJoint;
+        Vector3 entryLocal;
+        float bleedAcc, thrustT = -1f;
+        Vector3 physTipVel;   // velocidade da ponta no último passo de física
+        float stuckTime;
+        public bool Stuck => stuckEnemy != null;
+        public static bool DebugStab;   // registra no console os valores de cada contato (para calibrar)
         Transform staffCrystal, ghost;
         Material ghostMat;
 
@@ -57,6 +66,7 @@ namespace Arena
 
         public void Equip(WeaponDef def)
         {
+            if (body) ReleaseStab(false);
             Def = def;
             if (visual) Destroy(visual.gameObject);
             visual = BuildVisual(def).transform;
@@ -68,6 +78,7 @@ namespace Arena
         // Prende a arma ao pulso: alinha os dois na pose da mão e cria a junta (a rotação-alvo da junta é relativa à pose inicial).
         void Attach()
         {
+            ReleaseStab(false);
             mode = Mode.Held;
             body.isKinematic = false;
             body.useGravity = true;
@@ -192,6 +203,7 @@ namespace Arena
         public void Throw(Vector3 velocity)
         {
             if (!Held) return;
+            ReleaseStab(false);
             mode = Mode.Thrown;
             if (joint) Destroy(joint);
             var v = velocity.magnitude < 3f ? player.HeadForward * 9f + Vector3.up * 2f : velocity * 1.6f;
@@ -209,12 +221,28 @@ namespace Arena
         // ---------- Desktop ----------
         public void DesktopSwing() { if (desktopSwingT < 0f) desktopSwingT = 0f; }
         public void DesktopPoint(float seconds) => desktopPointT = seconds;
+        public void DesktopThrust() { if (thrustT < 0f && desktopSwingT < 0f) thrustT = 0f; }
+        bool thrustHold;
+        public void DesktopThrustHold(bool held) => thrustHold = held;
 
         void DesktopPose(float dt, out Vector3 pos, out Quaternion rot, bool parry)
         {
             var cam = player.Head;
             Vector3 lp; Vector3 dir;
-            if (desktopSwingT >= 0f)
+            if (thrustT >= 0f)
+            {
+                // Estocada: a lâmina vai reta para frente e volta.
+                // 0-30%: aponta a lâmina para frente parada; 30-60%: avança reto; depois volta.
+                thrustT += dt / 0.5f;
+                float t = Mathf.Min(thrustT, 1f);
+                // Enquanto T estiver apertado fica estendida (dá para manter a lâmina cravada).
+                if (thrustHold && thrustT > 0.6f) thrustT = 0.6f;
+                float e = t < 0.3f ? 0f : t < 0.6f ? Mathf.SmoothStep(0f, 1f, (t - 0.3f) / 0.3f) : 1f - Mathf.SmoothStep(0f, 1f, (t - 0.6f) / 0.4f);
+                lp = Vector3.Lerp(new Vector3(0.18f, -0.22f, 0.12f), new Vector3(0.1f, -0.2f, 0.8f), e);
+                dir = Vector3.forward;
+                if (thrustT >= 1f) thrustT = -1f;
+            }
+            else if (desktopSwingT >= 0f)
             {
                 float dur = 0.28f + Def.Weight * 0.012f;
                 desktopSwingT += dt / dur;
@@ -260,13 +288,15 @@ namespace Arena
             TipVelocity = (TipPoint - tipPrev) / dt;
             TipSpeed = TipVelocity.magnitude;
 
-            if (TipSpeed > Combat.MinSwingSpeed) CheckHits();
+            if (stuckEnemy) UpdateStab(dt);
+            else if (TipSpeed > Combat.MinSwingSpeed) CheckHits();
             hapticCd -= dt;
         }
 
         void FixedUpdate()
         {
             if (Def == null || !hasTarget) return;
+            if (body && !body.isKinematic) physTipVel = body.GetPointVelocity(visual.TransformPoint(new Vector3(0, 0, Def.Length)));
             wrist.MovePosition(targetPos);
             wrist.MoveRotation(targetRot);
             if (mode != Mode.Held) return;
@@ -294,8 +324,10 @@ namespace Arena
         // Chamado pelo WeaponImpactRelay: vibração proporcional ao impacto.
         public void OnImpact(Collision c)
         {
-            // Fase 2: o inimigo atingido reage ao impulso (empurrão, inclinação, cambaleio).
             var enemy = c.collider.GetComponentInParent<ArenaEnemy>();
+            // Fase 3: estocada com a ponta crava a lâmina.
+            if (enemy && TryStab(enemy, c)) return;
+            // Fase 2: o inimigo atingido reage ao impulso (empurrão, inclinação, cambaleio).
             if (enemy && mode != Mode.Recalling)
             {
                 var dir = TipVelocity.sqrMagnitude > 0.25f ? TipVelocity
@@ -307,6 +339,92 @@ namespace Arena
             if (amp < 0.08f) return;
             hapticCd = 0.06f;
             ArenaInput.Haptic(amp, 0.04f + 0.08f * amp);
+        }
+
+        // ---------- Fase 3: cravar ----------
+        // Estocada com a ponta: a lâmina atravessa o colisor do inimigo e fica presa por uma junta que só deixa deslizar
+        // ao longo dela (com atrito). Puxar para trás solta; puxar forte para o lado arranca; a mão longe arrasta o inimigo.
+        bool TryStab(ArenaEnemy enemy, Collision c)
+        {
+            if (mode != Mode.Held || stuckEnemy || enemy.Dead || !enemy.Body || c.contactCount == 0) return false;
+            var contact = c.GetContact(0).point;
+            // Velocidade da ponta medida no passo de física ANTES do contato (a do quadro anterior mistura a rotação da arma).
+            float speed = physTipVel.magnitude;
+            var bladeDir = visual.TransformDirection(Vector3.forward);
+            float alignment = speed > 0.01f ? Vector3.Dot(bladeDir, physTipVel / speed) : 0f;
+            float fromTip = Vector3.Distance(contact, visual.TransformPoint(new Vector3(0, 0, Def.Length)));
+            if (DebugStab) Debug.Log($"[Cravar] vel={speed:0.0} alinh={alignment:0.00} distPonta={fromTip:0.00}");
+            if (!StabRules.CanStab(Def.Kind, speed, alignment, fromTip)) return false;
+
+            stuckEnemy = enemy;
+            entryLocal = enemy.transform.InverseTransformPoint(contact);
+            foreach (var col in visual.GetComponents<Collider>()) Physics.IgnoreCollision(col, enemy.BodyCollider, true);
+            stabJoint = visual.gameObject.AddComponent<ConfigurableJoint>();
+            stabJoint.connectedBody = enemy.Body;
+            stabJoint.axis = Vector3.forward;      // eixo X da junta = comprimento da lâmina
+            stabJoint.secondaryAxis = Vector3.up;
+            stabJoint.anchor = new Vector3(0f, 0f, Def.Length);
+            stabJoint.xMotion = ConfigurableJointMotion.Limited;
+            stabJoint.yMotion = stabJoint.zMotion = ConfigurableJointMotion.Locked;
+            stabJoint.angularXMotion = stabJoint.angularYMotion = stabJoint.angularZMotion = ConfigurableJointMotion.Locked;
+            stabJoint.linearLimit = new SoftJointLimit { limit = StabRules.MaxDepth };
+            stabJoint.xDrive = new JointDrive { positionSpring = 0f, positionDamper = StabRules.Friction, maximumForce = float.MaxValue };
+            stabJoint.enablePreprocessing = false;
+            if (DebugStab) Debug.Log("[Cravar] CRAVOU");
+            enemy.SetImpaled(true);
+            enemy.TakeStab(speed, physTipVel, Def, player.State);
+            bleedAcc = 0f; stuckTime = 0f;
+            ArenaFx.Burst(contact, new Color(0.7f, 0.12f, 0.16f), 14, 3f);
+            ArenaInput.Haptic(1f, 0.12f);
+            return true;
+        }
+
+        void UpdateStab(float dt)
+        {
+            if (!stuckEnemy || stuckEnemy.Dead) { ReleaseStab(false); return; }
+            stuckTime += dt;
+            // Profundidade pela pose da física (a do transform é suavizada e fica um pouco atrás).
+            var entry = stuckEnemy.transform.TransformPoint(entryLocal);
+            var physTip = body.position + body.rotation * new Vector3(0, 0, Def.Length);
+            float depth = Vector3.Dot(physTip - entry, body.rotation * Vector3.forward);
+            if (stuckTime > 0.2f && StabRules.Exited(depth)) { if (DebugStab) Debug.Log("[Cravar] saiu (puxou para tras)"); ReleaseStab(false); return; }
+            if (stuckTime > 0.2f && StabRules.Ripped(Separation)) { if (DebugStab) Debug.Log("[Cravar] arrancou"); ReleaseStab(true); return; }
+            // Sangramento enquanto a lâmina está dentro.
+            bleedAcc += StabRules.BleedDps * dt;
+            if (bleedAcc >= StabRules.BleedDps * StabRules.BleedTick)
+            {
+                stuckEnemy.ApplyDamage(bleedAcc, 0.3f, null, 0f, new Color(0.85f, 0.2f, 0.2f), canCrit: false);
+                bleedAcc = 0f;
+                if (!stuckEnemy || stuckEnemy.Dead) { ReleaseStab(false); return; }
+            }
+            // Mão longe da arma presa: arrasta o inimigo.
+            float drag = StabRules.DragSpeed(Separation);
+            if (drag > 0f) stuckEnemy.Drag((targetPos - visual.position).normalized * drag, dt);
+        }
+
+        void ReleaseStab(bool ripped)
+        {
+            if (stabJoint) Destroy(stabJoint);
+            stabJoint = null;
+            var e = stuckEnemy;
+            stuckEnemy = null;
+            if (!e) return;
+            if (e.BodyCollider && visual)
+                foreach (var col in visual.GetComponents<Collider>()) Physics.IgnoreCollision(col, e.BodyCollider, false);
+            e.SetImpaled(false);
+            if (ripped && !e.Dead)
+            {
+                e.ApplyDamage(StabRules.RipDamage, 0.5f, null, 0f, new Color(1f, 0.4f, 0.4f), canCrit: false);
+                ArenaFx.FloatText("ARRANCOU", e.Center + Vector3.up * 0.5f, new Color(1f, 0.5f, 0.5f), 1f);
+                ArenaFx.Burst(TipPoint, new Color(0.7f, 0.12f, 0.16f), 18, 4f);
+                ArenaInput.Haptic(0.9f, 0.1f);
+            }
+        }
+
+        // O inimigo vai sumir (morreu ou foi removido): solta a espada antes que a junta fique presa no ar.
+        public void OnEnemyRemoved(ArenaEnemy e)
+        {
+            if (stuckEnemy == e) ReleaseStab(false);
         }
 
         void CheckHits()

@@ -20,7 +20,7 @@ namespace Arena
         public int SnapTurn;                       // -1, 0, +1
         public bool APressed, BPressed, BHeld, BReleased;
         public bool TriggerPressed, TriggerHeld, TriggerReleased, GripPressed;
-        public bool DesktopSwing, DesktopParry;    // desktop: golpe animado / pose de aparo
+        public bool DesktopSwing, DesktopParry, DesktopThrust, DesktopThrustHeld;    // desktop: golpe animado / pose de aparo
         public bool DesktopLaser, DesktopSlam, DesktopPalm;
         public bool MenuUp, MenuDown, MenuConfirm, MenuRespec;
         public Vector2 MousePointer;
@@ -41,7 +41,7 @@ namespace Arena
             Dash = ToggleTree = SwitchWeapon = ShieldToggle = PausePressed = false; SnapTurn = 0;
             APressed = BPressed = BHeld = BReleased = false;
             TriggerPressed = TriggerHeld = TriggerReleased = GripPressed = false;
-            DesktopSwing = DesktopParry = DesktopLaser = DesktopSlam = DesktopPalm = false;
+            DesktopSwing = DesktopParry = DesktopThrust = DesktopThrustHeld = DesktopLaser = DesktopSlam = DesktopPalm = false;
             MenuUp = MenuDown = MenuConfirm = MenuRespec = false;
         }
 
@@ -145,6 +145,8 @@ namespace Arena
             BReleased = kb.digit3Key.wasReleasedThisFrame;
             GripPressed = kb.gKey.wasPressedThisFrame;
             ShieldToggle = kb.fKey.wasPressedThisFrame;
+            DesktopThrust = kb.tKey.wasPressedThisFrame;   // estocada (crava a espada)
+            DesktopThrustHeld = kb.tKey.isPressed;
             PausePressed = kb.pKey.wasPressedThisFrame || kb.escapeKey.wasPressedThisFrame;
             DesktopLaser = kb.zKey.isPressed;
             DesktopSlam = kb.xKey.wasPressedThisFrame;
