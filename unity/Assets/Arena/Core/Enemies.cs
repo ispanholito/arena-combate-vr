@@ -2,7 +2,7 @@ using System;
 
 namespace Arena.Core
 {
-    public enum EnemyKind { Slime, Goblin, ReiGoblin, Boneco, Esqueleto }
+    public enum EnemyKind { Slime, Goblin, ReiGoblin, Boneco, Esqueleto, Mimico, Arqueiro }
 
     public sealed class EnemyDef
     {
@@ -38,6 +38,12 @@ namespace Arena.Core
 
         // Esqueleto: espada, mais rápido e frágil que o goblin; desmembra e se remonta (SkeletonBody).
         public static readonly EnemyDef Esqueleto = new EnemyDef(EnemyKind.Esqueleto, "Esqueleto", 55f, 80f, 30, 12f, 0.6f, 0.28f, 1.35f, 0.9f, 1.9f);
+
+        // Mímico: baú que morde. Ataque anunciado (a tampa abre e brilha) e bote curto; muita vida e postura.
+        public static readonly EnemyDef Mimico = new EnemyDef(EnemyKind.Mimico, "Mímico", 110f, 120f, 50, 18f, 0.55f, 0.42f, 0.8f, 2.2f, 2.2f);
+
+        // Goblin arqueiro: mantém distância e atira flechas (bloqueáveis com o escudo e rebatíveis com a arma).
+        public static readonly EnemyDef Arqueiro = new EnemyDef(EnemyKind.Arqueiro, "Goblin Arqueiro", 45f, 70f, 30, 10f, 0.9f, 0.3f, 1.1f, 1.0f, 1.8f);
 
         // Boneco de treino (modo Treino): não ataca nem anda, vida enorme que volta cheia, postura de goblin forte.
         public static readonly EnemyDef Boneco = new EnemyDef(EnemyKind.Boneco, "Boneco de treino", 100000f, 150f, 0, 0f, 0f, 0.3f, 1.6f, 1000f, 0f);

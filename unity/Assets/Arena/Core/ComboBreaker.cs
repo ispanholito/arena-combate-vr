@@ -14,6 +14,7 @@ namespace Arena.Core
         {
             EnemyKind.Goblin => 5,
             EnemyKind.Esqueleto => 5,
+            EnemyKind.Mimico => 4,
             EnemyKind.ReiGoblin => 4,
             _ => 0,                                       // slime e boneco não reagem
         };

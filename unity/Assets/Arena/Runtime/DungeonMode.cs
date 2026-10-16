@@ -68,6 +68,7 @@ namespace Arena
                 var center = new Vector3((x0 + x1) * 0.5f, 2f, (z0 + z1) * 0.5f);
                 center += OutsideNormal(f.Area, x0, z0, x1, z1) * 0.15f;
                 Box("Parede", center, alongX ? new Vector3(len + 0.3f, 4f, 0.3f) : new Vector3(0.3f, 4f, len + 0.3f), wall);
+                Torches(f.Area, x0, z0, x1, z1, alongX, len);
             }
             foreach (var room in f.Rooms)
             {
@@ -83,8 +84,26 @@ namespace Arena
                 if (room.Kind == RoomKind.Inicio || room.Kind == RoomKind.Fogueira) bonfires.Add(Bonfire(c + Vector3.back * 1.5f, room.Index));
                 if (room.Kind == RoomKind.Escada) SpawnPortal(c, home: false);
             }
+            for (int i = 0; i < f.Traps.Count; i++)
+                SpikeTrap.Spawn(new Vector3(f.Traps[i].x, 0f, f.Traps[i].z), root, i * 0.9f);   // ciclos defasados
             SetCheckpoint(Run.CheckpointRoom);
             game.Player.TeleportTo(game.BonfireStandPoint, new Vector3(f.Start.Rect.CenterX, 0f, f.Start.Rect.CenterZ + 10f));
+        }
+
+        // Tochas nas paredes a cada ~7 m (só a chama emissiva; luz de verdade é 1 por sala, pelo desempenho no Quest).
+        void Torches(WalkArea area, float x0, float z0, float x1, float z1, bool alongX, float len)
+        {
+            if (len < 5f) return;
+            var inward = -OutsideNormal(area, x0, z0, x1, z1);
+            int n = Mathf.Max(1, Mathf.FloorToInt(len / 7f));
+            for (int i = 0; i < n; i++)
+            {
+                float s = (i + 0.5f) / n;
+                var p = new Vector3(Mathf.Lerp(x0, x1, s), 2.3f, Mathf.Lerp(z0, z1, s)) + inward * 0.12f;
+                var stick = ArenaUtil.Prim(PrimitiveType.Cylinder, root, p - Vector3.up * 0.15f, new Vector3(0.05f, 0.18f, 0.05f), wood).transform;
+                stick.rotation = Quaternion.AngleAxis(25f, Vector3.Cross(Vector3.up, inward)) ;
+                ArenaUtil.Prim(PrimitiveType.Sphere, root, p + Vector3.up * 0.05f + inward * 0.05f, Vector3.one * 0.14f, fire);
+            }
         }
 
         Vector3 OutsideNormal(WalkArea area, float x0, float z0, float x1, float z1)
@@ -169,7 +188,7 @@ namespace Arena
                     Run.OnRoomEmpty();
                     Unlock();
                     if (cleared != null && cleared.HasChest)
-                        TreasureChest.Spawn(new Vector3(cleared.Rect.CenterX, 0f, cleared.Rect.CenterZ), game.Player.FeetPosition - new Vector3(cleared.Rect.CenterX, 0f, cleared.Rect.CenterZ), Run.Floor.Number, root);
+                        TreasureChest.Spawn(new Vector3(cleared.Rect.CenterX, 0f, cleared.Rect.CenterZ), game.Player.FeetPosition - new Vector3(cleared.Rect.CenterX, 0f, cleared.Rect.CenterZ), Run.Floor.Number, root, cleared.ChestIsMimic);
                     game.Message("Sala limpa", 1.2f);
                     ArenaAudio.Play2D(Sfx.Level, 0.4f, 0.8f);
                     game.RequestSave();

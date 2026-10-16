@@ -169,6 +169,8 @@ namespace Arena.Core
             EnemyKind.Slime => 0.08f,
             EnemyKind.Goblin => 0.22f,
             EnemyKind.Esqueleto => 0.28f,
+            EnemyKind.Arqueiro => 0.2f,
+            EnemyKind.Mimico => 1f,
             EnemyKind.ReiGoblin => 1f,
             _ => 0f,
         };
@@ -178,11 +180,13 @@ namespace Arena.Core
             EnemyKind.Slime => 2,
             EnemyKind.Goblin => 6,
             EnemyKind.Esqueleto => 7,
+            EnemyKind.Arqueiro => 6,
+            EnemyKind.Mimico => 25,
             EnemyKind.ReiGoblin => 60,
             _ => 0,
         };
 
-        public static Rarity MinRarity(EnemyKind k) => k == EnemyKind.ReiGoblin ? Rarity.Raro : Rarity.Comum;
+        public static Rarity MinRarity(EnemyKind k) => k == EnemyKind.ReiGoblin ? Rarity.Raro : k == EnemyKind.Mimico ? Rarity.Incomum : Rarity.Comum;
 
         // Ouro com variação de ±30%.
         public int RollGold(EnemyKind k)

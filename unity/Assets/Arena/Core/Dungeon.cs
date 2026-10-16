@@ -118,6 +118,7 @@ namespace Arena.Core
         public List<EnemyDef> Enemies = new List<EnemyDef>();
         public bool Entered, Cleared;
         public bool HasChest;          // baú aparece quando a sala é limpa
+        public bool ChestIsMimic;      // o baú é um mímico
         public int EnteredFrom = -1;   // sala anterior (para os inimigos nascerem longe da entrada)
     }
 
@@ -126,6 +127,7 @@ namespace Arena.Core
         public int Number;
         public List<DungeonRoom> Rooms = new List<DungeonRoom>();
         public List<Rect2> Corridors = new List<Rect2>();
+        public List<(float x, float z)> Traps = new List<(float, float)>();   // armadilhas de espinhos (centro da placa)
         public WalkArea Area;
         public DungeonRoom Start => Rooms[0];
         public DungeonRoom Last => Rooms[Rooms.Count - 1];
@@ -185,6 +187,7 @@ namespace Arena.Core
                 var room = new DungeonRoom { Index = i, Kind = k, Rect = Rect2.Centered(cx, cz, w, d), EnteredFrom = i - 1 };
                 if (k == RoomKind.Combate) room.Enemies = RollEnemies(rng, floor, i);
                 if (k == RoomKind.Combate) room.HasChest = rng.NextDouble() < 0.4;
+                if (room.HasChest) room.ChestIsMimic = rng.NextDouble() < MimicRules.Chance(floor);
                 if (k == RoomKind.Chefe) room.Enemies.Add(EnemyDef.ReiGoblin(bossesDefeated));
                 if (k == RoomKind.Inicio || k == RoomKind.Fogueira || k == RoomKind.Escada) room.Cleared = true;
                 f.Rooms.Add(room);
@@ -200,7 +203,39 @@ namespace Arena.Core
                     : new Rect2(Math.Min(a.CenterX, b.CenterX), a.CenterZ - h, Math.Max(a.CenterX, b.CenterX), a.CenterZ + h));
             }
             f.Area = new WalkArea(f.Rooms.Select(r => r.Rect).Concat(f.Corridors));
+            PlaceTraps(f, rng, floor);
             return f;
+        }
+
+        // Espinhos: 0-1 por sala de combate no andar 1, 1-2 no andar 2, longe do centro (onde aparece o baú); e às
+        // vezes um no meio do corredor.
+        static void PlaceTraps(DungeonFloor f, Random rng, int floor)
+        {
+            foreach (var room in f.Rooms)
+            {
+                if (room.Kind != RoomKind.Combate) continue;
+                int n = floor <= 1 ? rng.Next(0, 2) : rng.Next(1, 3);
+                var r = room.Rect.Shrink(2f);
+                for (int i = 0; i < n; i++)
+                {
+                    for (int attempt = 0; attempt < 10; attempt++)
+                    {
+                        float x = (float)Math.Round(r.MinX + rng.NextDouble() * r.Width), z = (float)Math.Round(r.MinZ + rng.NextDouble() * r.Depth);
+                        if (Math.Abs(x - r.CenterX) < 2f && Math.Abs(z - r.CenterZ) < 2f) continue;
+                        if (f.Traps.Any(t => Math.Abs(t.x - x) < 2f && Math.Abs(t.z - z) < 2f)) continue;
+                        f.Traps.Add((x, z));
+                        break;
+                    }
+                }
+            }
+            for (int i = 1; i < f.Rooms.Count; i++)
+            {
+                if (rng.NextDouble() >= 0.35) continue;
+                var a = f.Rooms[i - 1].Rect; var b = f.Rooms[i].Rect;
+                // Meio do vão entre as duas salas (fora das salas, dentro do corredor).
+                float x = (a.CenterX + b.CenterX) / 2f, z = (a.CenterZ + b.CenterZ) / 2f;
+                if (!f.Rooms.Any(r => r.Rect.Contains(x, z, -1f))) f.Traps.Add((x, z));
+            }
         }
 
         // Caminhada sem repetir célula, preferindo seguir em frente (corredores longos e salas bem separadas).
@@ -234,7 +269,7 @@ namespace Arena.Core
             return Enumerable.Range(0, count).Select(i => (0, i)).ToList();   // linha reta (nunca deve acontecer)
         }
 
-        // Andar 1: slimes e goblins. Andar 2: goblins e esqueletos. Salas mais fundas têm mais inimigos.
+        // Andar 1: slimes, goblins e alguns arqueiros. Andar 2: goblins, esqueletos, arqueiros e poucos slimes. Salas mais fundas têm mais inimigos.
         public static List<EnemyDef> RollEnemies(Random rng, int floor, int roomIndex)
         {
             int n = Math.Min(6, 2 + floor + roomIndex / 2 + rng.Next(0, 2));
@@ -242,8 +277,8 @@ namespace Arena.Core
             for (int i = 0; i < n; i++)
             {
                 double r = rng.NextDouble();
-                if (floor <= 1) list.Add(r < 0.5 ? EnemyDef.Slime(1f) : EnemyDef.Goblin);
-                else list.Add(r < 0.2 ? EnemyDef.Slime(1f) : r < 0.55 ? EnemyDef.Goblin : EnemyDef.Esqueleto);
+                if (floor <= 1) list.Add(r < 0.45 ? EnemyDef.Slime(1f) : r < 0.85 ? EnemyDef.Goblin : EnemyDef.Arqueiro);
+                else list.Add(r < 0.15 ? EnemyDef.Slime(1f) : r < 0.45 ? EnemyDef.Goblin : r < 0.8 ? EnemyDef.Esqueleto : EnemyDef.Arqueiro);
             }
             return list;
         }

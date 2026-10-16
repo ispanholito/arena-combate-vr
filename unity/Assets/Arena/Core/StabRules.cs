@@ -21,7 +21,7 @@ namespace Arena.Core
         public const float BleedTick = 1f;
 
         public static StabStyle StyleFor(EnemyKind kind) =>
-            kind == EnemyKind.ReiGoblin || kind == EnemyKind.Boneco ? StabStyle.Embed : StabStyle.Skewer;
+            kind == EnemyKind.ReiGoblin || kind == EnemyKind.Boneco || kind == EnemyKind.Mimico ? StabStyle.Embed : StabStyle.Skewer;
 
         public static bool CanStab(WeaponKind kind, float tipSpeed, float alignment, float contactDistanceFromTip) =>
             (kind == WeaponKind.Espada || kind == WeaponKind.Lanca || kind == WeaponKind.Adaga) && tipSpeed >= MinSpeed && alignment >= MinAlignment && contactDistanceFromTip <= TipZone;
@@ -44,6 +44,7 @@ namespace Arena.Core
         {
             EnemyKind.Slime => 1.6f,                    // leve: voa longe
             EnemyKind.Goblin => 0.9f,
+            EnemyKind.Arqueiro => 1f,
             _ => 0.5f,
         };
 

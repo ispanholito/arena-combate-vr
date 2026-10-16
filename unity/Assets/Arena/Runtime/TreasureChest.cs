@@ -11,11 +11,11 @@ namespace Arena
         public const float OpenRange = 1.6f;
 
         int floor;
-        bool opened;
+        bool opened, mimic;
         Transform lid;
         float openT;
 
-        public static TreasureChest Spawn(Vector3 pos, Vector3 facing, int floor, Transform parent)
+        public static TreasureChest Spawn(Vector3 pos, Vector3 facing, int floor, Transform parent, bool mimic = false)
         {
             var go = new GameObject("Bau");
             go.transform.SetParent(parent, false);
@@ -23,6 +23,7 @@ namespace Arena
             go.transform.rotation = Quaternion.LookRotation(facing.Flat().sqrMagnitude > 0.01f ? facing.Flat() : Vector3.forward);
             var c = go.AddComponent<TreasureChest>();
             c.floor = floor;
+            c.mimic = mimic;
             c.Build();
             All.Add(c);
             ArenaFx.Burst(pos + Vector3.up * 0.4f, new Color(1f, 0.85f, 0.3f), 16, 2.5f);
@@ -57,6 +58,20 @@ namespace Arena
             All.Clear();
         }
 
+        // Era um mímico: o baú vira o monstro (que deixa o loot do baú ao morrer).
+        void Reveal(ArenaGame game)
+        {
+            var pos = transform.position;
+            var e = game.Spawn(EnemyDef.Mimico, pos, false);
+            e.transform.rotation = transform.rotation;
+            e.SpawnGrace = 0.4f;
+            ArenaFx.Burst(pos + Vector3.up * 0.5f, new Color(0.55f, 0.1f, 0.2f), 24, 4f);
+            ArenaAudio.Play(Sfx.Roar, pos, 0.8f, 1.8f);
+            ArenaInput.Haptic(1f, 0.2f);
+            game.Message("MÍMICO!", 1.5f);
+            Destroy(gameObject);
+        }
+
         // Abre o baú fechado mais próximo ao alcance. Retorna true se abriu.
         public static bool TryOpen(ArenaPlayer player)
         {
@@ -79,6 +94,7 @@ namespace Arena
         {
             opened = true;
             var game = ArenaGame.Instance;
+            if (mimic && game) { Reveal(game); return; }
             var (gold, item) = game ? game.Loot.RollChest(floor) : (10, null);
             player.State.AddGold(gold);
             var top = transform.position + Vector3.up * 0.8f;

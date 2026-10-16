@@ -277,6 +277,8 @@ namespace Arena
                 EnemyKind.Goblin => go.AddComponent<GoblinEnemy>(),
                 EnemyKind.Boneco => go.AddComponent<TrainingDummy>(),
                 EnemyKind.Esqueleto => go.AddComponent<SkeletonEnemy>(),
+                EnemyKind.Mimico => go.AddComponent<MimicEnemy>(),
+                EnemyKind.Arqueiro => go.AddComponent<ArcherEnemy>(),
                 _ => go.AddComponent<GoblinKing>(),
             };
             e.Init(def);
