@@ -6,7 +6,7 @@ namespace Arena
     // Goblin: ataque anunciado com clava (brilha vermelho no wind-up). Pode ser aparado/bloqueado pela arma.
     public class GoblinEnemy : ArenaEnemy
     {
-        protected enum AiState { Approach, Windup, Strike, Recover, Slam }
+        protected enum AiState { Approach, Windup, Strike, Recover, Slam, Retreat }
 
         protected float k = 1f;                 // escala (Rei Goblin = 1,75)
         protected AiState state = AiState.Approach;
@@ -19,6 +19,7 @@ namespace Arena
         Vector3 clubPrevA, clubPrevB;
         bool clubPrevValid;
         int strafe;
+        bool retreated;
         float nextAttackDelay;
 
         protected Color clubColor = new Color(0.42f, 0.27f, 0.15f);
@@ -92,6 +93,13 @@ namespace Arena
         {
             // Goblin comum às vezes se assusta e cancela o ataque ao levar um golpe.
             if (state == AiState.Windup && !State.Posture.IsBroken && Def.Kind == EnemyKind.Goblin && Random.value < 0.3f) SetState(AiState.Recover);
+            // Muito ferido: às vezes recua um pouco (uma vez) antes de voltar.
+            if (!ev.Killed && state != AiState.Strike && GoblinTactics.ShouldRetreat(Def.Kind, State.HpFraction, retreated, Random.value))
+            {
+                retreated = true;
+                SetState(AiState.Retreat);
+                ArenaFx.FloatText("RECUOU", Center + Vector3.up * 0.7f, new Color(0.85f, 0.85f, 0.6f), 0.9f);
+            }
         }
 
         // Override para o chefe; retorna true se assumiu o controle neste frame.
@@ -119,7 +127,16 @@ namespace Arena
                 {
                     var side = new Vector3(-dir.z, 0, dir.x) * strafe * 0.8f;
                     var want = d > 1.25f * k ? dir * Def.MoveSpeed : d < 0.9f * k ? -dir : Vector3.zero;
-                    if (d < 2.2f * k) want += side;
+                    // Em grupo: cada um vai para a sua vaga num arco à frente do jogador (cercam pelos lados).
+                    float slot = GroupSlot();
+                    if (Mathf.Abs(slot) > 1f && d < GoblinTactics.EngageDistance * k)
+                    {
+                        var spot = Player.FeetPosition + Quaternion.Euler(0, slot, 0) * Player.HeadForward * 1.3f * k;
+                        var toSpot = (spot - transform.position).Flat();
+                        want = toSpot.magnitude > 0.35f ? toSpot.normalized * Def.MoveSpeed * 0.9f : Vector3.zero;
+                        if (d < 0.9f * k) want -= dir;
+                    }
+                    else if (d < 2.2f * k) want += side;
                     Move(want, dt);
                     LerpArm(-35f, 5f, dt);
                     if (d < 1.45f * k && stateT > (k > 1f ? 0.6f : 1.0f) + nextAttackDelay && State.CanAct && CanAttackNow)
@@ -142,6 +159,11 @@ namespace Arena
                     if (stateT > 0.4f) SetState(AiState.Recover);
                     break;
                 }
+                case AiState.Retreat:
+                    LerpArm(-20f, 4f, dt);
+                    Move(-dir * Def.MoveSpeed * 1.1f, dt);
+                    if (stateT > GoblinTactics.RetreatSeconds) SetState(AiState.Approach);
+                    break;
                 case AiState.Recover:
                     LerpArm(-35f, 4f, dt);
                     Move(-dir * 0.6f, dt);
@@ -151,6 +173,20 @@ namespace Arena
         }
 
         protected virtual void OnStunned() { }
+
+        // Vaga deste goblin no grupo (goblins e esqueletos vivos, sem o chefe nem arqueiros), em ordem estável.
+        float GroupSlot()
+        {
+            if (this is GoblinKing) return 0f;   // o chefe vem de frente
+            int count = 0, index = 0, me = GetInstanceID();
+            foreach (var e in All)
+            {
+                if (!(e is GoblinEnemy) || e is GoblinKing || e is ArcherEnemy || e.Dead) continue;
+                count++;
+                if (e.GetInstanceID() < me) index++;
+            }
+            return GoblinTactics.SlotAngle(index, count);
+        }
 
         // Testa o caminho inteiro da clava entre o frame anterior e o atual (golpe rápido não atravessa a defesa).
         // Ordem: escudo, espada, corpo do jogador.
