@@ -56,6 +56,8 @@ namespace Arena.Core
         public const float PalmCooldown = 1.2f, PalmCost = 15f, PalmDamage = 20f;
         // Gestos
         public const float SlamMinDownSpeed = 3f, SlamMaxHandHeight = 1.05f, PalmMinSpeed = 3.2f, PoseHoldSeconds = 0.12f;
+        // Metralhadora sai da palma aberta PARADA (a mesma pose do corte, que é a palma aberta RÁPIDA).
+        public const float GunPalmMaxSpeed = 1.2f, GunPalmHoldSeconds = 0.3f, GunLockoutAfterPalm = 0.5f;
     }
 
     public enum GuardResult { None, Parry, Block, GuardBroken, Counter, ShieldBlock }

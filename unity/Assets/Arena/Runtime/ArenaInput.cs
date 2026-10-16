@@ -4,14 +4,16 @@ using UnityEngine.InputSystem;
 namespace Arena
 {
     // Uma entrada só para VR (OVRInput) e desktop (teclado + mouse), lida uma vez por frame.
-    // VR com mão esquerda livre: analógico direito move, clique curto = esquiva, segurar = árvore.
+    // VR com mão esquerda livre: analógico direito move, clique curto = esquiva, segurar = árvore. A + B juntos = árvore (qualquer modo).
     // VR com dois controles: analógico esquerdo move, X esquiva, Y árvore, clique esquerdo troca arma, direito gira.
     // Desktop: WASD, mouse olha, botão esq = golpe, dir = aparo, Shift/Espaço = esquiva, 1/2/3 habilidades,
     //          Q troca arma, Tab árvore, Z metralhadora / X soco no chão / C corte da palma (poderes da mão), F escudo nas costas/na mão.
     public sealed class ArenaInput
     {
         public bool Vr { get; private set; }
+        // Controle esquerdo SEGURO na mão (não só conectado: largado na mesa conta como mão livre).
         public bool LeftControllerConnected { get; private set; }
+        public bool LeftHandFree => Vr && !LeftControllerConnected;
 
         public Vector2 Move, Look;
         public bool Dash, ToggleTree, SwitchWeapon, ShieldToggle;
@@ -23,14 +25,12 @@ namespace Arena
         public bool MenuUp, MenuDown, MenuConfirm, MenuRespec;
         public Vector2 MousePointer;
 
-        bool leftHandFree;
-        bool bWasHeld, trigWasHeld, snapReady = true, menuReady = true;
+        bool trigWasHeld, snapReady = true, menuReady = true;
         float stickHoldT; bool stickHoldFired;
 
-        public void Update(bool xrActive, float dt, bool leftHandFree = false)
+        public void Update(bool xrActive, float dt)
         {
             Vr = xrActive;
-            this.leftHandFree = leftHandFree;
             Reset();
             if (Vr) ReadVr(dt); else ReadDesktop();
         }
@@ -48,7 +48,7 @@ namespace Arena
         void ReadVr(float dt)
         {
             const OVRInput.Controller R = OVRInput.Controller.RTouch, L = OVRInput.Controller.LTouch;
-            LeftControllerConnected = OVRInput.IsControllerConnected(L) && !leftHandFree;   // largado na mesa + mão rastreada = mão livre
+            UpdateLeftInHand(dt);
             var rStick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, R);
 
             if (LeftControllerConnected)
@@ -77,9 +77,7 @@ namespace Arena
             }
             if (Move.magnitude < 0.15f) Move = Vector2.zero;
 
-            APressed = OVRInput.GetDown(OVRInput.Button.One, R);
-            BHeld = OVRInput.Get(OVRInput.Button.Two, R);
-            BPressed = BHeld && !bWasHeld; BReleased = !BHeld && bWasHeld; bWasHeld = BHeld;
+            ReadAB(dt);
             TriggerHeld = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, R) > 0.55f;
             TriggerPressed = TriggerHeld && !trigWasHeld; TriggerReleased = !TriggerHeld && trigWasHeld; trigWasHeld = TriggerHeld;
             GripPressed = OVRInput.GetDown(OVRInput.Button.PrimaryHandTrigger, R);
@@ -88,6 +86,42 @@ namespace Arena
             MenuUp = rStick.y > 0.7f && menuReady; MenuDown = rStick.y < -0.7f && menuReady;
             if (Mathf.Abs(rStick.y) > 0.7f) menuReady = false; else if (Mathf.Abs(rStick.y) < 0.3f) menuReady = true;
             MenuConfirm = APressed; MenuRespec = BPressed;
+        }
+
+        // Usa o sensor da Meta que diz se o controle está na mão; o estado só muda depois de 0,2 s estável (evita piscar).
+        float inHandStableT;
+        void UpdateLeftInHand(float dt)
+        {
+            var st = OVRInput.GetControllerIsInHandState(OVRInput.Hand.HandLeft);
+            bool raw = st == OVRInput.ControllerInHandState.ControllerInHand
+                       || (st == OVRInput.ControllerInHandState.NoHand && OVRInput.GetControllerPositionTracked(OVRInput.Controller.LTouch));
+            if (raw == LeftControllerConnected) { inHandStableT = 0f; return; }
+            inHandStableT += dt;
+            if (inHandStableT >= 0.2f) { LeftControllerConnected = raw; inHandStableT = 0f; }
+        }
+
+        // A + B juntos = abre/fecha a árvore. Para distinguir do toque simples, A e B sozinhos só valem depois de
+        // ComboWindow (ou ao soltar antes disso).
+        public const float ComboWindow = 0.12f;
+        float aPend = -1f, bPend = -1f;
+        bool bLatched, comboLock;
+
+        void ReadAB(float dt)
+        {
+            const OVRInput.Controller R = OVRInput.Controller.RTouch;
+            bool aRaw = OVRInput.Get(OVRInput.Button.One, R), bRaw = OVRInput.Get(OVRInput.Button.Two, R);
+            if (comboLock) { if (!aRaw && !bRaw) comboLock = false; return; }
+            if (OVRInput.GetDown(OVRInput.Button.One, R)) aPend = 0f;
+            if (OVRInput.GetDown(OVRInput.Button.Two, R)) bPend = 0f;
+            if (aPend >= 0f && bPend >= 0f)
+            {
+                ToggleTree = true; aPend = bPend = -1f; bLatched = false; comboLock = true;
+                return;
+            }
+            if (aPend >= 0f) { aPend += dt; if (aPend >= ComboWindow || !aRaw) { APressed = true; aPend = -1f; } }
+            if (bPend >= 0f) { bPend += dt; if (bPend >= ComboWindow || !bRaw) { BPressed = true; bLatched = true; bPend = -1f; } }
+            BHeld = bLatched && bRaw;
+            if (bLatched && !bRaw) { BReleased = true; bLatched = false; }
         }
 
         void ReadDesktop()

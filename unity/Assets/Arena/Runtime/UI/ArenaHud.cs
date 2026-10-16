@@ -92,10 +92,7 @@ namespace Arena
             var shield = player.Shield;
             if (shield && shield.Available) sb.Append(shield.Equipped ? "\nEscudo na mão" : "\n<color=#9fd0ff>Escudo nas costas: mão livre</color>");
             if (handPowers == null) handPowers = player.GetComponent<LeftHandPowers>();
-            if (handPowers && handPowers.Arming.Armed != HandPower.Nenhum)
-                sb.Append("\n<color=#ff9a7a>").Append(HandSigns.Name(handPowers.Arming.Armed)).Append(" armada ")
-                  .Append(handPowers.Arming.ArmedTimeLeft.ToString("0.0")).Append("s</color>");
-            else if (handPowers && handPowers.HandTracked)
+            if (handPowers && handPowers.HandTracked && player.Input.LeftHandFree)
                 sb.Append("\n<color=#999>Mão: ").Append(handPowers.CurrentShape).Append("</color>");
             if (s.CounterStance > 0f) sb.Append("\n<color=#ffd36b>CONTRA ATIVO</color>");
             if (s.WindCharges > 0) sb.Append("\n<color=#cff4ff>Vento: ").Append(s.WindCharges).Append("</color>");

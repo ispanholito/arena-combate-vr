@@ -36,7 +36,6 @@ namespace Arena
         public event System.Action<float> Hurt;
 
         WeaponDef[] loadout;
-        LeftHandPowers handPowers;
         int weaponIndex;
         float yaw, pitch;
         float dashT, chargeT, chargeLen;
@@ -85,10 +84,9 @@ namespace Arena
         {
             float dt = Time.deltaTime;
             IsVr = XRSettings.isDeviceActive;
-            if (handPowers == null) handPowers = GetComponent<LeftHandPowers>();
-            Input.Update(IsVr, dt, handPowers && handPowers.HandTracked);
+            Input.Update(IsVr, dt);
             if (!IsVr) DesktopLook();
-            else trackingSpace.localPosition = Vector3.zero;
+            else VrHeight(dt);
 
             if (Input.ToggleTree) TreeOpen = !TreeOpen;
             if (!TreeOpen)
@@ -102,6 +100,27 @@ namespace Arena
             vignette = Mathf.MoveTowards(vignette, 0f, dt * 2f);
             Weapon.Tick(dt, IsVr, !IsVr && Input.DesktopParry);
             if (!IsVr && !TreeOpen && Input.DesktopSwing) Weapon.DesktopSwing();
+        }
+
+        // ---------- Altura no VR ----------
+        // Com o chão do Guardian mal calibrado (ou depois de recentralizar) a cabeça pode ficar perto de 0 e o jogador
+        // "entra na terra". Na partida e a cada recentralização: se a cabeça estiver abaixo de 1,2 m, sobe o jogador
+        // para a altura em pé dele (a maior medida até agora, ou 1,65 m).
+        public const float DefaultStandingEye = 1.65f, MinPlausibleEye = 1.2f;
+        float heightOffset, standingEye = DefaultStandingEye, heightCheckT = 0.5f;
+        bool recenterHooked;
+
+        void VrHeight(float dt)
+        {
+            if (!recenterHooked && OVRManager.display != null) { OVRManager.display.RecenteredPose += () => heightCheckT = 0.3f; recenterHooked = true; }
+            float eye = head.localPosition.y;   // altura da cabeça medida pelo headset (sem o nosso deslocamento)
+            if (heightOffset == 0f && eye > MinPlausibleEye && eye < 2.1f) standingEye = Mathf.Max(standingEye == DefaultStandingEye ? eye : standingEye, eye);
+            if (heightCheckT > 0f)
+            {
+                heightCheckT -= dt;
+                if (heightCheckT <= 0f) heightOffset = eye < MinPlausibleEye ? standingEye - eye : 0f;
+            }
+            trackingSpace.localPosition = new Vector3(0f, heightOffset, 0f);
         }
 
         // ---------- Movimento ----------

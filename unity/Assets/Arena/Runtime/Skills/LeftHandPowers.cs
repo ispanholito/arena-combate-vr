@@ -5,24 +5,24 @@ using UnityEngine.XR.Hands;
 
 namespace Arena
 {
-    // Poderes da mão esquerda LIVRE (só funcionam com a mão rastreada, nunca com o controle), qualquer classe.
-    // Cada poder precisa ser armado com um sinal (segurar ~0,25 s) e depois disparado com o gesto:
-    //   V (indicador + médio)        → Metralhadora: aponte o indicador e ela atira enquanto apontar
-    //   Chifres (indicador + mínimo) → Soco no chão: punho fechado golpeando para baixo, atordoa em 3 m
-    //   Três dedos (sem o mínimo)    → Corte da palma: mão aberta em movimento rápido
+    // Poderes da mão esquerda LIVRE (só com a mão rastreada, nunca com o controle na mão), qualquer classe:
+    //   palma aberta parada = metralhadora (na direção da palma), punho golpeando para baixo = soco no chão (atordoa em 3 m),
+    //   palma aberta em movimento rápido = corte da palma. Apontar o indicador está livre para um poder futuro.
+    // Sinais de mão (HandSignArming, no Core) existem mas não são usados aqui: ficam para habilidades futuras.
     // Desktop (sem mãos): Z metralhadora (segurar), X soco, C palma — só com o escudo nas costas (F).
     [RequireComponent(typeof(ArenaPlayer))]
     public sealed class LeftHandPowers : MonoBehaviour
     {
         public HandShape CurrentShape { get; private set; }
         public bool HandTracked { get; private set; }
-        public HandSignArming Arming { get; } = new HandSignArming();
+        HandShape lastShape;
+        float shapeT;
 
         ArenaPlayer player;
         XRHandSubsystem hands;
         static readonly List<XRHandSubsystem> buffer = new List<XRHandSubsystem>();
         float gunCooldown;
-        Vector3 wristPrev, wristVel;
+        Vector3 wristPrev, wristVel, wristLocalPrev;
         bool hadWrist;
         Material bulletMat;
 
@@ -30,7 +30,6 @@ namespace Arena
         {
             player = GetComponent<ArenaPlayer>();
             bulletMat = ArenaUtil.Unlit(new Color(1f, 0.45f, 0.35f));
-            Arming.PowerArmed += p => ArenaGame.Instance?.Message(HandSigns.Name(p) + " pronta", 0.8f);
         }
 
         void Update()
@@ -74,33 +73,57 @@ namespace Arena
                 CurrentShape = Detect(h);
                 if (World(h, XRHandJointID.Wrist, out var wrist))
                 {
-                    if (hadWrist && dt > 0f) wristVel = (wrist - wristPrev) / dt;
-                    wristPrev = wrist; hadWrist = true;
+                    // Velocidade relativa ao corpo: andar, esquivar ou girar não conta como mover a mão.
+                    var local = player.trackingSpace.InverseTransformPoint(wrist);
+                    if (hadWrist && dt > 0f) wristVel = player.trackingSpace.TransformDirection((local - wristLocalPrev) / dt);
+                    wristLocalPrev = local; wristPrev = wrist; hadWrist = true;
                 }
             }
             else hadWrist = false;
-            Arming.Update(CurrentShape, dt);
+            if (CurrentShape == lastShape) shapeT += dt; else { lastShape = CurrentShape; shapeT = 0f; }
         }
 
         void VrPowers()
         {
-            if (!HandTracked) return;
+            if (!HandTracked || !player.Input.LeftHandFree) return;
             var hand = hands.leftHand;
-            if (Arming.IsTriggering(HandPower.Metralhadora, CurrentShape)
-                && World(hand, XRHandJointID.IndexTip, out var tip) && World(hand, XRHandJointID.IndexProximal, out var baseJ))
-            {
-                Arming.Sustain();
-                Fire(tip, (tip - baseJ).normalized);
-            }
-            if (Arming.IsTriggering(HandPower.SocoNoChao, CurrentShape)
+            if (CurrentShape == HandShape.Punho
                 && wristVel.y < -HandPowers.SlamMinDownSpeed && wristPrev.y < HandPowers.SlamMaxHandHeight)
             {
-                if (Slam()) Arming.Consume();
+                Slam();
             }
-            if (Arming.IsTriggering(HandPower.CorteDaPalma, CurrentShape) && wristVel.magnitude > HandPowers.PalmMinSpeed)
+            // Palma aberta: rápida = corte; parada por 0,3 s = metralhadora (nunca no meio de um corte).
+            float handSpeed = wristVel.magnitude;
+            if (handSpeed > HandPowers.GunPalmMaxSpeed) stillT = 0f; else stillT += Time.deltaTime;
+            palmLockout -= Time.deltaTime;
+            if (CurrentShape == HandShape.Aberta && shapeT > 0.1f && handSpeed > HandPowers.PalmMinSpeed)
             {
-                if (Palm(wristPrev, wristVel)) Arming.Consume();
+                if (Palm(wristPrev, wristVel)) palmLockout = HandPowers.GunLockoutAfterPalm;
             }
+            else if (CurrentShape == HandShape.Aberta && shapeT > HandPowers.GunPalmHoldSeconds
+                     && stillT > HandPowers.GunPalmHoldSeconds && palmLockout <= 0f
+                     && PalmAim(hand, out var origin, out var dir))
+            {
+                Fire(origin, dir);
+            }
+        }
+
+        float stillT, palmLockout;
+
+        // Centro e normal da palma. O sinal da normal é escolhido para apontar para longe da cabeça
+        // (ninguém mira na própria cara), o que dispensa saber a convenção de eixos da mão esquerda.
+        bool PalmAim(XRHand hand, out Vector3 origin, out Vector3 dir)
+        {
+            origin = dir = default;
+            if (!World(hand, XRHandJointID.Wrist, out var w) || !World(hand, XRHandJointID.IndexProximal, out var ip)
+                || !World(hand, XRHandJointID.LittleProximal, out var lp) || !World(hand, XRHandJointID.MiddleProximal, out var mp)) return false;
+            var n = Vector3.Cross(ip - w, lp - w);
+            if (n.sqrMagnitude < 1e-6f) return false;
+            n.Normalize();
+            origin = (w + mp) * 0.5f;
+            if (Vector3.Dot(n, origin - player.HeadPosition) < 0f) n = -n;
+            dir = n;
+            return true;
         }
 
         // ---------- Poderes ----------

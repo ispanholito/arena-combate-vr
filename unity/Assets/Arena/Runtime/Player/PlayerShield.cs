@@ -24,7 +24,6 @@ namespace Arena
         public float DesktopRaisedFor { get; private set; }
 
         ArenaPlayer player;
-        LeftHandPowers hand;
         Transform visual;
         bool desktopEquipped = true;
         Vector3 prevCenter;
@@ -34,7 +33,6 @@ namespace Arena
         void Start()
         {
             player = GetComponent<ArenaPlayer>();
-            hand = GetComponent<LeftHandPowers>();
             visual = new GameObject("Escudo").transform;
             var wood = ArenaUtil.Lit(new Color(0.36f, 0.24f, 0.14f));
             var iron = ArenaUtil.Lit(new Color(0.5f, 0.52f, 0.56f), new Color(0.05f, 0.05f, 0.06f));
@@ -54,8 +52,7 @@ namespace Arena
                 ArenaGame.Instance?.Message(desktopEquipped ? "Escudo na mão" : "Escudo nas costas: mão livre", 0.9f);
             }
 
-            bool leftControllerInHand = OVRInput.GetControllerPositionTracked(OVRInput.Controller.LTouch) && !(hand && hand.HandTracked);
-            Equipped = Available && (vr ? leftControllerInHand : desktopEquipped) && !player.TreeOpen;
+            Equipped = Available && (vr ? player.Input.LeftControllerConnected : desktopEquipped) && !player.TreeOpen;
             visual.gameObject.SetActive(Equipped);
             if (!Equipped) { hasPrev = false; DesktopRaised = false; return; }
 
