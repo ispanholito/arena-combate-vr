@@ -123,6 +123,37 @@ namespace Arena.Core
             while (LostItems.Count > MaxLostItems) LostItems.RemoveAt(0);
         }
 
+        // Estante PERMANENTE do santuário: o que o jogador escolheu guardar (não some). LostItems é a TEMPORÁRIA:
+        // o que ficou para trás; some quando ele entra de novo num portal sem tirar de lá.
+        public const int MaxStash = 12;
+        public List<ItemInstance> Stash { get; } = new List<ItemInstance>();
+        public bool AddToStash(ItemInstance item)
+        {
+            if (item == null || Stash.Contains(item) || Stash.Count >= MaxStash) return false;
+            Stash.Add(item);
+            return true;
+        }
+
+        // Some com a estante temporária (entrou num portal). Devolve quantas sumiram.
+        public int DiscardLostItems()
+        {
+            int n = LostItems.Count;
+            LostItems.Clear();
+            return n;
+        }
+
+        // Vende a 2ª arma (a que não está na mão) ao mercador do santuário. Devolve o ouro ganho (0 = nada para vender).
+        public int SellSecondWeapon()
+        {
+            int other = 1 - ActiveSlot;
+            var item = Loadout[other];
+            if (item == null || Loadout[ActiveSlot] == null) return 0;
+            Loadout[other] = null;
+            int price = Merchant.Price(item);
+            AddGold(price);
+            return price;
+        }
+
         public void AddGold(int g) => Gold += Math.Max(0, g);
         public void SpendGold(int g) => Gold = Math.Max(0, Gold - Math.Max(0, g));
         public void SetGold(int g) => Gold = Math.Max(0, g);

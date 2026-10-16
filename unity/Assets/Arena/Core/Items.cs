@@ -125,6 +125,19 @@ namespace Arena.Core
         public void SetUpgrade(int u) => Upgrade = Math.Clamp(u, 0, MaxUpgrade);
     }
 
+    // Mercador do santuário: compra armas por ouro (para gastar no ferreiro). Raridade pesa muito; o ferreiro devolve
+    // só uma parte do que custou.
+    public static class Merchant
+    {
+        public static int Price(ItemInstance item)
+        {
+            int r = (int)item.Rarity + 1;
+            int spent = 0;
+            for (int u = 0; u < item.Upgrade; u++) spent += Smithy.Cost(item.Rarity, u);
+            return 10 * r * r + item.Affixes.Count * 5 + spent / 3;
+        }
+    }
+
     public static class Smithy
     {
         public static int Cost(Rarity r, int currentUpgrade) => 40 * (currentUpgrade + 1) * ((int)r + 1);

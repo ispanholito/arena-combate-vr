@@ -21,6 +21,7 @@ namespace Arena.Core
         public List<string> skills = new List<string>();
         public List<ItemSave> items = new List<ItemSave>();
         public List<ItemSave> lostItems = new List<ItemSave>();   // armas esquecidas (voltam no santuário)
+        public List<ItemSave> stash = new List<ItemSave>();       // estante permanente do santuário
 
         public static SaveData From(PlayerState ps)
         {
@@ -35,6 +36,7 @@ namespace Arena.Core
             };
             foreach (var it in ps.Loadout) d.items.Add(ItemSave.From(it));
             foreach (var it in ps.LostItems) d.lostItems.Add(ItemSave.From(it));
+            foreach (var it in ps.Stash) d.stash.Add(ItemSave.From(it));
             return d;
         }
 
@@ -54,6 +56,8 @@ namespace Arena.Core
                 }
             if (lostItems != null)
                 foreach (var s in lostItems) { var it = s?.ToItem(); if (it != null) ps.AddLostItem(it); }
+            if (stash != null)
+                foreach (var s in stash) { var it = s?.ToItem(); if (it != null) ps.AddToStash(it); }
             ps.ActiveSlot = Math.Clamp(activeSlot, 0, ps.Loadout.Length - 1);
             if (ps.Loadout[ps.ActiveSlot] == null) ps.ActiveSlot = 0;
             return ps;

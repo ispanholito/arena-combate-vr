@@ -68,11 +68,7 @@ namespace Arena
                                         0.008f, new Color(0.95f, 0.9f, 0.8f));
             sign.transform.position = new Vector3(0, 3.6f, -7.7f);
             sign.transform.rotation = Quaternion.LookRotation(Vector3.back);
-            // Suporte de armas na parede leste: guarda até 12 (armas guardadas e as esquecidas na dungeon voltam aqui).
-            BuildRack();
-            var stored = game.Player.State.LostItems;
-            for (int i = 0; i < stored.Count && i < RackSlots; i++)
-                WeaponPickup.Spawn(stored[i], RackSlot(i)).PlaceOnRack(RackSlot(i), RackFacing).Owned = true;
+            BuildRacks();   // estantes permanente (leste) e temporária (oeste) + mercador
 
             portalCd = 1.5f;
             game.Player.TeleportTo(game.BonfireStandPoint, new Vector3(0, 0, 6f));
@@ -168,48 +164,106 @@ namespace Arena
                 (item.CanUpgrade ? "+" + (item.Upgrade + 1) + ": " + item.UpgradeCost + " ouro (você tem " + game.Player.State.Gold + ")\ngrip / E na bigorna" : "no máximo (+5)") + "</size>";
         }
 
-        // ---------- Suporte de armas ----------
+        // ---------- Estantes de armas e mercador ----------
+        // Parede leste = PERMANENTE (o que você guarda; não some). Parede oeste = TEMPORÁRIA (o que ficou para trás na
+        // dungeon/arena; some quando você entra num portal sem tirar). Grip numa arma: troca pela sua (ou vai para a
+        // 2ª vaga vazia). Grip num gancho vazio da permanente: guarda a sua 2ª arma. Mercador (baú com moedas, perto da
+        // bigorna): grip vende a sua 2ª arma por ouro para o ferreiro.
         public const int RackSlots = 12;
-        const float RackX = 7.25f, RackZ0 = -4.6f, RackStep = 0.75f;
-        static readonly Quaternion RackFacing = Quaternion.LookRotation(Vector3.left);
-        static Vector3 RackSlot(int i) => new Vector3(RackX, 0f, RackZ0 + i * RackStep);
+        const float RackStep = 0.75f, RackZ0 = -4.6f;
 
-        void BuildRack()
+        static float RackX(RackKind k) => k == RackKind.Permanente ? 7.25f : -7.25f;
+        static Quaternion RackFacing(RackKind k) => Quaternion.LookRotation(k == RackKind.Permanente ? Vector3.left : Vector3.right);
+        static Vector3 RackSlot(RackKind k, int i) => new Vector3(RackX(k), 0f, RackZ0 + i * RackStep);
+
+        Transform merchant;
+
+        void BuildRacks()
         {
-            var wood = ArenaUtil.Lit(new Color(0.32f, 0.2f, 0.11f));
-            float len = RackStep * RackSlots;
-            var mid = new Vector3(RackX + 0.25f, 0f, RackZ0 + RackStep * (RackSlots - 1) * 0.5f);
-            ArenaUtil.Prim(PrimitiveType.Cube, root, mid + new Vector3(0, 0.08f, 0), new Vector3(0.5f, 0.16f, len), wood);
-            ArenaUtil.Prim(PrimitiveType.Cube, root, mid + new Vector3(0.12f, 1.55f, 0), new Vector3(0.1f, 0.1f, len), wood);
-            for (int i = 0; i <= RackSlots; i += 3)
-                ArenaUtil.Prim(PrimitiveType.Cube, root, new Vector3(RackX + 0.37f, 0.8f, RackZ0 - RackStep * 0.5f + i * RackStep), new Vector3(0.1f, 1.6f, 0.1f), wood);
-            var sign = ArenaFx.MakeText(root, "SUPORTE DE ARMAS\n<size=40>grip numa arma: troca pela sua · grip num gancho vazio: guarda a sua 2ª arma</size>", 0.006f, new Color(0.95f, 0.9f, 0.8f));
-            sign.transform.position = mid + new Vector3(-0.1f, 2.1f, 0);
-            sign.transform.rotation = Quaternion.LookRotation(Vector3.right);
+            BuildRack(RackKind.Permanente, "ESTANTE PERMANENTE\n<size=40>grip numa arma: troca · grip num gancho vazio: guarda a sua 2ª arma</size>");
+            BuildRack(RackKind.Temporaria, "ESTANTE TEMPORÁRIA\n<size=40>o que ficou para trás · SOME quando você entrar num portal</size>");
+            var ps = game.Player.State;
+            for (int i = 0; i < ps.Stash.Count && i < RackSlots; i++) Hang(ps.Stash[i], RackKind.Permanente, i);
+            for (int i = 0; i < ps.LostItems.Count && i < RackSlots; i++) Hang(ps.LostItems[i], RackKind.Temporaria, i);
+            if (ps.LostItems.Count > 0)
+                game.Message(ps.LostItems.Count + " arma(s) na estante temporária (oeste): pegue ou venda antes de sair", 3f);
+            BuildMerchant();
         }
 
-        // Grip num gancho vazio: guarda a 2ª arma (a que não está na mão).
+        void Hang(ItemInstance item, RackKind k, int i) =>
+            WeaponPickup.Spawn(item, RackSlot(k, i)).PlaceOnRack(RackSlot(k, i), RackFacing(k), k).Owned = true;
+
+        void BuildRack(RackKind k, string title)
+        {
+            var wood = ArenaUtil.Lit(k == RackKind.Permanente ? new Color(0.32f, 0.2f, 0.11f) : new Color(0.25f, 0.22f, 0.2f));
+            float len = RackStep * RackSlots, side = k == RackKind.Permanente ? 1f : -1f;
+            var mid = new Vector3(RackX(k) + 0.25f * side, 0f, RackZ0 + RackStep * (RackSlots - 1) * 0.5f);
+            ArenaUtil.Prim(PrimitiveType.Cube, root, mid + new Vector3(0, 0.08f, 0), new Vector3(0.5f, 0.16f, len), wood);
+            ArenaUtil.Prim(PrimitiveType.Cube, root, mid + new Vector3(0.12f * side, 1.55f, 0), new Vector3(0.1f, 0.1f, len), wood);
+            for (int i = 0; i <= RackSlots; i += 3)
+                ArenaUtil.Prim(PrimitiveType.Cube, root, new Vector3(RackX(k) + 0.37f * side, 0.8f, RackZ0 - RackStep * 0.5f + i * RackStep), new Vector3(0.1f, 1.6f, 0.1f), wood);
+            var sign = ArenaFx.MakeText(root, title, 0.006f, k == RackKind.Permanente ? new Color(0.95f, 0.9f, 0.8f) : new Color(1f, 0.7f, 0.5f));
+            sign.transform.position = mid + new Vector3(-0.1f * side, 2.1f, 0);
+            sign.transform.rotation = Quaternion.LookRotation(Vector3.right * side);
+        }
+
+        void BuildMerchant()
+        {
+            merchant = new GameObject("Mercador").transform;
+            merchant.SetParent(root, false);
+            merchant.position = new Vector3(-5.6f, 0f, 0.8f);
+            var wood = ArenaUtil.Lit(new Color(0.36f, 0.24f, 0.12f));
+            var gold = ArenaUtil.Lit(new Color(0.95f, 0.75f, 0.25f), new Color(0.4f, 0.3f, 0.05f));
+            ArenaUtil.Prim(PrimitiveType.Cube, merchant, new Vector3(0, 0.3f, 0), new Vector3(0.9f, 0.6f, 0.6f), wood, keepCollider: true);
+            for (int i = 0; i < 7; i++)
+                ArenaUtil.Prim(PrimitiveType.Cylinder, merchant, new Vector3(-0.3f + (i % 4) * 0.2f, 0.62f + (i / 4) * 0.03f, -0.1f + (i % 3) * 0.1f), new Vector3(0.12f, 0.012f, 0.12f), gold);
+            var t = ArenaFx.MakeText(merchant, "MERCADOR\n<size=40>grip / E: vende a sua 2ª arma</size>", 0.006f, new Color(1f, 0.85f, 0.4f));
+            t.transform.localPosition = new Vector3(0, 1.4f, 0);
+            t.transform.rotation = Quaternion.LookRotation(Vector3.left);
+        }
+
+        bool Near(ArenaPlayer player, Vector3 at, float vrRange, float desktopRange) =>
+            player.IsVr ? Mathf.Min(Vector3.Distance(player.RightHand.position, at + Vector3.up * 0.6f), (player.FeetPosition - at).Flat().magnitude) < vrRange
+                        : (player.FeetPosition - at).Flat().magnitude < desktopRange;
+
+        // Grip no mercador: vende a 2ª arma.
+        bool TrySell(ArenaPlayer player)
+        {
+            if (!merchant || !Near(player, merchant.position, 1.3f, 1.6f)) return false;
+            var s = player.State;
+            var item = s.Loadout[1 - s.ActiveSlot];
+            int price = s.SellSecondWeapon();
+            if (price <= 0) { game.Message("O mercador compra a sua 2ª arma (a que não está na mão)", 1.6f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
+            ArenaAudio.Play(Sfx.Pickup, merchant.position + Vector3.up, 1f, 1.3f);
+            ArenaFx.FloatText("+" + price + " ouro", merchant.position + Vector3.up * 1f, new Color(1f, 0.85f, 0.3f), 1.1f);
+            game.Message("Vendeu " + item.DisplayName + " por " + price + " de ouro", 1.6f);
+            game.RequestSave();
+            return true;
+        }
+
+        // Grip num gancho vazio da estante permanente: guarda a 2ª arma (a que não está na mão).
         bool TryStore(ArenaPlayer player)
         {
+            const RackKind k = RackKind.Permanente;
             var reach = player.IsVr ? player.RightHand.position : player.FeetPosition + player.HeadForward * 0.6f;
             int best = -1; float bestD = player.IsVr ? 0.6f : 1.2f;
             for (int i = 0; i < RackSlots; i++)
             {
-                var s = RackSlot(i);
+                var s = RackSlot(k, i);
                 float d = player.IsVr ? Vector3.Distance(reach, s + Vector3.up * 0.8f) : (reach - s).Flat().magnitude;
                 if (d < bestD) { bestD = d; best = i; }
             }
             if (best < 0) return false;
-            var slot = RackSlot(best);
+            var slot = RackSlot(k, best);
             foreach (var p in WeaponPickup.All)
                 if (p && p.OnRack && (p.RackPos - slot).sqrMagnitude < 0.01f) return false;   // ocupado: quem pega é o WeaponPickup
             var s2 = player.State;
             int other = 1 - s2.ActiveSlot;
             var item = s2.Loadout[other];
-            if (item == null) { game.Message("Nada para guardar: o suporte guarda a sua 2ª arma", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
+            if (item == null) { game.Message("Nada para guardar: a estante guarda a sua 2ª arma", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
+            if (!s2.AddToStash(item)) { game.Message("Estante permanente cheia (12)", 1.2f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
             s2.Loadout[other] = null;
-            s2.AddLostItem(item);
-            WeaponPickup.Spawn(item, slot).PlaceOnRack(slot, RackFacing).Owned = true;
+            Hang(item, k, best);
             ArenaAudio.Play(Sfx.Pickup, slot + Vector3.up, 0.8f, 0.8f);
             game.Message("Guardou " + item.DisplayName, 1.2f);
             game.RequestSave();
@@ -220,7 +274,7 @@ namespace Arena
         public bool TryInteract(ArenaPlayer player)
         {
             if (!root || !anvil) return false;
-            if (TryStore(player)) return true;
+            if (TryStore(player) || TrySell(player)) return true;
             float d = player.IsVr
                 ? Mathf.Min(Vector3.Distance(player.RightHand.position, anvil.position + Vector3.up * 0.75f), (player.FeetPosition - anvil.position).Flat().magnitude)
                 : (player.FeetPosition - anvil.position).Flat().magnitude;

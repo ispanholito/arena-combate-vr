@@ -83,6 +83,41 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void Stash_IsPermanent_Capped_AndSaved_TemporaryIsDiscarded()
+        {
+            var ps = new PlayerState(ClassId.Lamina);
+            var keep = new ItemInstance(WeaponDef.Adaga, Rarity.Raro, null, 0, WeaponPassive.Impeto);
+            Assert.IsTrue(ps.AddToStash(keep));
+            Assert.IsFalse(ps.AddToStash(keep));   // repetida
+            for (int i = 0; i < 20; i++) ps.AddToStash(ItemInstance.Basic(WeaponDef.MacaPesada));
+            Assert.AreEqual(PlayerState.MaxStash, ps.Stash.Count);
+            ps.AddLostItem(ItemInstance.Basic(WeaponDef.Lanca));
+            var loaded = SaveData.From(ps).ToPlayer();
+            Assert.AreEqual(PlayerState.MaxStash, loaded.Stash.Count);
+            Assert.AreEqual(WeaponPassive.Impeto, loaded.Stash[0].Passive);
+            Assert.AreEqual(1, loaded.DiscardLostItems());
+            Assert.AreEqual(0, loaded.LostItems.Count);
+            Assert.AreEqual(PlayerState.MaxStash, loaded.Stash.Count);   // a permanente não some
+        }
+
+        [Test]
+        public void Merchant_BuysSecondWeapon_ByRarity()
+        {
+            var ps = new PlayerState(ClassId.Lamina);
+            int gold = ps.Gold;
+            int price = ps.SellSecondWeapon();   // o machado comum
+            Assert.AreEqual(Merchant.Price(ItemInstance.Basic(WeaponDef.MachadoPesado)), price);
+            Assert.AreEqual(gold + price, ps.Gold);
+            Assert.IsNull(ps.Loadout[1]);
+            Assert.AreEqual(0, ps.SellSecondWeapon());   // nada mais para vender (a da mão não se vende)
+            Assert.IsNotNull(ps.ActiveItem);
+            Assert.Greater(Merchant.Price(new ItemInstance(WeaponDef.Adaga, Rarity.Lendario)), Merchant.Price(new ItemInstance(WeaponDef.Adaga, Rarity.Raro)));
+            Assert.Greater(Merchant.Price(new ItemInstance(WeaponDef.Adaga, Rarity.Raro, null, 3)), Merchant.Price(new ItemInstance(WeaponDef.Adaga, Rarity.Raro)));
+            // Vender 4 comuns paga a 1ª melhoria de uma comum.
+            Assert.GreaterOrEqual(4 * Merchant.Price(ItemInstance.Basic(WeaponDef.Adaga)), Smithy.Cost(Rarity.Comum, 0));
+        }
+
+        [Test]
         public void InvalidData_IsIgnored()
         {
             var data = new SaveData { classId = 99, level = 500, xp = -5, gold = -10, activeSlot = 7 };

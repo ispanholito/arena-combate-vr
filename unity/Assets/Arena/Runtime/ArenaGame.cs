@@ -100,6 +100,9 @@ namespace Arena
         {
             SaveNow();
             StartMode(mode, player.State);
+            // O que ficou na estante temporária e não foi pego some ao entrar num portal.
+            int gone = player.State.DiscardLostItems();
+            if (gone > 0) { Message(gone + " arma(s) da estante temporária sumiram", 2.5f); RequestSave(); }
         }
 
         // Pausa → B: do santuário vai ao menu inicial (trocar de personagem); de qualquer outro lugar, ao santuário.

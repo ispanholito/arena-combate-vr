@@ -5,6 +5,8 @@ using UnityEngine;
 
 namespace Arena
 {
+    public enum RackKind { Nenhuma, Permanente, Temporaria }
+
     // Arma caída no chão (loot ou a arma trocada). Gira devagar com um feixe de luz na cor da raridade; perto dela
     // aparece o nome e os atributos. Grip (VR, com a mão perto) ou E (desktop) pega: troca pela arma da mão,
     // e a antiga fica no chão.
@@ -16,13 +18,14 @@ namespace Arena
         public ItemInstance Item { get; private set; }
         public bool Owned;   // arma do próprio jogador (trocada): se ficar para trás, volta no santuário
         // Pendurada no suporte de armas do santuário: em pé, parada, sem feixe; o nome só aparece bem perto.
-        public bool OnRack { get; private set; }
+        public bool OnRack => Rack != RackKind.Nenhuma;
+        public RackKind Rack { get; private set; }
         public Vector3 RackPos { get; private set; }
         public Quaternion RackRot { get; private set; }
 
-        public WeaponPickup PlaceOnRack(Vector3 pos, Quaternion facing)
+        public WeaponPickup PlaceOnRack(Vector3 pos, Quaternion facing, RackKind kind = RackKind.Temporaria)
         {
-            OnRack = true; RackPos = pos; RackRot = facing;
+            Rack = kind; RackPos = pos; RackRot = facing;
             vel = Vector3.zero;
             transform.SetPositionAndRotation(pos, facing);
             model.localRotation = Quaternion.Euler(-90f, 0f, 0f);
@@ -118,7 +121,8 @@ namespace Arena
             for (int i = All.Count - 1; i >= 0; i--)
             {
                 if (!All[i]) continue;
-                if (keeper != null && All[i].Owned) keeper.AddLostItem(All[i].Item);
+                // As das estantes já estão nas listas (permanente/temporária); as do chão vão para a temporária.
+                if (keeper != null && All[i].Owned && !All[i].OnRack) keeper.AddLostItem(All[i].Item);
                 Destroy(All[i].gameObject);
             }
             All.Clear();
@@ -154,14 +158,19 @@ namespace Arena
             var pos = best.transform.position;
             All.Remove(best);
             Destroy(best.gameObject);
-            player.State.LostItems.Remove(item);   // era uma arma esquecida: achou
+            if (best.Rack == RackKind.Permanente) player.State.Stash.Remove(item);
+            else player.State.LostItems.Remove(item);   // era uma arma esquecida: achou
             var old = player.State.TakeItem(item, out bool toSecond);
             if (!toSecond) player.EquipActive();
             if (old != null)
             {
                 var dropped = Spawn(old, pos + Vector3.up * 0.05f);
                 dropped.Owned = true;
-                if (best.OnRack) { dropped.PlaceOnRack(best.RackPos, best.RackRot); player.State.AddLostItem(old); }   // troca no suporte: a sua fica pendurada
+                if (best.OnRack)   // troca na estante: a sua fica pendurada no mesmo gancho
+                {
+                    dropped.PlaceOnRack(best.RackPos, best.RackRot, best.Rack);
+                    if (best.Rack == RackKind.Permanente) player.State.AddToStash(old); else player.State.AddLostItem(old);
+                }
             }
             ArenaAudio.Play2D(Sfx.Pickup, 0.9f);
             ArenaGame.Instance?.RequestSave();
