@@ -15,7 +15,7 @@ namespace Arena
         TextMesh text;
         int cursor;
         readonly StringBuilder sb = new StringBuilder();
-        const int Rows = 7;
+        const int Rows = 9;
 
         void Awake() => player = GetComponent<ArenaPlayer>();
 
@@ -24,7 +24,7 @@ namespace Arena
             panel = new GameObject("MenuPausa").transform;
             panel.SetParent(player.Head, false);
             panel.localPosition = new Vector3(0, 0, 1.0f);
-            ArenaUtil.Prim(PrimitiveType.Quad, panel, new Vector3(0, 0, 0.01f), new Vector3(0.95f, 0.8f, 1f), ArenaUtil.Unlit(new Color(0.05f, 0.04f, 0.07f, 0.92f)));
+            ArenaUtil.Prim(PrimitiveType.Quad, panel, new Vector3(0, 0, 0.01f), new Vector3(0.95f, 0.92f, 1f), ArenaUtil.Unlit(new Color(0.05f, 0.04f, 0.07f, 0.92f)));
             text = ArenaFx.MakeText(panel, "", 0.0055f, Color.white, TextAnchor.MiddleLeft);
             text.transform.localPosition = new Vector3(-0.43f, 0, 0);
             panel.gameObject.SetActive(false);
@@ -51,7 +51,9 @@ namespace Arena
                 case 3: o.moveVignette = !o.moveVignette; break;
                 case 4: o.seated = !o.seated; break;
                 case 5: o.wristHud = !o.wristHud; break;
-                case 6: cursor = 0; game.BackFromPause(); return;
+                case 6: o.CycleDifficulty(); break;
+                case 7: o.showFps = !o.showFps; break;
+                case 8: cursor = 0; game.BackFromPause(); return;
             }
             SaveSystem.SaveOptions();
         }
@@ -72,7 +74,9 @@ namespace Arena
             Row(3, "Vinheta ao andar: " + (o.moveVignette ? "ligada" : "desligada"));
             Row(4, "Modo sentado: " + (o.seated ? "ligado (+45 cm)" : "desligado"));
             Row(5, "HUD: " + (o.wristHud ? "no pulso esquerdo (olhe para o relógio)" : "na frente da visão"));
-            Row(6, inHub ? "Menu inicial (trocar de personagem)" : "Voltar ao santuário");
+            Row(6, "Dificuldade: " + DifficultyRules.Label(o.Difficulty) + " <size=40><color=#999>(dano recebido e vida dos inimigos)</color></size>");
+            Row(7, "Mostrar FPS: " + (o.showFps ? "sim" : "não"));
+            Row(8, inHub ? "Menu inicial (trocar de personagem)" : "Voltar ao santuário");
             sb.Append("\n<size=40><color=#999>Cima/baixo escolhe · A/Enter confirma · B/R ")
               .Append(inHub ? "menu inicial" : "santuário")
               .Append("\nContinuar também: botão Menu (☰) ou gesto de menu da mão esquerda · P/Esc</color></size>");

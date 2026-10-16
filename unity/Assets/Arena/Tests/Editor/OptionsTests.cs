@@ -24,6 +24,23 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void Difficulty_ScalesDamageAndEnemyHp()
+        {
+            var o = new GameOptions();
+            Assert.AreEqual(Difficulty.Normal, o.Difficulty);
+            o.CycleDifficulty(); Assert.AreEqual(Difficulty.Dificil, o.Difficulty);
+            o.CycleDifficulty(); Assert.AreEqual(Difficulty.Facil, o.Difficulty);
+            Assert.Less(DifficultyRules.DamageTaken(Difficulty.Facil), DifficultyRules.DamageTaken(Difficulty.Normal));
+            Assert.Greater(DifficultyRules.EnemyHp(Difficulty.Dificil), 1f);
+            var g = EnemyDef.Goblin.WithHp(1.3f);
+            Assert.AreEqual(91f, g.MaxHp);
+            Assert.AreEqual(EnemyDef.Goblin.AttackDamage, g.AttackDamage);
+            Assert.AreEqual(EnemyKind.Goblin, g.Kind);
+            Assert.AreSame(EnemyDef.Goblin, EnemyDef.Goblin.WithHp(1f));
+            Assert.AreEqual(Difficulty.Normal, new GameOptions { difficulty = 42 }.Sanitized().Difficulty);
+        }
+
+        [Test]
         public void Sanitize_FixesBadValues()
         {
             var o = new GameOptions { volume = 7f, turn = 99 }.Sanitized();

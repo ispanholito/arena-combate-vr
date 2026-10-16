@@ -52,6 +52,10 @@ namespace Arena.Core
         public static EnemyDef ReiGoblin(int timesDefeated = 0) => new EnemyDef(EnemyKind.ReiGoblin, "Rei Goblin",
             420f + 200f * timesDefeated, 220f, 220, 22f, 0.7f, 0.56f, 2.0f, 3.7f, 1.8f, 1.75f);
 
+        // Cópia com a vida multiplicada (dificuldade).
+        public EnemyDef WithHp(float hpMultiplier) => Math.Abs(hpMultiplier - 1f) < 1e-4f ? this :
+            new EnemyDef(Kind, Name, (float)Math.Round(MaxHp * hpMultiplier), MaxPosture, Xp, AttackDamage, Windup, Radius, Height, Mass, MoveSpeed, Size);
+
         public const float BossPhase2Fraction = 0.5f, BossPhase2Windup = 0.5f;
         public const float BossSlamDamage = 28f, BossSlamRadius = 2.2f, BossSlamWindup = 1.1f, BossSlamCooldown = 6f;
         public const int BossSummonCount = 2;

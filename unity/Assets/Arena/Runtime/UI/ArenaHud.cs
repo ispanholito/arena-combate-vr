@@ -12,7 +12,8 @@ namespace Arena
         ArenaPlayer player;
         Transform root;
         Transform hp, sta, mana, xp, bossHp, bossPosture, bossRoot;
-        TextMesh info, message, bossName;
+        TextMesh info, message, bossName, fpsText;
+        float fpsSmooth = 72f, fpsWorst = 999f, fpsWindowT;
         WeaponAbilityCaster wac;
         Renderer vignetteR, hurtR;
         float hurtFlash;
@@ -38,6 +39,8 @@ namespace Arena
 
             message = ArenaFx.MakeText(player.Head, "", 0.006f, new Color(1f, 0.83f, 0.42f));
             message.transform.localPosition = new Vector3(0, 0.12f, 1.1f);
+            fpsText = ArenaFx.MakeText(player.Head, "", 0.0055f, new Color(0.6f, 1f, 0.6f), TextAnchor.UpperLeft);
+            fpsText.transform.localPosition = new Vector3(0.18f, 0.32f, 1.1f);
 
             bossRoot = new GameObject("ChefeHUD").transform;
             bossRoot.SetParent(player.Head, false);
@@ -77,6 +80,23 @@ namespace Arena
         {
             var q = ArenaUtil.Prim(PrimitiveType.Quad, player.Head, new Vector3(0, 0, z), new Vector3(1.2f, 1.2f, 1f), ArenaUtil.Unlit(c));
             return q.GetComponent<Renderer>();
+        }
+
+        // Medidor de desempenho (opção da pausa): FPS médio, pior quadro do último segundo e quantos inimigos vivos.
+        void UpdateFps()
+        {
+            bool show = SaveSystem.Options.showFps;
+            fpsText.gameObject.SetActive(show);
+            if (!show) return;
+            float dt = Mathf.Max(Time.unscaledDeltaTime, 1e-4f);
+            fpsSmooth = Mathf.Lerp(fpsSmooth, 1f / dt, 0.05f);
+            fpsWorst = Mathf.Min(fpsWorst, 1f / dt);
+            fpsWindowT += dt;
+            if (fpsWindowT < 1f) return;
+            float target = UnityEngine.XR.XRSettings.isDeviceActive && OVRManager.display != null ? OVRManager.display.displayFrequency : 60f;
+            string c = fpsWorst >= target * 0.9f ? "#80ff80" : fpsWorst >= target * 0.7f ? "#ffd36b" : "#ff7070";
+            fpsText.text = $"<color={c}>{fpsSmooth:0} fps</color> (pior {fpsWorst:0}, alvo {target:0})\n{ArenaEnemy.All.Count} inimigos";
+            fpsWindowT = 0f; fpsWorst = 999f;
         }
 
         // HUD na cabeça (padrão) ou no pulso esquerdo como um relógio (opção da pausa; só no VR).
@@ -152,6 +172,7 @@ namespace Arena
 
             var g = ArenaGame.Instance;
             message.text = g && g.MessageTime > 0f && !ArenaGame.Paused ? g.CurrentMessage : "";
+            UpdateFps();
             bool boss = g && g.Boss && !g.Boss.Dead;
             bossRoot.gameObject.SetActive(boss);
             if (boss)
