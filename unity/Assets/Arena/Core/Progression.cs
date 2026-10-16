@@ -58,5 +58,13 @@ namespace Arena.Core
         }
 
         public void RefundPoints(int count) => UnspentPoints += Math.Max(0, count);
+
+        // Carregar o jogo salvo: nível e XP; os pontos voltam todos (a árvore salva é liberada de novo gastando-os).
+        public void Restore(int level, int xp)
+        {
+            Level = Math.Clamp(level, 1, MaxLevel);
+            Xp = IsMaxLevel ? 0 : Math.Clamp(xp, 0, XpToNext(Level) - 1);
+            UnspentPoints = Level - 1;
+        }
     }
 }

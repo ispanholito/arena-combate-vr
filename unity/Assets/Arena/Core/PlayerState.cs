@@ -63,6 +63,24 @@ namespace Arena.Core
             ActiveSlot = 0;
         }
 
+        // Jogo salvo: nível/XP e libera de novo as habilidades salvas (gastando os pontos, respeitando pré-requisitos).
+        public void RestoreProgress(int level, int xp, IEnumerable<string> skills)
+        {
+            Progression.Restore(level, xp);
+            var pending = new List<string>(skills);
+            bool progress = true;
+            while (progress && pending.Count > 0)
+            {
+                progress = false;
+                for (int i = pending.Count - 1; i >= 0; i--)
+                {
+                    if (Tree.Has(pending[i])) { pending.RemoveAt(i); progress = true; continue; }
+                    if (Tree.Unlock(pending[i])) { pending.RemoveAt(i); progress = true; }
+                }
+            }
+            ApplyLevelStats(fill: true);
+        }
+
         // Armas iniciais da classe (comuns).
         public void GiveStartingWeapons()
         {

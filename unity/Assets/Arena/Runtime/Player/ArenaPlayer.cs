@@ -53,9 +53,12 @@ namespace Arena
         }
 
         // Personagem novo (nível 1) da classe escolhida. Usado pelo menu inicial a cada partida.
-        public void ResetCharacter(ClassId cls)
+        public void ResetCharacter(ClassId cls) => UseCharacter(new PlayerState(cls));
+
+        // Personagem carregado do jogo salvo (ou um novo).
+        public void UseCharacter(PlayerState state)
         {
-            State = new PlayerState(cls);
+            State = state;
             State.LeveledUp += _ => ArenaAudio.Play2D(Sfx.Level, 0.8f);
             State.Died += lost =>
             {

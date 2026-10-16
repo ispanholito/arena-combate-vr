@@ -277,8 +277,7 @@ namespace Arena
         {
             flyVel.y -= 9.81f * dt;
             var p = transform.position + flyVel * dt;
-            float h = Combat.ArenaHalfSize;
-            bool wall = Mathf.Abs(p.x) > h || Mathf.Abs(p.z) > h;
+            bool wall = ArenaUtil.IsOutside(p);
             bool ground = p.y <= 0f && flyVel.y < 0f;
             ArenaEnemy other = null;
             foreach (var e in All)

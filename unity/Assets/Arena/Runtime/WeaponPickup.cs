@@ -127,6 +127,7 @@ namespace Arena
             player.EquipActive();
             if (old != null) Spawn(old, pos + Vector3.up * 0.05f);
             ArenaAudio.Play2D(Sfx.Pickup, 0.9f);
+            ArenaGame.Instance?.RequestSave();
             ArenaInput.Haptic(0.5f, 0.08f);
             var proficient = Proficiency.IsProficient(player.State.Class.Id, item.Base.Kind);
             ArenaGame.Instance?.Message(item.DisplayName + (proficient ? "" : "\n<size=48>(fora da classe: -15% dano)</size>"), 1.6f);

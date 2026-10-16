@@ -63,6 +63,7 @@ namespace Arena
             // Atalho de teste no desktop: L = +1 nível
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (!player.IsVr && kb != null && kb.lKey.wasPressedThisFrame) s.Progression.GainXp(s.Progression.XpNeeded - s.Progression.Xp);
+            if (input.MenuConfirm || input.MenuRespec) ArenaGame.Instance?.RequestSave();
             Draw(nodes, atFire);
         }
 

@@ -233,9 +233,7 @@ namespace Arena
             flat.Normalize();
             // Não passa da parede: encurta ao longo da mesma direção (em vez de "dobrar" no canto).
             var start = new Vector3(o.x, 0f, o.z);
-            float h = Combat.ArenaHalfSize;
-            if (Mathf.Abs(flat.x) > 1e-4f) reach = Mathf.Min(reach, ((flat.x > 0 ? h : -h) - start.x) / flat.x);
-            if (Mathf.Abs(flat.z) > 1e-4f) reach = Mathf.Min(reach, ((flat.z > 0 ? h : -h) - start.z) / flat.z);
+            reach = ArenaUtil.RayReach(start, flat, reach);
             return start + flat * Mathf.Max(0f, reach);
         }
 

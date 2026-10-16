@@ -53,6 +53,9 @@ namespace Arena
             Time.fixedDeltaTime = 1f / 90f;   // no VR passa a seguir a frequência da tela (ver Update)
             OVRManager.HMDUnmounted += PauseFromSystem;
             OVRManager.InputFocusLost += PauseFromSystem;
+            arenaBonfire = bonfire;
+            if (!arenaWorld) { var w = GameObject.Find("Arena"); if (w) arenaWorld = w.transform; }
+            dungeon = gameObject.AddComponent<DungeonMode>();
         }
 
         void OnDestroy()
@@ -63,46 +66,76 @@ namespace Arena
             if (Instance == this) Instance = null;
         }
 
-        // ---------- Modos: menu inicial, Arena (ondas + chefe) e Treino (boneco parado) ----------
-        public enum GameMode { Menu, Arena, Treino }
+        // ---------- Modos: menu inicial, Arena (ondas + chefe), Dungeon (2 andares + chefe) e Treino (boneco) ----------
+        public enum GameMode { Menu, Arena, Dungeon, Treino }
         public GameMode Mode { get; private set; } = GameMode.Menu;
         public static bool InMenu => Instance && Instance.Mode == GameMode.Menu;
         // Bloqueia habilidades, poderes e árvore (pausado ou no menu inicial).
         public static bool Blocked => Paused || InMenu;
 
+        public Transform arenaWorld;          // geometria da arena (escondida na dungeon)
+        Transform arenaBonfire;
+        DungeonMode dungeon;
+        public DungeonMode Dungeon => dungeon;
+        // Arena e Dungeon salvam o progresso; o Treino (nível 10 de mentira) não.
+        bool Persistent => Mode == GameMode.Arena || Mode == GameMode.Dungeon;
+
         void Start() => ReturnToMenu();
 
         public void ReturnToMenu()
         {
+            if (Persistent) SaveNow();
             SetPaused(false);
             ClearEnemies();
+            LeaveDungeon();
             Mode = GameMode.Menu;
             spawnWaves = false;
             player.TreeOpen = false;
             player.TeleportTo(BonfireStandPoint, Vector3.zero);
         }
 
-        public void StartMode(GameMode mode, ClassId cls)
+        // character: personagem do salvo ou novo. Arena/Dungeon gravam nele; Treino usa um personagem de nível 10 à parte.
+        public void StartMode(GameMode mode, PlayerState character)
         {
             ClearEnemies();
-            player.ResetCharacter(cls);
+            LeaveDungeon();
             Mode = mode;
-            player.TeleportTo(BonfireStandPoint, Vector3.zero);
-            if (mode == GameMode.Arena)
+            if (mode == GameMode.Treino)
             {
-                spawnWaves = true;
-                Director.Reset(2f);
-                Message($"{player.State.Class.Name}: sobreviva às ondas. Fogueira = cura.", 3f);
-            }
-            else
-            {
+                player.ResetCharacter(character.Class.Id);
                 spawnWaves = false;
+                player.TeleportTo(BonfireStandPoint, Vector3.zero);
                 // Treino: nível máximo do MVP com os pontos livres, sem tomar dano, recursos voltam rápido.
                 var p = player.State.Progression;
                 p.GainXp(1000000);
                 Spawn(EnemyDef.Boneco, new Vector3(0f, 0f, 0f), false);
                 Message("Treino: nível " + p.Level + ", " + p.UnspentPoints + " pontos para gastar na árvore (A+B)", 4f);
+                return;
             }
+            player.UseCharacter(character);
+            SaveNow();
+            if (mode == GameMode.Arena)
+            {
+                spawnWaves = true;
+                Director.Reset(2f);
+                player.TeleportTo(BonfireStandPoint, Vector3.zero);
+                Message($"{player.State.Class.Name}: sobreviva às ondas. Fogueira = cura.", 3f);
+            }
+            else
+            {
+                spawnWaves = false;
+                if (arenaWorld) arenaWorld.gameObject.SetActive(false);
+                var saved = SaveSystem.Load();
+                dungeon.Begin(Random.Range(1, 1000000), saved?.bossesDefeated ?? 0);
+            }
+        }
+
+        void LeaveDungeon()
+        {
+            if (dungeon && dungeon.Active) dungeon.End();
+            ArenaUtil.Area = null;
+            bonfire = arenaBonfire;
+            if (arenaWorld) arenaWorld.gameObject.SetActive(true);
         }
 
         void ClearEnemies()
@@ -113,7 +146,36 @@ namespace Arena
             Boss = null;
         }
 
-        Vector3 BonfireStandPoint => bonfire.position + (Vector3.zero - bonfire.position).Flat().normalized * 1.5f;
+        public void SetBoss(GoblinKing king) => Boss = king;
+
+        // Na arena fica de frente para o centro; na dungeon, na frente da fogueira (para onde ela "olha").
+        public Vector3 BonfireStandPoint => bonfire == arenaBonfire
+            ? bonfire.position + (Vector3.zero - bonfire.position).Flat().normalized * 1.5f
+            : bonfire.position + bonfire.forward * 1.5f;
+
+        // ---------- Salvar ----------
+        bool saveRequested;
+        float saveCd;
+
+        public void RequestSave() { if (Persistent) saveRequested = true; }
+
+        public void SaveNow()
+        {
+            if (!Persistent) return;
+            SaveSystem.Save(player.State);
+            saveRequested = false;
+            saveCd = 2f;
+        }
+
+        public void SaveDeepestFloor(int floor)
+        {
+            if (!Persistent) return;
+            var old = SaveSystem.Load();
+            SaveSystem.Save(player.State, Mathf.Max(floor, old?.deepestFloor ?? 0));
+        }
+
+        void OnApplicationPause(bool paused) { if (paused) SaveNow(); }
+        void OnApplicationQuit() => SaveNow();
 
         void Update()
         {
@@ -136,7 +198,13 @@ namespace Arena
             // Fogueira: perto dela cura
             if (Vector3.Distance(player.FeetPosition.Flat(), bonfire.position.Flat()) < BonfireRadius)
                 player.State.Hp.Restore(BonfireHealPerSecond * dt);
+            // Salvamento pedido pelos eventos (no máximo a cada 2 s) e de garantia a cada 20 s.
+            saveCd -= Time.unscaledDeltaTime;
+            autoSaveT += Time.unscaledDeltaTime;
+            if (Persistent && ((saveRequested && saveCd <= 0f) || autoSaveT > 20f)) { autoSaveT = 0f; SaveNow(); }
         }
+
+        float autoSaveT;
 
         public bool NearBonfire => Vector3.Distance(player.FeetPosition.Flat(), bonfire.position.Flat()) < BonfireRadius + 0.6f;
 
@@ -185,7 +253,14 @@ namespace Arena
             int levelBefore = player.State.Progression.Level;
             player.State.AddKill(e.Def.Xp);
             DropLoot(e);
-            if (e is GoblinKing)
+            if (e is GoblinKing && Mode == GameMode.Dungeon)
+            {
+                Boss = null;
+                dungeon.OnBossKilled(e.Center);
+                var saved = SaveSystem.Load();
+                SaveSystem.Save(player.State, -1, (saved?.bossesDefeated ?? 0) + 1);
+            }
+            else if (e is GoblinKing)
             {
                 Director.OnBossDefeated();
                 player.State.ResetKills();
@@ -194,6 +269,7 @@ namespace Arena
             }
             if (player.State.Progression.Level > levelBefore)
                 Message($"Nível {player.State.Progression.Level}! +1 ponto de habilidade (abra a árvore)", 2f);
+            RequestSave();
         }
 
         // Ouro vai direto para o jogador; às vezes cai uma arma (o chefe sempre deixa uma rara ou melhor).
@@ -226,9 +302,11 @@ namespace Arena
             ArenaEnemy.All.Clear();
             Boss = null;
             Director.Reset(3f);
+            if (Mode == GameMode.Dungeon) dungeon.OnPlayerDied();
             if (!player.Weapon.Held) player.Weapon.Recall();
             player.TeleportTo(BonfireStandPoint, Vector3.zero);
             Message($"Você morreu: perdeu {lostXp} XP do nível atual", 2.6f);
+            RequestSave();
         }
 
         public void Message(string text, float seconds)

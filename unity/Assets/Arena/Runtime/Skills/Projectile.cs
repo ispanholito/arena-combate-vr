@@ -48,8 +48,7 @@ namespace Arena
                 }
             }
             var pos = transform.position;
-            float h = Combat.ArenaHalfSize + 0.3f;
-            bool outside = pos.y < 0.05f || Mathf.Abs(pos.x) > h || Mathf.Abs(pos.z) > h;
+            bool outside = pos.y < 0.05f || ArenaUtil.IsOutside(pos, 0.3f);
             if (outside || done)
             {
                 if (!ended) { ended = true; OnEnd?.Invoke(this); }

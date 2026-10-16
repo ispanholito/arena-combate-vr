@@ -38,11 +38,33 @@ namespace Arena
             return go;
         }
 
+        // Área onde se anda: null = a arena quadrada; na dungeon, salas + corredores do andar.
+        public static Arena.Core.WalkArea Area;
+
         public static Vector3 ClampToArena(Vector3 p)
         {
+            if (Area != null) { var (x, z) = Area.Clamp(p.x, p.z); p.x = x; p.z = z; return p; }
             float h = Arena.Core.Combat.ArenaHalfSize;
             p.x = Mathf.Clamp(p.x, -h, h); p.z = Mathf.Clamp(p.z, -h, h);
             return p;
+        }
+
+        // Fora da área (com folga): bateu na parede.
+        public static bool IsOutside(Vector3 p, float margin = 0f)
+        {
+            if (Area != null) return !Area.Contains(p.x, p.z, -margin);
+            float h = Arena.Core.Combat.ArenaHalfSize + margin;
+            return Mathf.Abs(p.x) > h || Mathf.Abs(p.z) > h;
+        }
+
+        // Até onde se anda em linha reta (no chão) a partir de start, sem atravessar paredes.
+        public static float RayReach(Vector3 start, Vector3 dirFlat, float maxReach)
+        {
+            if (Area != null) return Area.RayReach(start.x, start.z, dirFlat.x, dirFlat.z, maxReach);
+            float h = Arena.Core.Combat.ArenaHalfSize, reach = maxReach;
+            if (Mathf.Abs(dirFlat.x) > 1e-4f) reach = Mathf.Min(reach, ((dirFlat.x > 0 ? h : -h) - start.x) / dirFlat.x);
+            if (Mathf.Abs(dirFlat.z) > 1e-4f) reach = Mathf.Min(reach, ((dirFlat.z > 0 ? h : -h) - start.z) / dirFlat.z);
+            return Mathf.Max(0f, reach);
         }
     }
 }
