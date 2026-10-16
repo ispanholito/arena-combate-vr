@@ -16,7 +16,7 @@ namespace Arena
         public bool LeftHandFree => Vr && !LeftControllerConnected;
 
         public Vector2 Move, Look;
-        public bool Dash, ToggleTree, SwitchWeapon, ShieldToggle;
+        public bool Dash, ToggleTree, SwitchWeapon, ShieldToggle, PausePressed;
         public int SnapTurn;                       // -1, 0, +1
         public bool APressed, BPressed, BHeld, BReleased;
         public bool TriggerPressed, TriggerHeld, TriggerReleased, GripPressed;
@@ -38,7 +38,7 @@ namespace Arena
         void Reset()
         {
             Move = Look = Vector2.zero;
-            Dash = ToggleTree = SwitchWeapon = ShieldToggle = false; SnapTurn = 0;
+            Dash = ToggleTree = SwitchWeapon = ShieldToggle = PausePressed = false; SnapTurn = 0;
             APressed = BPressed = BHeld = BReleased = false;
             TriggerPressed = TriggerHeld = TriggerReleased = GripPressed = false;
             DesktopSwing = DesktopParry = DesktopLaser = DesktopSlam = DesktopPalm = false;
@@ -78,6 +78,9 @@ namespace Arena
             if (Move.magnitude < 0.15f) Move = Vector2.zero;
 
             ReadAB(dt);
+            // Pausa: botão Menu (☰) do controle esquerdo, ou o gesto de menu da Meta com a mão esquerda livre
+            // (palma virada para você + pinça). Os dois chegam como Button.Start.
+            PausePressed = OVRInput.GetDown(OVRInput.Button.Start);
             TriggerHeld = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, R) > 0.55f;
             TriggerPressed = TriggerHeld && !trigWasHeld; TriggerReleased = !TriggerHeld && trigWasHeld; trigWasHeld = TriggerHeld;
             GripPressed = OVRInput.GetDown(OVRInput.Button.PrimaryHandTrigger, R);
@@ -142,6 +145,7 @@ namespace Arena
             BReleased = kb.digit3Key.wasReleasedThisFrame;
             GripPressed = kb.gKey.wasPressedThisFrame;
             ShieldToggle = kb.fKey.wasPressedThisFrame;
+            PausePressed = kb.pKey.wasPressedThisFrame || kb.escapeKey.wasPressedThisFrame;
             DesktopLaser = kb.zKey.isPressed;
             DesktopSlam = kb.xKey.wasPressedThisFrame;
             DesktopPalm = kb.cKey.wasPressedThisFrame;

@@ -16,6 +16,7 @@ namespace Arena
         Renderer vignetteR, hurtR;
         float hurtFlash;
         LeftHandPowers handPowers;
+        Transform pausePanel;
         readonly StringBuilder sb = new StringBuilder();
 
         void Start()
@@ -47,6 +48,17 @@ namespace Arena
 
             vignetteR = Overlay(new Color(0, 0, 0, 0), 0.31f);
             hurtR = Overlay(new Color(0.8f, 0f, 0f, 0f), 0.3f);
+
+            pausePanel = new GameObject("Pausa").transform;
+            pausePanel.SetParent(player.Head, false);
+            pausePanel.localPosition = new Vector3(0, 0, 1.0f);
+            ArenaUtil.Prim(PrimitiveType.Quad, pausePanel, new Vector3(0, 0, 0.01f), new Vector3(0.9f, 0.5f, 1f), ArenaUtil.Unlit(new Color(0.05f, 0.04f, 0.07f, 0.9f)));
+            var pt = ArenaFx.MakeText(pausePanel,
+                "<b>PAUSADO</b>\n\n<size=44>Para continuar: botão Menu (☰) do controle esquerdo\n" +
+                "ou o gesto de menu da mão esquerda\n(palma virada para você + pinça)\n\nDesktop: P ou Esc</size>",
+                0.006f, Color.white);
+            pt.transform.localPosition = Vector3.zero;
+            pausePanel.gameObject.SetActive(false);
         }
 
         Transform Bar(Transform parent, float y, Color c, float h = 0.022f, float w = 0.3f)
@@ -69,6 +81,7 @@ namespace Arena
 
         void LateUpdate()
         {
+            pausePanel.gameObject.SetActive(ArenaGame.Paused);
             var s = player.State;
             SetFill(hp, s.Hp.Fraction);
             SetFill(sta, s.Stamina.Fraction);
@@ -100,7 +113,7 @@ namespace Arena
             info.text = sb.ToString();
 
             var g = ArenaGame.Instance;
-            message.text = g && g.MessageTime > 0f ? g.CurrentMessage : "";
+            message.text = g && g.MessageTime > 0f && !ArenaGame.Paused ? g.CurrentMessage : "";
             bool boss = g && g.Boss && !g.Boss.Dead;
             bossRoot.gameObject.SetActive(boss);
             if (boss)
@@ -110,7 +123,7 @@ namespace Arena
                 SetFill(bossPosture, g.Boss.State.Posture.Fraction);
             }
 
-            hurtFlash = Mathf.MoveTowards(hurtFlash, 0f, Time.deltaTime * 3f);
+            hurtFlash = Mathf.MoveTowards(hurtFlash, 0f, Time.unscaledDeltaTime * 3f);
             hurtR.material.color = new Color(0.8f, 0f, 0f, hurtFlash * 0.35f);
             vignetteR.material.color = new Color(0f, 0f, 0f, player.VignetteLevel * 0.55f);
         }

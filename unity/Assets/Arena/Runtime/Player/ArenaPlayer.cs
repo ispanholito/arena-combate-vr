@@ -84,7 +84,14 @@ namespace Arena
         {
             float dt = Time.deltaTime;
             IsVr = XRSettings.isDeviceActive;
-            Input.Update(IsVr, dt);
+            Input.Update(IsVr, Time.unscaledDeltaTime);   // entrada e altura funcionam também pausado
+            if (Input.PausePressed && ArenaGame.Instance) ArenaGame.Instance.SetPaused(!ArenaGame.Paused);
+            if (ArenaGame.Paused)
+            {
+                if (!IsVr) Cursor.lockState = CursorLockMode.None;
+                else VrHeight(Time.unscaledDeltaTime);
+                return;
+            }
             if (!IsVr) DesktopLook();
             else VrHeight(dt);
 

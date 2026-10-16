@@ -23,6 +23,7 @@ namespace Arena
 
         void Update()
         {
+            if (ArenaGame.Paused) return;
             float dt = Time.deltaTime;
             hintCd -= dt; slashCd -= dt;
             if (dt > 0f) { handVel = (player.RightHand.position - handPrev) / dt; handPrev = player.RightHand.position; }

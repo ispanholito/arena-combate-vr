@@ -23,8 +23,34 @@ namespace Arena
 
         public const float BonfireRadius = 1.6f, BonfireHealPerSecond = 25f;
 
-        void Awake() { Instance = this; }
-        void OnDestroy() { if (Instance == this) Instance = null; }
+        // ---------- Pausa ----------
+        public static bool Paused => Instance && Instance.paused;
+        bool paused;
+
+        public void SetPaused(bool value)
+        {
+            if (paused == value) return;
+            paused = value;
+            Time.timeScale = value ? 0f : 1f;
+            if (value) player.TreeOpen = false;
+        }
+
+        void PauseFromSystem() => SetPaused(true);   // tirou o headset ou abriu o menu do sistema
+
+        void Awake()
+        {
+            Instance = this;
+            OVRManager.HMDUnmounted += PauseFromSystem;
+            OVRManager.InputFocusLost += PauseFromSystem;
+        }
+
+        void OnDestroy()
+        {
+            OVRManager.HMDUnmounted -= PauseFromSystem;
+            OVRManager.InputFocusLost -= PauseFromSystem;
+            Time.timeScale = 1f;
+            if (Instance == this) Instance = null;
+        }
 
         void Start()
         {

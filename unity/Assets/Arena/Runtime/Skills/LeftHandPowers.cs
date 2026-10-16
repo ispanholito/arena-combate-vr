@@ -6,7 +6,7 @@ using UnityEngine.XR.Hands;
 namespace Arena
 {
     // Poderes da mão esquerda LIVRE (só com a mão rastreada, nunca com o controle na mão), qualquer classe:
-    //   palma aberta parada = metralhadora (na direção da palma), punho golpeando para baixo = soco no chão (atordoa em 3 m),
+    //   palma aberta parada = metralhadora (reta, na direção dos dedos), punho golpeando para baixo = soco no chão (atordoa em 3 m),
     //   palma aberta em movimento rápido = corte da palma. Apontar o indicador está livre para um poder futuro.
     // Sinais de mão (HandSignArming, no Core) existem mas não são usados aqui: ficam para habilidades futuras.
     // Desktop (sem mãos): Z metralhadora (segurar), X soco, C palma — só com o escudo nas costas (F).
@@ -34,6 +34,7 @@ namespace Arena
 
         void Update()
         {
+            if (ArenaGame.Paused) return;
             float dt = Time.deltaTime;
             gunCooldown -= dt;
             if (player.IsVr) TrackHand(dt); else HandTracked = false;
@@ -110,19 +111,15 @@ namespace Arena
 
         float stillT, palmLockout;
 
-        // Centro e normal da palma. O sinal da normal é escolhido para apontar para longe da cabeça
-        // (ninguém mira na própria cara), o que dispensa saber a convenção de eixos da mão esquerda.
+        // Mira reta na direção dos dedos (do pulso para a ponta do dedo médio), saindo da ponta dos dedos.
         bool PalmAim(XRHand hand, out Vector3 origin, out Vector3 dir)
         {
             origin = dir = default;
-            if (!World(hand, XRHandJointID.Wrist, out var w) || !World(hand, XRHandJointID.IndexProximal, out var ip)
-                || !World(hand, XRHandJointID.LittleProximal, out var lp) || !World(hand, XRHandJointID.MiddleProximal, out var mp)) return false;
-            var n = Vector3.Cross(ip - w, lp - w);
-            if (n.sqrMagnitude < 1e-6f) return false;
-            n.Normalize();
-            origin = (w + mp) * 0.5f;
-            if (Vector3.Dot(n, origin - player.HeadPosition) < 0f) n = -n;
-            dir = n;
+            if (!World(hand, XRHandJointID.Wrist, out var w) || !World(hand, XRHandJointID.MiddleTip, out var tip)) return false;
+            var d = tip - w;
+            if (d.sqrMagnitude < 1e-4f) return false;
+            dir = d.normalized;
+            origin = tip;
             return true;
         }
 
