@@ -155,8 +155,8 @@ namespace Arena
             All.Remove(best);
             Destroy(best.gameObject);
             player.State.LostItems.Remove(item);   // era uma arma esquecida: achou
-            var old = player.State.EquipToActive(item);
-            player.EquipActive();
+            var old = player.State.TakeItem(item, out bool toSecond);
+            if (!toSecond) player.EquipActive();
             if (old != null)
             {
                 var dropped = Spawn(old, pos + Vector3.up * 0.05f);
@@ -167,7 +167,9 @@ namespace Arena
             ArenaGame.Instance?.RequestSave();
             ArenaInput.Haptic(0.5f, 0.08f);
             var proficient = Proficiency.IsProficient(player.State.Class.Id, item.Base.Kind);
-            ArenaGame.Instance?.Message(item.DisplayName + (proficient ? "" : "\n<size=48>(fora da classe: -15% dano)</size>"), 1.6f);
+            ArenaGame.Instance?.Message(item.DisplayName
+                + (toSecond ? "\n<size=48>(foi para a 2ª arma: troque com Q / clique do analógico)</size>" : "")
+                + (proficient ? "" : "\n<size=48>(fora da classe: -15% dano)</size>"), 1.6f);
             return true;
         }
     }

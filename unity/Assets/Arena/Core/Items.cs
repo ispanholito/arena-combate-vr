@@ -164,16 +164,13 @@ namespace Arena.Core
         readonly Random rng;
         public LootTable(int seed = 0) { rng = seed == 0 ? new Random() : new Random(seed); }
 
+        // Armas só saem de baús (e do mímico, que é um baú) e do chefe — pedido do Pablo: inimigo comum deixa só ouro,
+        // para a dungeon não ficar cheia de armas no chão. (Os valores antigos ficam aqui para quando voltar a ter drop.)
         public static float DropChance(EnemyKind k) => k switch
         {
-            EnemyKind.Slime => 0.08f,
-            EnemyKind.Goblin => 0.22f,
-            EnemyKind.Esqueleto => 0.28f,
-            EnemyKind.Arqueiro => 0.2f,
             EnemyKind.Mimico => 1f,
-            EnemyKind.Orc => 0.35f,
             EnemyKind.ReiGoblin => 1f,
-            _ => 0f,
+            _ => 0f,   // antes: slime 8%, goblin 22%, esqueleto 28%, arqueiro 20%, orc 35%
         };
 
         public static int BaseGold(EnemyKind k) => k switch

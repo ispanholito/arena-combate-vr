@@ -155,28 +155,8 @@ namespace Arena
                     break;
                 }
                 case WeaponAbilityKind.ArremessoPerfurante:
-                {
-                    var vis = new GameObject("LancaEspectral");
-                    var body = ArenaUtil.Prim(PrimitiveType.Cube, vis.transform, Vector3.zero, new Vector3(0.06f, 0.06f, 1.2f), ArenaUtil.Unlit(new Color(color.r, color.g, color.b, 0.85f)));
-                    body.name = "Haste";
-                    var start = player.Head.position + dir * 0.5f - Vector3.up * 0.3f;
-                    var p = Projectile.Spawn(vis, start, dir * 22f);
-                    vis.transform.rotation = Quaternion.LookRotation(dir);
-                    p.Life = 1.2f; p.Radius = 0.35f; p.Pierce = 5;
-                    p.OnHitEnemy = (e, _) => Hit(e, dmg, 1f, dir, 2.5f, item);
-                    if (legend)   // Presa da Serpente: explode no fim do voo
-                        p.OnEnd = pr =>
-                        {
-                            var at = pr.transform.position;
-                            foreach (var e in ArenaEnemy.All.ToArray())
-                                if (e && !e.Dead && (e.transform.position - at).Flat().magnitude < WeaponAbilities.LegendaryExplosionRadius + e.Radius)
-                                    Hit(e, dmg * WeaponAbilities.LegendaryExplosionFraction, 1f, (e.transform.position - at).Flat(), 3f, item);
-                            ArenaFx.Ring(new Vector3(at.x, 0.05f, at.z), color, WeaponAbilities.LegendaryExplosionRadius, 0.4f);
-                            ArenaAudio.Play(Sfx.Explosion, at, 0.8f, 1.2f);
-                        };
-                    ArenaAudio.Play(Sfx.Ice, start, 0.8f, 0.6f);
+                    StartCoroutine(SpectralSpear(item, dmg, color, legend));   // meio segundo para mirar antes de soltar
                     break;
-                }
                 case WeaponAbilityKind.PassoSombrio:
                 {
                     ArenaEnemy best = null; float bestD = 6f * power;
@@ -212,6 +192,51 @@ namespace Arena
                     break;
                 }
             }
+        }
+
+        // Lança Espectral: aparece na ponta da arma e fica 0,5 s apontando para onde você aponta a lança (VR) ou olha
+        // (desktop), com uma linha de mira; depois dispara nessa direção (pedido do Pablo: antes saía na hora e não dava
+        // para mirar num slime).
+        public const float SpearAimSeconds = 0.5f;
+
+        System.Collections.IEnumerator SpectralSpear(ItemInstance item, float dmg, Color color, bool legend)
+        {
+            var vis = new GameObject("LancaEspectral");
+            ArenaUtil.Prim(PrimitiveType.Cube, vis.transform, Vector3.zero, new Vector3(0.06f, 0.06f, 1.2f), ArenaUtil.Unlit(new Color(color.r, color.g, color.b, 0.85f))).name = "Haste";
+            var guide = ArenaUtil.Prim(PrimitiveType.Cube, vis.transform, new Vector3(0, 0, 4.6f), new Vector3(0.015f, 0.015f, 8f), ArenaUtil.Unlit(new Color(color.r, color.g, color.b, 0.25f)));
+            ArenaAudio.Play(Sfx.Skill, player.Weapon.TipPoint, 0.6f, 0.8f);
+            Vector3 start = player.Weapon.TipPoint, aim = player.HeadForward;
+            for (float t = 0f; t < SpearAimSeconds; t += Time.deltaTime)
+            {
+                Aim(out start, out aim);
+                vis.transform.SetPositionAndRotation(start, Quaternion.LookRotation(aim));
+                yield return null;
+            }
+            Aim(out start, out aim);
+            Destroy(guide);
+            var p = Projectile.Spawn(vis, start, aim * 22f);
+            vis.transform.rotation = Quaternion.LookRotation(aim);
+            p.Life = 1.2f; p.Radius = 0.35f; p.Pierce = 5;
+            p.OnHitEnemy = (e, _) => Hit(e, dmg, 1f, aim, 2.5f, item);
+            if (legend)   // Presa da Serpente: explode no fim do voo
+                p.OnEnd = pr =>
+                {
+                    var at = pr.transform.position;
+                    foreach (var e in ArenaEnemy.All.ToArray())
+                        if (e && !e.Dead && (e.transform.position - at).Flat().magnitude < WeaponAbilities.LegendaryExplosionRadius + e.Radius)
+                            Hit(e, dmg * WeaponAbilities.LegendaryExplosionFraction, 1f, (e.transform.position - at).Flat(), 3f, item);
+                    ArenaFx.Ring(new Vector3(at.x, 0.05f, at.z), color, WeaponAbilities.LegendaryExplosionRadius, 0.4f);
+                    ArenaAudio.Play(Sfx.Explosion, at, 0.8f, 1.2f);
+                };
+            ArenaAudio.Play(Sfx.Ice, start, 0.8f, 0.6f);
+            ArenaInput.Haptic(0.8f, 0.08f);
+        }
+
+        void Aim(out Vector3 start, out Vector3 aim)
+        {
+            var w = player.Weapon;
+            if (player.IsVr && w && w.Held) { aim = w.BladeDir; start = w.TipPoint + aim * 0.3f; }
+            else { aim = player.Head.forward; start = player.Head.position + aim * 0.6f - Vector3.up * 0.25f; }
         }
 
         void Hit(ArenaEnemy e, float dmg, float postureFactor, Vector3 dir, float knock, ItemInstance item)

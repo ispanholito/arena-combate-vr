@@ -89,6 +89,21 @@ namespace Arena.Core
             ActiveSlot = 0;
         }
 
+        // Pegou uma arma: se a 2ª vaga estiver vazia ela vai para lá (nada cai no chão); senão troca a da mão.
+        // Devolve a arma que saiu (ou null) e se a nova foi para a 2ª vaga.
+        public ItemInstance TakeItem(ItemInstance item, out bool wentToSecond)
+        {
+            int other = 1 - ActiveSlot;
+            if (Loadout[other] == null && Loadout[ActiveSlot] != null)
+            {
+                Loadout[other] = item;
+                wentToSecond = true;
+                return null;
+            }
+            wentToSecond = false;
+            return EquipToActive(item);
+        }
+
         // Troca a arma do slot ativo pela nova; devolve a antiga (que cai no chão).
         public ItemInstance EquipToActive(ItemInstance item)
         {

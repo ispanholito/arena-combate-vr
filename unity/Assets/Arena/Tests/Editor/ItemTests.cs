@@ -105,6 +105,23 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void TakeItem_FillsEmptySecondSlot_BeforeSwapping()
+        {
+            var ps = new PlayerState(ClassId.Lamina);
+            ps.Loadout[1] = null;   // guardou o machado
+            var spear = ItemInstance.Basic(WeaponDef.Lanca);
+            Assert.IsNull(ps.TakeItem(spear, out bool second));
+            Assert.IsTrue(second);
+            Assert.AreSame(spear, ps.Loadout[1]);
+            Assert.AreEqual(WeaponKind.Espada, ps.ActiveItem.Base.Kind);
+            var mace = ItemInstance.Basic(WeaponDef.MacaPesada);
+            var old = ps.TakeItem(mace, out second);   // as duas vagas cheias: troca a da mão
+            Assert.IsFalse(second);
+            Assert.AreEqual(WeaponKind.Espada, old.Base.Kind);
+            Assert.AreSame(mace, ps.ActiveItem);
+        }
+
+        [Test]
         public void ChangingClass_KeepsItems_ButGuaranteesStaff()
         {
             var ps = new PlayerState(ClassId.Lamina);
