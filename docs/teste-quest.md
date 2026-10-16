@@ -9,6 +9,17 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0. NOVO — seus pedidos de 2026-10-16 (depois de jogar no PC)
+- [ ] **Slot vazio**: guarde a 2ª arma na estante e pegue outra → ela vai para a 2ª vaga (antes trocava a da mão).
+- [ ] **Armas só em baús** (e mímico/chefe); inimigos comuns deixam só ouro. A dungeon ficou "limpa"? Faltam armas?
+- [ ] **Lança Espectral**: aparece na ponta da lança com uma linha de mira e espera 0,5 s; aponte a lança para o alvo (slime). Meio segundo está bom?
+- [ ] **Raio do Freeza** (palma aberta parada, mão esquerda livre; Z no PC): raio fino e instantâneo, 16 de dano, 6 de mana, atravessa 2. Compensa agora? O visual lembra o do Freeza?
+- [ ] **Soco** (punho fechado indo rápido para frente; X no PC): acerta 1 inimigo até ~1 m além da mão, 30 de dano, recarga 1 s; socar o ar não gasta mana. O alcance está bom?
+- [ ] **Santuário**: estante **permanente** (leste: guarda, nunca some), estante **temporária** (oeste: o que ficou para trás; some ao entrar num portal), **mercador** (baú de moedas perto da bigorna: vende a 2ª arma).
+- [ ] **Modo arcade**: vencer o Rei Goblin sobe a **profundidade** (portal mostra; HUD mostra "prof."). Mais vida/dano/inimigos e itens mais raros. **Morrer na dungeon volta ao santuário na profundidade 1.** Pedra do recomeço ao lado dos portais (grip 2x). A arena também tem profundidade.
+- [ ] **Rei Goblin estilo Souls**: ficar colado spamando agora perde (no meu teste no nível 1 você morre com o chefe a 1/3 da vida). Confira: pisão em quem fica colado (círculo em volta dele), rugido com aviso que joga longe, investida quando você foge (se errar, ele tropeça), combos na fase 2 com pausa no fim, defesa alta até quebrar a postura (o aparo é o caminho). Difícil demais? Justo?
+- [ ] **Dificuldade** agora muda também o tempo de aviso dos ataques (fácil mais lento, difícil mais rápido).
+
 ## 1. Menu, santuário e salvar
 - [ ] Menu inicial: 1ª linha troca o personagem (Continuar / Novo Lâmina / Novo Elementalista). Começar um novo por cima do salvo pede confirmação.
 - [ ] **Santuário**: sala com fogueira no meio, bigorna à esquerda e 3 portais (Arena, Dungeon, Treino). Os nomes dos portais dá para ler?
