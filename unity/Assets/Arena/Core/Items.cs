@@ -239,6 +239,14 @@ namespace Arena.Core
             return (float)Math.Round(v * scale * (0.75 + 0.5 * t), 3);
         }
 
+        // Baú da dungeon: ouro (mais nos andares fundos) e 60% de chance de arma Incomum ou melhor.
+        public (int gold, ItemInstance item) RollChest(int floor)
+        {
+            int gold = (int)Math.Round((15 + 10 * floor) * (0.8 + rng.NextDouble() * 0.4));
+            var item = rng.NextDouble() < 0.6 ? RollItem(Rarity.Incomum) : null;
+            return (gold, item);
+        }
+
         // Rola o loot de um inimigo morto. Retorna null se não caiu arma.
         public ItemInstance RollDrop(EnemyKind k)
         {

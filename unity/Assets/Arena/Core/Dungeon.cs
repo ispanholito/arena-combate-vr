@@ -117,6 +117,7 @@ namespace Arena.Core
         public Rect2 Rect;
         public List<EnemyDef> Enemies = new List<EnemyDef>();
         public bool Entered, Cleared;
+        public bool HasChest;          // baú aparece quando a sala é limpa
         public int EnteredFrom = -1;   // sala anterior (para os inimigos nascerem longe da entrada)
     }
 
@@ -130,6 +131,30 @@ namespace Arena.Core
         public DungeonRoom Last => Rooms[Rooms.Count - 1];
 
         public DungeonRoom RoomAt(float x, float z, float margin = 0.5f) => Rooms.FirstOrDefault(r => r.Rect.Contains(x, z, margin));
+
+        // Aberturas da sala para os corredores (segmentos na borda da sala), onde as portas trancam na emboscada.
+        public List<(float x0, float z0, float x1, float z1)> Openings(int roomIndex)
+        {
+            var res = new List<(float, float, float, float)>();
+            var r = Rooms[roomIndex].Rect;
+            foreach (int n in new[] { roomIndex - 1, roomIndex + 1 })
+            {
+                if (n < 0 || n >= Rooms.Count) continue;
+                var c = Corridors[Math.Min(roomIndex, n)];
+                var o = Rooms[n].Rect;
+                if (c.Width <= DungeonGenerator.CorridorWidth + 0.01f)   // corredor vertical (largura em X)
+                {
+                    float z = o.CenterZ > r.CenterZ ? r.MaxZ : r.MinZ;
+                    res.Add((c.MinX, z, c.MaxX, z));
+                }
+                else
+                {
+                    float x = o.CenterX > r.CenterX ? r.MaxX : r.MinX;
+                    res.Add((x, c.MinZ, x, c.MaxZ));
+                }
+            }
+            return res;
+        }
     }
 
     // Gera os andares: salas numa caminhada sem repetição por uma grade (células de 18 m), ligadas por corredores
@@ -159,10 +184,13 @@ namespace Arena.Core
                 var (cx, cz) = (cells[i].x * Cell, cells[i].z * Cell);
                 var room = new DungeonRoom { Index = i, Kind = k, Rect = Rect2.Centered(cx, cz, w, d), EnteredFrom = i - 1 };
                 if (k == RoomKind.Combate) room.Enemies = RollEnemies(rng, floor, i);
+                if (k == RoomKind.Combate) room.HasChest = rng.NextDouble() < 0.4;
                 if (k == RoomKind.Chefe) room.Enemies.Add(EnemyDef.ReiGoblin(bossesDefeated));
                 if (k == RoomKind.Inicio || k == RoomKind.Fogueira || k == RoomKind.Escada) room.Cleared = true;
                 f.Rooms.Add(room);
             }
+            // Pelo menos um baú por andar.
+            if (!f.Rooms.Any(r => r.HasChest)) f.Rooms.Last(r => r.Kind == RoomKind.Combate).HasChest = true;
             for (int i = 1; i < f.Rooms.Count; i++)
             {
                 var a = f.Rooms[i - 1].Rect; var b = f.Rooms[i].Rect;

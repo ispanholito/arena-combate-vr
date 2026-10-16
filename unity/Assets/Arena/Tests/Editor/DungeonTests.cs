@@ -49,6 +49,47 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void Openings_SitOnRoomEdge_TowardCorridor_AndEveryFloorHasAChest()
+        {
+            for (int seed = 1; seed < 40; seed++)
+            {
+                var f = DungeonGenerator.Generate(seed, 1 + seed % 2);
+                Assert.IsTrue(f.Rooms.Any(r => r.HasChest));
+                Assert.IsFalse(f.Rooms.Any(r => r.HasChest && r.Kind != RoomKind.Combate));
+                for (int i = 0; i < f.Rooms.Count; i++)
+                {
+                    var r = f.Rooms[i].Rect;
+                    var ops = f.Openings(i);
+                    Assert.AreEqual(i == 0 || i == f.Rooms.Count - 1 ? 1 : 2, ops.Count);
+                    foreach (var (x0, z0, x1, z1) in ops)
+                    {
+                        float mx = (x0 + x1) / 2f, mz = (z0 + z1) / 2f;
+                        bool onEdge = mx == r.MinX || mx == r.MaxX || mz == r.MinZ || mz == r.MaxZ;
+                        Assert.IsTrue(onEdge, $"seed {seed} sala {i}: abertura fora da borda");
+                        Assert.AreEqual(DungeonGenerator.CorridorWidth, System.Math.Abs(x1 - x0) + System.Math.Abs(z1 - z0), 1e-3);
+                        // Um passo para fora da sala pela abertura continua andável (é o corredor).
+                        float ox = mx == r.MinX ? -0.5f : mx == r.MaxX ? 0.5f : 0f, oz = mz == r.MinZ ? -0.5f : mz == r.MaxZ ? 0.5f : 0f;
+                        Assert.IsTrue(f.Area.Contains(mx + ox, mz + oz));
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void Chest_GivesGold_AndSometimesAWeapon()
+        {
+            var loot = new LootTable(9);
+            int items = 0;
+            for (int i = 0; i < 200; i++)
+            {
+                var (gold, item) = loot.RollChest(2);
+                Assert.That(gold, Is.InRange(28, 42));
+                if (item != null) { items++; Assert.GreaterOrEqual((int)item.Rarity, (int)Rarity.Incomum); }
+            }
+            Assert.That(items, Is.InRange(90, 150));
+        }
+
+        [Test]
         public void SameSeed_SameLayout()
         {
             var a = DungeonGenerator.Generate(5, 1);

@@ -15,6 +15,7 @@ namespace Arena
         ArenaGame game;
         Transform root, portal;
         readonly List<Transform> bonfires = new List<Transform>();
+        readonly List<GameObject> doors = new List<GameObject>();
         float portalCd, roomCheckCd;
         bool portalHome;
         Material stone, wall, wood, fire, portalMat;
@@ -164,7 +165,11 @@ namespace Arena
                 foreach (var e in ArenaEnemy.All) if (e && !e.Dead) { anyAlive = true; break; }
                 if (!anyAlive)
                 {
+                    var cleared = Run.ActiveRoom;
                     Run.OnRoomEmpty();
+                    Unlock();
+                    if (cleared != null && cleared.HasChest)
+                        TreasureChest.Spawn(new Vector3(cleared.Rect.CenterX, 0f, cleared.Rect.CenterZ), game.Player.FeetPosition - new Vector3(cleared.Rect.CenterX, 0f, cleared.Rect.CenterZ), Run.Floor.Number, root);
                     game.Message("Sala limpa", 1.2f);
                     ArenaAudio.Play2D(Sfx.Level, 0.4f, 0.8f);
                     game.RequestSave();
@@ -221,13 +226,46 @@ namespace Arena
                 ArenaFx.Burst(pos + Vector3.up * 0.5f, new Color(0.6f, 0.42f, 1f), 14, 2.5f);
             }
             ArenaAudio.Play2D(Sfx.Windup, 0.7f, 0.6f);
+            Lock(room);
             if (room.Kind != RoomKind.Chefe) game.Message("Emboscada! " + room.Enemies.Count + " inimigos", 1.4f);
+        }
+
+        // Emboscada: portas de barras nas aberturas da sala e a área de andar fica só a sala (ninguém sai até limpar).
+        void Lock(DungeonRoom room)
+        {
+            ArenaUtil.Area = new WalkArea(new[] { room.Rect });
+            var mat = ArenaUtil.Lit(new Color(0.25f, 0.22f, 0.2f), new Color(0.35f, 0.08f, 0.04f));
+            foreach (var (x0, z0, x1, z1) in Run.Floor.Openings(room.Index))
+            {
+                var door = new GameObject("Porta");
+                door.transform.SetParent(root, false);
+                bool alongX = Mathf.Approximately(z0, z1);
+                float len = alongX ? x1 - x0 : z1 - z0;
+                for (float s = 0.25f; s < len; s += 0.5f)   // grade de barras
+                {
+                    var p = alongX ? new Vector3(x0 + s, 1.5f, z0) : new Vector3(x0, 1.5f, z0 + s);
+                    ArenaUtil.Prim(PrimitiveType.Cylinder, door.transform, p, new Vector3(0.08f, 1.5f, 0.08f), mat, keepCollider: true);
+                }
+                var bar = alongX ? new Vector3(len + 0.2f, 0.12f, 0.12f) : new Vector3(0.12f, 0.12f, len + 0.2f);
+                ArenaUtil.Prim(PrimitiveType.Cube, door.transform, new Vector3((x0 + x1) * 0.5f, 2.2f, (z0 + z1) * 0.5f), bar, mat, keepCollider: true);
+                doors.Add(door);
+                ArenaAudio.Play(Sfx.Slam, new Vector3((x0 + x1) * 0.5f, 1f, (z0 + z1) * 0.5f), 0.7f, 1.3f);
+            }
+        }
+
+        void Unlock()
+        {
+            foreach (var d in doors) if (d) Destroy(d);
+            if (doors.Count > 0) ArenaAudio.Play2D(Sfx.Rattle, 0.6f, 0.7f);
+            doors.Clear();
+            if (Run != null) ArenaUtil.Area = Run.Floor.Area;
         }
 
         // ---------- Eventos do jogo ----------
         public void OnBossKilled(Vector3 at)
         {
             Run.OnBossKilled();
+            Unlock();
             var room = Run.Floor.Last;
             // Portal no lado da sala longe do jogador (antes nascia debaixo dele e o mandava embora antes do loot).
             var c = new Vector3(room.Rect.CenterX, 0f, room.Rect.CenterZ);
@@ -241,6 +279,7 @@ namespace Arena
         public void OnPlayerDied()
         {
             Run.OnPlayerDied();
+            Unlock();
             SetCheckpoint(Run.CheckpointRoom);
         }
     }
