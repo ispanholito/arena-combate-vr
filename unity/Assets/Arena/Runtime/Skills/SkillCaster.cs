@@ -38,6 +38,7 @@ namespace Arena
             if (hintCd > 0f || !ArenaGame.Instance) return;
             hintCd = 1.2f;
             ArenaGame.Instance.Message(msg, 1f);
+            ArenaAudio.Play2D(Sfx.Deny, 0.6f);
         }
 
         bool Cast(string id)
@@ -64,12 +65,14 @@ namespace Arena
                 else if (Cast(SkillIds.Contra))
                 {
                     ArenaGame.Instance?.Message("Postura de Contra!", 0.7f);
+                    ArenaAudio.Play2D(Sfx.Skill, 0.6f);
                     ArenaInput.Haptic(0.5f, 0.08f);
                 }
             }
             if (I.BPressed && Cast(SkillIds.VentoLamina))
             {
                 ArenaGame.Instance?.Message("Lâmina carregada: 2 cortes", 0.9f);
+                ArenaAudio.Play2D(Sfx.Skill, 0.6f);
                 ArenaInput.Haptic(0.6f, 0.1f);
             }
             if (I.GripPressed && w.Held) w.Throw(player.IsVr ? handVel : Vector3.zero);
@@ -117,6 +120,7 @@ namespace Arena
             var p = Projectile.Spawn(vis, start, f * 15f);
             p.Life = 0.8f; p.Radius = hitRadius; p.Pierce = 99;
             p.OnHitEnemy = (e, _) => e.ApplyDamage(dmg, 0.7f, f, 2f, new Color(0.81f, 0.96f, 1f));
+            ArenaAudio.Play(Sfx.Wind, start, 0.7f);
         }
 
         // ---------- Elementalista ----------
@@ -168,10 +172,12 @@ namespace Arena
             float dmg = Combat.FireballDamage(power);
             p.OnEnd = pr => Explode(new Vector3(pr.transform.position.x, Mathf.Max(0.3f, pr.transform.position.y), pr.transform.position.z), radius, dmg);
             ArenaInput.Haptic(0.6f, 0.08f);
+            ArenaAudio.Play(Sfx.FireCast, start, 0.8f);
         }
 
         static void Explode(Vector3 pos, float radius, float dmg)
         {
+            ArenaAudio.Play(Sfx.Explosion, pos, 1f);
             ArenaFx.Ring(pos, new Color(1f, 0.48f, 0.13f), radius);
             ArenaFx.Burst(pos, new Color(1f, 0.6f, 0.19f), 24, 5f, 2f);
             foreach (var e in ArenaEnemy.All.ToArray())
@@ -204,6 +210,7 @@ namespace Arena
                 ArenaFx.Burst(e.Center, new Color(0.75f, 0.92f, 1f), 10, 2f);
             };
             ArenaInput.Haptic(0.5f, 0.06f);
+            ArenaAudio.Play(Sfx.Ice, w.CrystalPoint, 0.8f);
         }
 
         Vector3 RootTarget()
@@ -240,6 +247,7 @@ namespace Arena
         {
             if (!Cast(SkillIds.Raizes)) return;
             ArenaFx.Ring(pos, new Color(0.5f, 0.9f, 0.4f), Combat.RootRadius, 0.5f);
+            ArenaAudio.Play(Sfx.Impact, pos, 0.6f, 1.3f); ArenaAudio.Play(Sfx.Wind, pos, 0.4f, 0.6f);
             ArenaFx.Burst(pos + Vector3.up * 0.1f, new Color(0.35f, 0.23f, 0.1f), 24, 3f, 1.5f);
             int n = 0;
             foreach (var e in ArenaEnemy.All)

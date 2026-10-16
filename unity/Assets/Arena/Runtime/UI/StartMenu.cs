@@ -36,10 +36,12 @@ namespace Arena
             if (panel.gameObject.activeSelf != show) panel.gameObject.SetActive(show);
             if (!show) return;
             var input = player.Input;
+            if (input.MenuUp || input.MenuDown) ArenaAudio.Play2D(Sfx.Click, 0.5f);
             if (input.MenuUp) cursor = (cursor + Rows - 1) % Rows;
             if (input.MenuDown) cursor = (cursor + 1) % Rows;
             if (input.MenuConfirm)
             {
+                ArenaAudio.Play2D(Sfx.Click, 0.8f, 1.3f);
                 if (cursor == 0) cls = cls == ClassId.Lamina ? ClassId.Elementalista : ClassId.Lamina;
                 else ArenaGame.Instance.StartMode(cursor == 1 ? ArenaGame.GameMode.Arena : ArenaGame.GameMode.Treino, cls);
             }

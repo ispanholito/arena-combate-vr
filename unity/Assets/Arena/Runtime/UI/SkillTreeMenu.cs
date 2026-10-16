@@ -50,7 +50,8 @@ namespace Arena
                     if (atFire) player.ChangeClass(s.Class.Id == ClassId.Lamina ? ClassId.Elementalista : ClassId.Lamina);
                     else ArenaGame.Instance?.Message("Troque de classe na fogueira", 1f);
                 }
-                else if (!s.Tree.Unlock(nodes[cursor - 1].Id)) ArenaGame.Instance?.Message("Não dá para liberar ainda", 0.8f);
+                else if (!s.Tree.Unlock(nodes[cursor - 1].Id)) { ArenaGame.Instance?.Message("Não dá para liberar ainda", 0.8f); ArenaAudio.Play2D(Sfx.Deny, 0.7f); }
+                else ArenaAudio.Play2D(Sfx.Level, 0.6f, 1.2f);
             }
             if (input.MenuRespec)
             {

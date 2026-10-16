@@ -58,6 +58,7 @@ namespace Arena
         public void ResetCharacter(ClassId cls)
         {
             State = new PlayerState(cls);
+            State.LeveledUp += _ => ArenaAudio.Play2D(Sfx.Level, 0.8f);
             State.Died += lost =>
             {
                 if (ArenaGame.Instance) ArenaGame.Instance.OnPlayerDied(lost);
@@ -201,6 +202,7 @@ namespace Arena
             var mv = Input.Move;
             dashDir = mv.sqrMagnitude < 0.01f ? -f : (f * mv.y + r * mv.x).normalized;
             vignette = 1f;
+            ArenaAudio.Play2D(Sfx.Dash, 0.6f);
         }
 
         // Investida Perfurante: chamada pelo SkillCaster já com a direção validada.
@@ -213,6 +215,7 @@ namespace Arena
             State.SetInvulnerable(Combat.ChargeInvulnerable);
             vignette = 0.8f;
             ArenaInput.Haptic(0.8f, 0.2f);
+            ArenaAudio.Play2D(Sfx.Skill, 0.6f); ArenaAudio.Play2D(Sfx.Dash, 0.8f);
         }
 
         void ChargeHits()
@@ -237,6 +240,7 @@ namespace Arena
         {
             if (!State.TakeDamage(amount)) return;
             Hurt?.Invoke(amount);
+            ArenaAudio.Play2D(Sfx.Hurt, 0.8f);
             ArenaInput.Haptic(0.8f, 0.12f); ArenaInput.Haptic(0.8f, 0.12f, left: true);
         }
 

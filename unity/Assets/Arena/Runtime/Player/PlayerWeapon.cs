@@ -40,6 +40,7 @@ namespace Arena
         // Fase 3: lâmina cravada
         float bleedAcc, thrustT = -1f;
         Vector3 physTipVel;   // velocidade da ponta no último passo de física
+        float whooshCd, lastTipSpeed, soundCd;
 
         // Fase 4: segunda mão
         public bool TwoHanded { get; private set; }
@@ -379,10 +380,19 @@ namespace Arena
             if (!hasPrev) { basePrev = BasePoint; tipPrev = TipPoint; strikeAPrev = strikeA; strikeBPrev = strikeB; hasPrev = true; }
             TipVelocity = (TipPoint - tipPrev) / dt;
             TipSpeed = TipVelocity.magnitude;
+            // Som do golpe cortando o ar.
+            whooshCd -= dt;
+            if (mode == Mode.Held && TipSpeed > 4.5f && lastTipSpeed <= 4.5f && whooshCd <= 0f)
+            {
+                whooshCd = 0.25f;
+                ArenaAudio.Play(Sfx.Whoosh, TipPoint, Mathf.Clamp01(TipSpeed / 10f), Def.Weight > 5f ? 0.7f : 1.1f);
+            }
+            lastTipSpeed = TipSpeed;
 
             if (Stuck) UpdateStab(dt);
             else if (TipSpeed > Combat.MinSwingSpeed) CheckHits();
             hapticCd -= dt;
+            soundCd -= dt;
         }
 
         // Quando o jogador anda, esquiva ou gira, a arma vai junto com o corpo (antes ela "corria atrás" da mão e tremia).
@@ -468,6 +478,12 @@ namespace Arena
                 var dir = TipVelocity.sqrMagnitude > 0.25f ? TipVelocity
                         : enemy.transform.position - (c.contactCount > 0 ? c.GetContact(0).point : visual.position);
                 enemy.PhysicalImpact(c.impulse.magnitude, dir);
+            }
+            // Arma batendo em parede/chão: som metálico proporcional ao impacto.
+            if (!enemy && mode != Mode.Recalling && soundCd <= 0f && c.contactCount > 0)
+            {
+                float s = WeaponPhysics.HapticFromImpulse(c.impulse.magnitude, Def);
+                if (s > 0.15f) { soundCd = 0.12f; ArenaAudio.Play(Sfx.Block, c.GetContact(0).point, s * 0.7f, Def.Weight > 5f ? 0.6f : 1.2f); }
             }
             if (mode != Mode.Held || hapticCd > 0f || !player.IsVr) return;
             float amp = WeaponPhysics.HapticFromImpulse(c.impulse.magnitude, Def);
@@ -593,6 +609,7 @@ namespace Arena
             {
                 e.Launch(launchVelocity);
                 if (launchVelocity.magnitude > 3f) ArenaInput.Haptic(0.8f, 0.08f);
+                if (launchVelocity.magnitude > 3f) ArenaAudio.Play(Sfx.Whoosh, e.Center, 1f, 0.8f);
             }
         }
 
@@ -614,6 +631,7 @@ namespace Arena
             {
                 e.ApplyDamage(StabRules.RipDamage, 0.6f, null, 0f, new Color(1f, 0.4f, 0.4f), canCrit: false);
                 ArenaFx.FloatText("ARRANCOU", e.Center + Vector3.up * 0.5f, new Color(1f, 0.5f, 0.5f), 1.1f);
+                ArenaAudio.Play(Sfx.Rip, TipPoint);
                 ArenaFx.Burst(TipPoint, new Color(0.7f, 0.12f, 0.16f), 18, 4f);
                 ArenaInput.Haptic(1f, 0.15f);
                 FinishEmbed(true);

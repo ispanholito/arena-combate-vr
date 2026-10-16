@@ -52,6 +52,7 @@ namespace Arena
         {
             if (Dead || SpawnGrace > 0f) return;
             ArenaFx.FloatText("CRAVOU!", Center + Vector3.up * (0.6f + bodyTop * 0.3f), new Color(1f, 0.55f, 0.45f), 1.1f);
+            ArenaAudio.Play(Sfx.Stab, Center);
             // A mesma estocada já pode ter contado como golpe normal um instante antes do contato físico: não cobra duas vezes.
             if (hitCooldown > 0f) return;
             bool hasSta = ps.SpendSwingStamina(weapon);
@@ -122,6 +123,7 @@ namespace Arena
             var pl = Player;
             if (pl) knock = (transform.position - pl.FeetPosition).Flat().normalized * 3.5f;
             ArenaFx.FloatText("ESQUIVOU", Center + Vector3.up * (0.6f + bodyTop * 0.3f), new Color(0.8f, 0.8f, 1f), 1f);
+            ArenaAudio.Play(Sfx.Whoosh, Center);
         }
 
         void UpdateLean(float dt)
@@ -177,6 +179,7 @@ namespace Arena
             if (head) { dmg *= WeakPoints.HeadMultiplier; HeadText(); }
             if (comboBreaker.RegisterHit(State.Posture.IsBroken)) { ComboBreak(); return true; }
             if (dmg <= 0f) return false;
+            ArenaAudio.Play(weapon.Weight > 5f ? Sfx.HitHeavy : Sfx.Hit, Center, 0.4f + tipSpeed / 10f);
             hitCooldown = Combat.HitCooldown;
             ApplyDamage(dmg, 0.7f, dir, Combat.Knockback(tipSpeed, weapon));
             ArenaInput.Haptic(Mathf.Min(1f, 0.3f + tipSpeed / 8f) * (weapon.Weight > 5 ? 1f : 0.7f), 0.05f + weapon.Weight * 0.004f);
@@ -204,6 +207,8 @@ namespace Arena
         {
             hitFlash = 0.08f;
             if (ev.PostureBroke) ArenaFx.FloatText("POSTURA QUEBRADA", Center + Vector3.up * (0.5f + bodyTop * 0.3f), Color.white, 1.1f);
+            if (ev.PostureBroke) ArenaAudio.Play(Sfx.Broken, Center);
+            if (Def.Kind == EnemyKind.Slime) ArenaAudio.Play(Sfx.Slime, Center, 0.7f, 1f / Mathf.Max(0.4f, Def.Size));
             OnHit(ev);
             if (ev.Killed) Die();
         }
@@ -212,6 +217,7 @@ namespace Arena
 
         protected virtual void Die()
         {
+            ArenaAudio.Play(Def.Kind == EnemyKind.Slime ? Sfx.Slime : Sfx.Death, Center, 0.8f, Def.Kind == EnemyKind.Slime ? 0.6f : 1f / Mathf.Max(1f, Def.Size));
             ArenaFx.Burst(Center, bloodColor, 20, 4f, 1.4f);
             if (ArenaGame.Instance) ArenaGame.Instance.OnEnemyKilled(this);
             ReleaseWeapon();   // solta a espada cravada antes de o corpo sumir
@@ -287,6 +293,7 @@ namespace Arena
             {
                 ArenaFx.Burst(Center, bloodColor, 16, 4f, 1.3f);
                 ArenaFx.FloatText("IMPACTO", Center + Vector3.up * 0.6f, new Color(1f, 0.7f, 0.4f), 1.1f);
+                ArenaAudio.Play(Sfx.Impact, Center, Mathf.Clamp01(speed / 10f));
                 if (other) other.ApplyDamage(dmg * 0.7f, 0.8f, dir, 2f, null, canCrit: false);
                 ApplyDamage(dmg, 0.8f, null, 0f, null, canCrit: false);
                 ArenaInput.Haptic(0.5f, 0.06f);

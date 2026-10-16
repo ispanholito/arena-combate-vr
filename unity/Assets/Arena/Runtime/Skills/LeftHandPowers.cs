@@ -130,6 +130,7 @@ namespace Arena
             if (gunCooldown > 0f) return;
             if (!player.State.TryGunShot()) { ArenaGame.Instance?.Message("Sem mana", 0.6f); return; }
             gunCooldown = HandPowers.GunFireInterval;
+            ArenaAudio.Play(Sfx.Shot, origin, 0.35f);
             var vis = ArenaUtil.Prim(PrimitiveType.Sphere, null, origin, Vector3.one * 0.05f, bulletMat);
             var p = Projectile.Spawn(vis, origin + dir * 0.05f, dir * HandPowers.GunBulletSpeed);
             p.Life = HandPowers.GunRange / HandPowers.GunBulletSpeed; p.Radius = 0.06f; p.Pierce = 1;
@@ -141,6 +142,7 @@ namespace Arena
             if (player.State.TryHandPower(HandPowers.Slam) != SkillCastResult.Ok) return false;
             var pp = player.FeetPosition;
             ArenaFx.Ring(pp, new Color(1f, 0.82f, 0.56f), HandPowers.SlamRadius + 0.2f, 0.4f);
+            ArenaAudio.Play(Sfx.Slam, pp, 1f);
             ArenaFx.Burst(pp + Vector3.up * 0.2f, new Color(0.69f, 0.56f, 0.44f), 30, 4f, 1.5f);
             int n = 0;
             foreach (var e in ArenaEnemy.All.ToArray())

@@ -71,6 +71,7 @@ namespace Arena
         {
             state = s; stateT = 0f; hitDone = false; clubPrevValid = false;
             bool glow = s == AiState.Windup || s == AiState.Slam;
+            if (s == AiState.Windup || s == AiState.Slam) ArenaAudio.Play(Sfx.Windup, transform.position + Vector3.up, 0.7f, 1f / k);
             clubMat.color = glow ? new Color(0.9f, 0.15f, 0.05f) : new Color(0.42f, 0.27f, 0.15f);
         }
 
@@ -204,6 +205,7 @@ namespace Arena
                     ps.Stamina.TrySpend(Guard.BlockStaminaCost, 1f);
                     State.AddPosture(Guard.BlockPosture);
                     ArenaFx.FloatText("BLOQUEIO", contact, new Color(0.8f, 0.8f, 0.8f), 0.9f);
+                    ArenaAudio.Play(Sfx.Block, contact);
                     ArenaFx.Burst(contact, new Color(1f, 0.82f, 0.56f), 6, 2f);
                     ArenaInput.Haptic(0.7f, 0.07f);
                     Player.TakeDamage(Guard.DamageToPlayer(r, Def.AttackDamage), transform.position, ignoreGuardCooldown: true);
@@ -212,6 +214,7 @@ namespace Arena
                     ps.Stamina.TrySpend(Guard.ShieldBlockStaminaCost, 1f);
                     State.AddPosture(Guard.ShieldBlockPosture);
                     ArenaFx.FloatText("BLOQUEIO", contact, new Color(0.85f, 0.85f, 0.85f), 0.9f);
+                    ArenaAudio.Play(Sfx.Block, contact);
                     ArenaFx.Burst(contact, new Color(1f, 0.82f, 0.56f), 8, 2f);
                     ArenaInput.Haptic(0.6f, 0.07f, left: true);
                     break;
@@ -224,6 +227,7 @@ namespace Arena
 
         void Parried(Vector3 contact)
         {
+            ArenaAudio.Play(Sfx.Parry, contact);
             ArenaFx.FloatText("APARO!", contact, new Color(0.62f, 0.88f, 1f), 1.1f);
             ArenaFx.Burst(contact, new Color(1f, 0.91f, 0.63f), 16, 4f);
             ArenaInput.Haptic(1f, 0.09f);

@@ -22,6 +22,7 @@ namespace Arena
                 if (ArenaGame.Instance)
                 {
                     ArenaGame.Instance.OnBossPhase2();
+                    ArenaAudio.Play(Sfx.Roar, Center, 1f, 0.85f);
                     if (!summoned)
                     {
                         summoned = true;
@@ -45,6 +46,7 @@ namespace Arena
             away.Normalize();
             ArenaFx.Ring(transform.position, new Color(1f, 0.6f, 0.2f), 2.7f, 0.35f);
             ArenaFx.FloatText("RUGIDO!", Center + Vector3.up * 1.2f, new Color(1f, 0.6f, 0.3f), 1.4f);
+            ArenaAudio.Play(Sfx.Roar, Center, 1f);
             if (Vector3.Distance(Player.FeetPosition.Flat(), transform.position.Flat()) < 2.5f)
             {
                 Player.Push(away * 5f);
@@ -74,6 +76,7 @@ namespace Arena
                     if (Vector3.Distance(Player.FeetPosition.Flat(), center.Flat()) < EnemyDef.BossSlamRadius)
                         Player.TakeDamage(EnemyDef.BossSlamDamage, transform.position);
                     ArenaFx.Ring(center, new Color(1f, 0.31f, 0.19f), EnemyDef.BossSlamRadius + 0.2f, 0.4f);
+                    ArenaAudio.Play(Sfx.Slam, center, 1f);
                     ArenaFx.Burst(center + Vector3.up * 0.2f, new Color(0.69f, 0.56f, 0.44f), 30, 4f, 1.5f);
                     ArenaInput.Haptic(1f, 0.15f); ArenaInput.Haptic(1f, 0.15f, left: true);
                     ClearMarker();
