@@ -139,6 +139,7 @@ Três camadas em `unity/Assets/Arena/`:
 - Para o agente controlar o editor aberto é preciso o pacote experimental **com.unity.pipeline** no projeto (ver `unity pipeline --help`). Instale-o assim que o projeto abrir pela primeira vez.
 
 ## Próximos passos
+- **Pedidos de 2026-10-16 (tarde)**: bug do slot vazio, armas só em baús, mira da Lança Espectral, raios do Freeza no lugar da metralhadora, soco no lugar do golpe no chão (guardado), estantes permanente/temporária + vender no santuário, modo arcade (mais difícil a cada entrada, morrer reseta), chefes estilo Souls e rebalanceamento. Lista em `docs/roteiro.md`.
 0. **Rebalanceamento (pedido do Pablo, 2026-10-16)**: dificuldade, dano por mana, habilidades e o Rei Goblin (spamar golpes colado nele mata o chefe antes de ele matar você; o rugido tem que jogar longe e o chefe precisa punir quem fica colado). Detalhes em `docs/roteiro.md` → "Rebalanceamento".
 1. ~~Instalar Unity e abrir `unity/`~~ (feito).
 2. Rodar o teste multimodal no Quest 2 → precisa aparecer **MULTIMODAL: FUNCIONANDO**.

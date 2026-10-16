@@ -13,6 +13,16 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 - **A** Ângulo da espada na mão (`VrGripPitch`) e do escudo; se o peso da arma está bom ou "mole".
 - **A** Peso que "some" ao trocar de arma: não reproduzido no editor; descobrir o passo exato (lembrar que o Treino é nível 10).
 
+## Pedidos do Pablo depois de jogar no PC (2026-10-16, tarde) — em andamento
+- **A** **Bug**: guardou uma das 2 armas (ex.: o machado no suporte) e não dá mais para pôr outra no lugar — pegar arma sempre troca a da mão. Pegar deve **preencher o slot vazio** primeiro.
+- **A** **Armas só nos baús** (inimigos deixam só ouro, para a dungeon não ficar "suja" de armas). Talvez no futuro alguns inimigos voltem a soltar arma.
+- **A** **Lança Espectral**: hoje sai na hora em que abaixa a arma e não dá para mirar (ex.: num slime). Dar ~0,5 s para mirar antes de soltar.
+- **A** **Metralhadora da mão**: dano não compensa a mana. Redesenhar como os **raios do Freeza** (Dragon Ball Z): raios finos, rápidos e fortes.
+- **A** **Golpe no chão com a mão (atordoar em área)**: guardar no código para usar depois e trocar por um **soco** na direção dos inimigos — alcance um pouco maior que o braço, dano bem forte, alvo único (não em área), recarga baixa.
+- **A** **Santuário**: duas estantes — **permanente** (o que você escolheu guardar) e **temporária** (o que ficou para trás na dungeon; some se você não tirar antes da próxima entrada). **Vender** armas ali para ter ouro para o ferreiro.
+- **A** **Modo "arcade" da dungeon (e da arena)**: fica mais difícil a cada vez que entra, e quanto mais fundo, mais raros os itens; voltar à base para vender e melhorar antes de entrar de novo; na entrada escolher **continuar ou recomeçar**; **morrer reseta do zero** (por enquanto).
+- **C** **Modo só com as mãos** (sem controles) — fazer depois.
+
 ## Rebalanceamento (pedido do Pablo em 2026-10-16 — próxima prioridade)
 Problema relatado: **chegar colado no Rei Goblin e ficar spamando golpes mata o chefe antes de ele matar você.** O chefe não pune quem fica parado batendo.
 - **A** **Direção para os chefes (Pablo, 2026-10-16): estilo Souls** — luta **só contra o chefe** (sem invocar ajudantes nem ondas junto), chefe **bem difícil**, com padrões de ataque que se aprendem, avisos claros e janelas de punição. Encaixa nos pilares (aparo + barra de postura já existem). Consequências: o Rei Goblin deixa de invocar slimes; a sala do chefe tem a fogueira logo antes (já tem) para tentar de novo rápido; morrer no chefe não deve custar caminhada longa. Cuidado de VR: lutas longas cansam o braço — preferir lutas intensas e curtas (2-4 min) a esponjas de vida.
