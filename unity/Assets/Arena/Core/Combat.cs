@@ -65,15 +65,40 @@ namespace Arena.Core
     // Poderes da mão esquerda livre (hand tracking). Gastam mana, qualquer classe.
     public static class HandPowers
     {
-        public const string Slam = "mao_soco", Palm = "mao_palma";
-        // Metralhadora (substituiu o laser contínuo): tiros separados, 1,2 de dano por mana.
-        public const float GunManaPerShot = 2.5f, GunDamage = 3f, GunFireInterval = 0.125f, GunRange = 20f, GunPosture = 0.5f, GunBulletSpeed = 35f;
+        public const string Slam = "mao_chao", Palm = "mao_palma", Punch = "mao_soco";
+        // Raio do Freeza (substituiu a metralhadora, que dava 1,2 de dano por mana e "não compensava"): raio fino e
+        // instantâneo da ponta dos dedos, atravessa 2 inimigos. 16 de dano por 6 de mana = 2,7 por mana (por alvo).
+        public const float BeamManaPerShot = 6f, BeamDamage = 16f, BeamInterval = 0.4f, BeamRange = 25f, BeamPosture = 0.8f;
+        public const int BeamPierce = 2;
+        // Soco (substituiu o golpe no chão): punho fechado indo rápido para frente acerta UM inimigo um pouco além do
+        // alcance do braço. Forte e de recarga baixa.
+        public const float PunchCooldown = 1f, PunchCost = 10f, PunchDamage = 30f, PunchPosture = 1.2f, PunchKnock = 4f;
+        public const float PunchMinSpeed = 2.5f, PunchReach = 1.1f, PunchWidth = 0.35f;
+        // Golpe no chão (atordoar em área): GUARDADO para uma habilidade futura (pedido do Pablo) — fora do jogo por enquanto.
         public const float SlamCooldown = 6f, SlamCost = 20f, SlamRadius = 3f, SlamStun = 1.8f, SlamDamage = 12f, SlamPosture = 2.5f;
+
+        // O soco acerta o inimigo (centro do corpo) que está à frente da mão, até PunchReach além dela?
+        public static bool PunchHits(System.Numerics.Vector3 hand, System.Numerics.Vector3 dir, System.Numerics.Vector3 enemyCenter, float enemyRadius)
+        {
+            var d = System.Numerics.Vector3.Normalize(dir);
+            var to = enemyCenter - hand;
+            float along = System.Numerics.Vector3.Dot(to, d);
+            if (along < -enemyRadius || along > PunchReach + enemyRadius) return false;
+            float side = (to - d * along).Length();
+            return side <= enemyRadius + PunchWidth;
+        }
+
+        public static (float cooldown, float cost) Cost(string id) => id switch
+        {
+            Slam => (SlamCooldown, SlamCost),
+            Punch => (PunchCooldown, PunchCost),
+            _ => (PalmCooldown, PalmCost),
+        };
         public const float PalmCooldown = 1.2f, PalmCost = 15f, PalmDamage = 20f;
         // Gestos
         public const float SlamMinDownSpeed = 3f, SlamMaxHandHeight = 1.05f, PalmMinSpeed = 3.2f, PoseHoldSeconds = 0.12f;
-        // Metralhadora sai da palma aberta PARADA (a mesma pose do corte, que é a palma aberta RÁPIDA).
-        public const float GunPalmMaxSpeed = 1.2f, GunPalmHoldSeconds = 0.3f, GunLockoutAfterPalm = 0.5f;
+        // O raio sai da palma aberta PARADA (a mesma pose do corte, que é a palma aberta RÁPIDA).
+        public const float BeamPalmMaxSpeed = 1.2f, BeamPalmHoldSeconds = 0.3f, BeamLockoutAfterPalm = 0.5f;
     }
 
     public enum GuardResult { None, Parry, Block, GuardBroken, Counter, ShieldBlock }

@@ -7,7 +7,7 @@ namespace Arena
     // VR com mão esquerda livre: analógico direito move, clique curto = esquiva, segurar = árvore. A + B juntos = árvore (qualquer modo).
     // VR com dois controles: analógico esquerdo move, X esquiva, Y árvore, clique esquerdo troca arma, direito gira.
     // Desktop: WASD, mouse olha, botão esq = golpe, dir = aparo, Shift/Espaço = esquiva, 1/2/3 habilidades,
-    //          Q troca arma, Tab árvore, Z metralhadora / X soco no chão / C corte da palma (poderes da mão), F escudo nas costas/na mão.
+    //          Q troca arma, Tab árvore, Z raio do Freeza / X soco / C corte da palma (poderes da mão), F escudo nas costas/na mão.
     public sealed class ArenaInput
     {
         public bool Vr { get; private set; }

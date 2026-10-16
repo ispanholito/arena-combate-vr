@@ -273,16 +273,15 @@ namespace Arena.Core
         // Poderes da mão: soco no chão e corte da palma (recarga + mana).
         public SkillCastResult TryHandPower(string id)
         {
-            float cd = id == HandPowers.Slam ? HandPowers.SlamCooldown : HandPowers.PalmCooldown;
-            float cost = id == HandPowers.Slam ? HandPowers.SlamCost : HandPowers.PalmCost;
+            var (cd, cost) = HandPowers.Cost(id);
             if (CooldownLeft(id) > 0f) return SkillCastResult.Cooldown;
             if (!Mana.TrySpend(cost, 0.6f)) return SkillCastResult.NoMana;
             cooldowns[id] = cd;
             return SkillCastResult.Ok;
         }
 
-        // Metralhadora: um tiro gasta mana. Retorna false sem mana.
-        public bool TryGunShot() => Mana.TrySpend(HandPowers.GunManaPerShot, 0.3f);
+        // Raio do Freeza: um raio gasta mana. Retorna false sem mana.
+        public bool TryBeam() => Mana.TrySpend(HandPowers.BeamManaPerShot, 0.3f);
 
         // Esquiva = dash. Retorna false se não houver estamina.
         public bool TryDash()

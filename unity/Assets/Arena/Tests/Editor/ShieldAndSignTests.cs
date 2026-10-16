@@ -103,9 +103,23 @@ namespace Arena.Core.Tests
     public class ManaBalanceTests
     {
         [Test]
-        public void Gun_IsLessEfficientThanBase()
+        public void Beam_PaysOffMoreThanOldGun()
         {
-            Assert.Less(HandPowers.GunDamage / HandPowers.GunManaPerShot, 1.5f);
+            // A metralhadora antiga dava 3 / 2,5 = 1,2 de dano por mana e "não compensava".
+            Assert.Greater(HandPowers.BeamDamage / HandPowers.BeamManaPerShot, 2.5f);
+            Assert.Greater(HandPowers.BeamPierce, 1);
+        }
+
+        [Test]
+        public void Punch_HitsOnlyInFrontAndWithinReach()
+        {
+            var hand = new System.Numerics.Vector3(0, 1.2f, 0);
+            var fwd = new System.Numerics.Vector3(0, 0, 1);
+            Assert.IsTrue(HandPowers.PunchHits(hand, fwd, new System.Numerics.Vector3(0, 1f, 1f), 0.32f));
+            Assert.IsTrue(HandPowers.PunchHits(hand, fwd, new System.Numerics.Vector3(0.4f, 1f, 1.3f), 0.32f));
+            Assert.IsFalse(HandPowers.PunchHits(hand, fwd, new System.Numerics.Vector3(0, 1f, 2.5f), 0.32f));   // longe demais
+            Assert.IsFalse(HandPowers.PunchHits(hand, fwd, new System.Numerics.Vector3(1.5f, 1f, 0.8f), 0.32f)); // de lado
+            Assert.IsFalse(HandPowers.PunchHits(hand, fwd, new System.Numerics.Vector3(0, 1f, -1f), 0.32f));    // atrás
         }
 
         [Test]

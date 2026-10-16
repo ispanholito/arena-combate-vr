@@ -129,12 +129,14 @@ namespace Arena.Core.Tests
         public void HandPowers_UseManaAndCooldown()
         {
             var p = new PlayerState(ClassId.Lamina);
-            Assert.AreEqual(SkillCastResult.Ok, p.TryHandPower(HandPowers.Slam));
-            Assert.AreEqual(80f, p.Mana.Current, 1e-3);
-            Assert.AreEqual(SkillCastResult.Cooldown, p.TryHandPower(HandPowers.Slam));
+            Assert.AreEqual(SkillCastResult.Ok, p.TryHandPower(HandPowers.Punch));
+            Assert.AreEqual(100f - HandPowers.PunchCost, p.Mana.Current, 1e-3);
+            Assert.AreEqual(SkillCastResult.Cooldown, p.TryHandPower(HandPowers.Punch));
+            p.Tick(HandPowers.PunchCooldown + 0.05f);
+            Assert.AreEqual(SkillCastResult.Ok, p.TryHandPower(HandPowers.Punch));   // recarga baixa
             Assert.AreEqual(SkillCastResult.Ok, p.TryHandPower(HandPowers.Palm));
-            for (int i = 0; i < 100; i++) p.TryGunShot();
-            Assert.IsFalse(p.TryGunShot(), "sem mana a metralhadora para");
+            for (int i = 0; i < 100; i++) p.TryBeam();
+            Assert.IsFalse(p.TryBeam(), "sem mana o raio para");
         }
 
         [Test]

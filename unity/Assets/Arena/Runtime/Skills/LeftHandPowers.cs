@@ -6,10 +6,12 @@ using UnityEngine.XR.Hands;
 namespace Arena
 {
     // Poderes da mão esquerda LIVRE (só com a mão rastreada, nunca com o controle na mão), qualquer classe:
-    //   palma aberta parada = metralhadora (reta, na direção dos dedos), punho golpeando para baixo = soco no chão (atordoa em 3 m),
+    //   palma aberta parada = raio do Freeza (fino, instantâneo, na direção dos dedos, atravessa 2),
+    //   punho indo rápido para frente = soco (um inimigo um pouco além do braço, forte, recarga de 1 s),
     //   palma aberta em movimento rápido = corte da palma. Apontar o indicador está livre para um poder futuro.
+    // O golpe no chão (atordoar em área) está guardado em GroundSlam() para uma habilidade futura.
     // Sinais de mão (HandSignArming, no Core) existem mas não são usados aqui: ficam para habilidades futuras.
-    // Desktop (sem mãos): Z metralhadora (segurar), X soco, C palma — só com o escudo nas costas (F).
+    // Desktop (sem mãos): Z raio (segurar), X soco, C palma — só com o escudo nas costas (F).
     [RequireComponent(typeof(ArenaPlayer))]
     public sealed class LeftHandPowers : MonoBehaviour
     {
@@ -29,7 +31,7 @@ namespace Arena
         void Awake()
         {
             player = GetComponent<ArenaPlayer>();
-            bulletMat = ArenaUtil.Unlit(new Color(1f, 0.45f, 0.35f));
+            bulletMat = ArenaUtil.Unlit(new Color(1f, 0.85f, 1f));   // núcleo quase branco, brilho rosa-violeta em volta
         }
 
         void Update()
@@ -54,7 +56,7 @@ namespace Arena
             }
             var cam = player.Head;
             if (player.Input.DesktopLaser) Fire(cam.position + cam.right * -0.2f + cam.up * -0.25f, cam.forward);
-            if (player.Input.DesktopSlam) Slam();
+            if (player.Input.DesktopSlam) Punch(cam.position + cam.right * -0.2f + cam.up * -0.2f + player.HeadForward * 0.3f, player.HeadForward);
             if (player.Input.DesktopPalm) Palm(cam.position + player.HeadForward * 0.4f, cam.right * -4f);
         }
 
@@ -89,21 +91,23 @@ namespace Arena
             if (player.Weapon && player.Weapon.TwoHanded) return;   // mão ocupada segurando a arma
             if (!HandTracked || !player.Input.LeftHandFree) return;
             var hand = hands.leftHand;
-            if (CurrentShape == HandShape.Punho
-                && wristVel.y < -HandPowers.SlamMinDownSpeed && wristPrev.y < HandPowers.SlamMaxHandHeight)
+            // Soco: punho fechado indo rápido para frente (na direção em que você olha, no plano do chão).
+            var flatVel = wristVel.Flat();
+            if (CurrentShape == HandShape.Punho && flatVel.magnitude > HandPowers.PunchMinSpeed
+                && Vector3.Dot(flatVel.normalized, player.HeadForward) > 0.5f)
             {
-                Slam();
+                Punch(wristPrev, wristVel.normalized);
             }
-            // Palma aberta: rápida = corte; parada por 0,3 s = metralhadora (nunca no meio de um corte).
+            // Palma aberta: rápida = corte; parada por 0,3 s = raio (nunca no meio de um corte).
             float handSpeed = wristVel.magnitude;
-            if (handSpeed > HandPowers.GunPalmMaxSpeed) stillT = 0f; else stillT += Time.deltaTime;
+            if (handSpeed > HandPowers.BeamPalmMaxSpeed) stillT = 0f; else stillT += Time.deltaTime;
             palmLockout -= Time.deltaTime;
             if (CurrentShape == HandShape.Aberta && shapeT > 0.1f && handSpeed > HandPowers.PalmMinSpeed)
             {
-                if (Palm(wristPrev, wristVel)) palmLockout = HandPowers.GunLockoutAfterPalm;
+                if (Palm(wristPrev, wristVel)) palmLockout = HandPowers.BeamLockoutAfterPalm;
             }
-            else if (CurrentShape == HandShape.Aberta && shapeT > HandPowers.GunPalmHoldSeconds
-                     && stillT > HandPowers.GunPalmHoldSeconds && palmLockout <= 0f
+            else if (CurrentShape == HandShape.Aberta && shapeT > HandPowers.BeamPalmHoldSeconds
+                     && stillT > HandPowers.BeamPalmHoldSeconds && palmLockout <= 0f
                      && PalmAim(hand, out var origin, out var dir))
             {
                 Fire(origin, dir);
@@ -125,21 +129,80 @@ namespace Arena
         }
 
         // ---------- Poderes ----------
+        // Raio do Freeza: instantâneo, fino e brilhante; atravessa até 2 inimigos e para na parede.
         void Fire(Vector3 origin, Vector3 dir)
         {
             if (gunCooldown > 0f) return;
-            if (!player.State.TryGunShot()) { ArenaGame.Instance?.Message("Sem mana", 0.6f); return; }
-            gunCooldown = HandPowers.GunFireInterval;
-            ArenaAudio.Play(Sfx.Shot, origin, 0.35f);
-            var vis = ArenaUtil.Prim(PrimitiveType.Sphere, null, origin, Vector3.one * 0.05f, bulletMat);
-            var p = Projectile.Spawn(vis, origin + dir * 0.05f, dir * HandPowers.GunBulletSpeed);
-            p.Life = HandPowers.GunRange / HandPowers.GunBulletSpeed; p.Radius = 0.06f; p.Pierce = 1;
-            p.OnHitEnemy = (e, _) => e.ApplyDamage(HandPowers.GunDamage, HandPowers.GunPosture, dir, 0.3f, new Color(1f, 0.55f, 0.5f));
+            if (!player.State.TryBeam()) { ArenaGame.Instance?.Message("Sem mana", 0.6f); return; }
+            gunCooldown = HandPowers.BeamInterval;
+            dir.Normalize();
+            // Até onde vai: parede ou chão.
+            float len = 0f;
+            while (len < HandPowers.BeamRange)
+            {
+                var p = origin + dir * (len + 0.25f);
+                if (p.y < 0f || ArenaUtil.IsOutside(p)) break;
+                len += 0.25f;
+            }
+            var end = origin + dir * len;
+            // Inimigos no caminho, do mais perto ao mais longe.
+            var hits = new List<(float d, ArenaEnemy e)>();
+            foreach (var e in ArenaEnemy.All)
+            {
+                if (!e || e.Dead) continue;
+                e.BodyAxis(out var a, out var b);
+                if (!Geometry.SweptSegmentsHit(origin.ToN(), end.ToN(), origin.ToN(), end.ToN(), a.ToN(), b.ToN(), a.ToN(), b.ToN(), e.Radius + 0.05f)) continue;
+                hits.Add((Vector3.Dot(e.Center - origin, dir), e));
+            }
+            hits.Sort((x, y) => x.d.CompareTo(y.d));
+            for (int i = 0; i < hits.Count && i < HandPowers.BeamPierce; i++)
+            {
+                hits[i].e.ApplyDamage(HandPowers.BeamDamage, HandPowers.BeamPosture, dir, 0.6f, new Color(1f, 0.55f, 1f));
+                ArenaFx.Burst(hits[i].e.Center, new Color(1f, 0.6f, 1f), 6, 2f);
+                if (i == HandPowers.BeamPierce - 1) end = origin + dir * Mathf.Max(0.3f, hits[i].d);
+            }
+            BeamVisual(origin, end);
+            ArenaAudio.Play(Sfx.Shot, origin, 0.6f, 1.8f);
+            ArenaAudio.Play(Sfx.Ice, end, 0.4f, 1.6f);
         }
 
-        bool Slam()
+        void BeamVisual(Vector3 from, Vector3 to)
         {
-            if (player.State.TryHandPower(HandPowers.Slam) != SkillCastResult.Ok) return false;
+            var len = Vector3.Distance(from, to);
+            if (len < 0.05f) return;
+            var core = ArenaUtil.Prim(PrimitiveType.Cylinder, null, (from + to) * 0.5f, new Vector3(0.018f, len * 0.5f, 0.018f), bulletMat);
+            core.transform.rotation = Quaternion.FromToRotation(Vector3.up, to - from);
+            var glow = ArenaUtil.Prim(PrimitiveType.Cylinder, core.transform, Vector3.zero, new Vector3(3f, 1f, 3f), ArenaUtil.Unlit(new Color(0.9f, 0.4f, 1f, 0.3f)));
+            ArenaFx.Burst(from, new Color(1f, 0.7f, 1f), 4, 1.5f, 0.6f);
+            Destroy(core, 0.09f);
+        }
+
+        // Soco: um inimigo à frente do punho, até um pouco além do braço. Forte e de recarga baixa.
+        bool Punch(Vector3 hand, Vector3 dir)
+        {
+            ArenaEnemy target = null; float best = float.MaxValue;
+            foreach (var e in ArenaEnemy.All)
+            {
+                if (!e || e.Dead || !HandPowers.PunchHits(hand.ToN(), dir.ToN(), e.Center.ToN(), e.Radius)) continue;
+                float d = Vector3.Distance(hand, e.Center);
+                if (d < best) { best = d; target = e; }
+            }
+            if (!target) return false;   // socar o ar não gasta nada
+            if (player.State.TryHandPower(HandPowers.Punch) != SkillCastResult.Ok) return false;
+            var at = target.Center - dir * target.Radius * 0.8f;
+            target.ApplyDamage(HandPowers.PunchDamage, HandPowers.PunchPosture, dir, HandPowers.PunchKnock, new Color(1f, 0.82f, 0.56f));
+            target.PhysicalImpact(12f, dir);
+            ArenaFx.Burst(at, new Color(1f, 0.82f, 0.56f), 16, 3.5f, 1.2f);
+            ArenaFx.Ring(at, new Color(1f, 0.85f, 0.6f), 0.5f, 0.2f);
+            ArenaAudio.Play(Sfx.Impact, at, 1f, 1.2f);
+            ArenaInput.Haptic(0.9f, 0.08f, left: true);
+            return true;
+        }
+
+        // GUARDADO (pedido do Pablo): golpe no chão que atordoa em área. Fora do jogo até virar habilidade de alguma árvore.
+        bool GroundSlam()
+        {
+            if (player.State.TryHandPower(HandPowers.Slam) != SkillCastResult.Ok) return false;   // (não chamado por enquanto)
             var pp = player.FeetPosition;
             ArenaFx.Ring(pp, new Color(1f, 0.82f, 0.56f), HandPowers.SlamRadius + 0.2f, 0.4f);
             ArenaAudio.Play(Sfx.Slam, pp, 1f);
