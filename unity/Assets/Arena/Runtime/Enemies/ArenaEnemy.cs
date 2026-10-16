@@ -27,6 +27,7 @@ namespace Arena
         protected virtual bool LeavesCorpse => true;
 
         // ---------- Fase 3: empalado pela espada ----------
+        ComboBreaker comboBreaker;
         public bool Impaled { get; private set; }
         public Rigidbody Body { get; private set; }
         public Collider BodyCollider { get; private set; }
@@ -38,13 +39,24 @@ namespace Arena
             transform.position = ArenaUtil.ClampToArena(transform.position + velocity.Flat() * dt);
         }
 
-        public void TakeStab(float tipSpeed, Vector3 dir, WeaponDef weapon, PlayerState ps)
+        void HeadText() => ArenaFx.FloatText("CABEÇA!", Center + Vector3.up * (0.75f + bodyTop * 0.3f), new Color(1f, 0.9f, 0.3f), 1.2f);
+
+        // Altura (0 = base, 1 = topo) de um ponto no eixo do corpo: para saber se acertou a cabeça.
+        public float HeightFraction(Vector3 worldPoint)
+        {
+            BodyAxis(out var a, out var b);
+            return Mathf.Clamp01(Mathf.InverseLerp(a.y, b.y, worldPoint.y));
+        }
+
+        public void TakeStab(float tipSpeed, Vector3 dir, WeaponDef weapon, PlayerState ps, bool head = false)
         {
             if (Dead || SpawnGrace > 0f) return;
             bool hasSta = ps.SpendSwingStamina(weapon);
             hitCooldown = Combat.HitCooldown;
             ArenaFx.FloatText("CRAVOU!", Center + Vector3.up * (0.6f + bodyTop * 0.3f), new Color(1f, 0.55f, 0.45f), 1.1f);
-            ApplyDamage(StabRules.StabDamage(tipSpeed, weapon, ps.Has(SkillIds.FioAfiado), hasSta), 0.9f, dir, 0f);
+            if (comboBreaker.RegisterHit(State.Posture.IsBroken)) { ComboBreak(); return; }
+            if (head) HeadText();
+            ApplyDamage(StabRules.StabDamage(tipSpeed, weapon, ps.Has(SkillIds.FioAfiado), hasSta) * (head ? WeakPoints.HeadMultiplier : 1f), 0.9f, dir, 0f);
         }
         float hitCooldown, hitFlash;
         Renderer[] renderers;
@@ -53,6 +65,7 @@ namespace Arena
         public void Init(EnemyDef def)
         {
             State = new EnemyState(def);
+            comboBreaker = new ComboBreaker(def.Kind);
             State.Damaged += OnDamaged;
             BuildModel();
             BuildVisualPivot();
@@ -88,7 +101,8 @@ namespace Arena
             float kick = ImpactReaction.LeanKick(impulse, mass) * 12f;
             leanVel += new Vector2(local.z, -local.x) * kick;
             lastHitDir = flat; lastHitSpeed = Mathf.Max(lastHitSpeed, ImpactReaction.ImpactSpeed(impulse, mass));
-            if (staggerCd <= 0f && ImpactReaction.Staggers(impulse, mass) && State.Posture.Enabled)
+            if (staggerCd <= 0f && ImpactReaction.Staggers(impulse, mass) && State.Posture.Enabled
+                && ComboBreaker.CanBeStaggered(Def.Kind, State.Posture.IsBroken))
             {
                 staggerCd = ImpactReaction.StaggerCooldown;
                 State.ApplyStun(ImpactReaction.StaggerSeconds);
@@ -97,6 +111,16 @@ namespace Arena
         }
 
         protected virtual void OnStagger() { }
+
+        // Reação a golpes seguidos (ComboBreaker): o goblin pula para trás e fica intocável por um instante.
+        protected virtual void ComboBreak()
+        {
+            ReleaseWeapon();
+            SpawnGrace = ComboBreaker.ImmuneSeconds;
+            var pl = Player;
+            if (pl) knock = (transform.position - pl.FeetPosition).Flat().normalized * 3.5f;
+            ArenaFx.FloatText("ESQUIVOU", Center + Vector3.up * (0.6f + bodyTop * 0.3f), new Color(0.8f, 0.8f, 1f), 1f);
+        }
 
         void UpdateLean(float dt)
         {
@@ -143,11 +167,13 @@ namespace Arena
 
         // ---------- Dano recebido ----------
         // Golpe da arma do jogador (chamado pela PlayerWeapon). Retorna true se contou.
-        public bool TakeMeleeHit(float tipSpeed, float edge, Vector3 dir, WeaponDef weapon, PlayerState ps, float damageMultiplier = 1f)
+        public bool TakeMeleeHit(float tipSpeed, float edge, Vector3 dir, WeaponDef weapon, PlayerState ps, float damageMultiplier = 1f, bool head = false)
         {
             if (Dead || hitCooldown > 0f || SpawnGrace > 0f) return false;
             bool hasSta = ps.SpendSwingStamina(weapon);
             float dmg = Combat.MeleeDamage(tipSpeed, weapon, ps.Has(SkillIds.FioAfiado), hasSta, edge) * damageMultiplier;
+            if (head) { dmg *= WeakPoints.HeadMultiplier; HeadText(); }
+            if (comboBreaker.RegisterHit(State.Posture.IsBroken)) { ComboBreak(); return true; }
             if (dmg <= 0f) return false;
             hitCooldown = Combat.HitCooldown;
             ApplyDamage(dmg, 0.7f, dir, Combat.Knockback(tipSpeed, weapon));
@@ -204,6 +230,7 @@ namespace Arena
             hitCooldown -= dt;
             SpawnGrace -= dt;
             staggerCd -= dt; impactCd -= dt;
+            comboBreaker.Tick(dt);
             if (State.Rooted > 0f || State.Frozen > 0f || Impaled) knock = Vector3.zero;   // preso: só inclina
             knock = Vector3.ClampMagnitude(knock, ImpactReaction.MaxKnockSpeed);
             UpdateLean(dt);

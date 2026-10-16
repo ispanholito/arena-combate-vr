@@ -8,8 +8,9 @@ namespace Arena.Core
         public const float MinSpeed = 2.0f;            // m/s na ponta
         public const float MinAlignment = 0.8f;        // cos do ângulo entre a lâmina e o movimento (~37°)
         public const float TipZone = 0.3f;             // o contato precisa ser até 30 cm da ponta
-        public const float MaxDepth = 0.35f;           // quanto a lâmina pode entrar (m)
-        public const float Friction = 80f;             // amortecimento ao deslizar dentro do corpo (N·s/m)
+        // Quanto a lâmina pode entrar: até perto da guarda (a espada pode atravessar o goblin de lado a lado).
+        public static float MaxDepth(WeaponDef w) => Math.Max(0.2f, w.Length - 0.2f);
+        public const float Friction = 25f;             // amortecimento ao deslizar dentro do corpo (N·s/m); era 80 e só entrava a ponta
         public const float ExitDepth = -0.02f;         // voltou para fora da entrada = soltou
         public const float RipSeparation = 0.45f;      // mão a mais de 45 cm da arma presa = arrancou
         public const float DamageMultiplier = 1.2f;

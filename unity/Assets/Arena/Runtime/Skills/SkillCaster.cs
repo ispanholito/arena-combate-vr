@@ -26,7 +26,9 @@ namespace Arena
             if (ArenaGame.Blocked) return;
             float dt = Time.deltaTime;
             hintCd -= dt; slashCd -= dt;
-            if (dt > 0f) { handVel = (player.RightHand.position - handPrev) / dt; handPrev = player.RightHand.position; }
+            // Velocidade da mão relativa ao corpo (andando, a Bola de Fogo ia na direção do passo e não do arremesso).
+            var handLocal = player.trackingSpace.InverseTransformPoint(player.RightHand.position);
+            if (dt > 0f) { handVel = player.trackingSpace.TransformDirection((handLocal - handPrev) / dt); handPrev = handLocal; }
             if (player.TreeOpen) { CancelAims(); return; }
             if (S.Class.Id == ClassId.Lamina) Lamina(); else Elementalista(dt);
         }
@@ -209,11 +211,16 @@ namespace Arena
             Vector3 o, d;
             if (player.IsVr) { o = player.Weapon.CrystalPoint; d = player.Weapon.BladeDir; }
             else { o = player.Head.position; d = player.Head.forward; }
-            Vector3 target;
-            if (d.y < -0.05f) { float t = Mathf.Min(-o.y / d.y, 14f); target = o + d * t; }
-            else target = player.FeetPosition + player.HeadForward * 6f;
-            target.y = 0f;
-            return ArenaUtil.ClampToArena(target);
+            var flat = d.Flat();
+            if (flat.sqrMagnitude < 1e-4f) flat = player.HeadForward;
+            float reach = Combat.GroundAimReach(o.y - player.FeetPosition.y, d.normalized.y, flat.magnitude / Mathf.Max(d.magnitude, 1e-4f), Combat.RootMaxRange);
+            flat.Normalize();
+            // Não passa da parede: encurta ao longo da mesma direção (em vez de "dobrar" no canto).
+            var start = new Vector3(o.x, 0f, o.z);
+            float h = Combat.ArenaHalfSize;
+            if (Mathf.Abs(flat.x) > 1e-4f) reach = Mathf.Min(reach, ((flat.x > 0 ? h : -h) - start.x) / flat.x);
+            if (Mathf.Abs(flat.z) > 1e-4f) reach = Mathf.Min(reach, ((flat.z > 0 ? h : -h) - start.z) / flat.z);
+            return start + flat * Mathf.Max(0f, reach);
         }
 
         void EnsureRootMarker()

@@ -34,6 +34,26 @@ namespace Arena
 
         protected override void OnStunned() => ClearMarker();
 
+        // Chefe apanhando sem parar (sem a postura quebrada): onda de choque que empurra o jogador para trás.
+        protected override void ComboBreak()
+        {
+            Player.Weapon.OnEnemyRemoved(this);
+            ClearMarker();
+            SpawnGrace = ComboBreaker.ImmuneSeconds + 0.1f;
+            var away = (Player.FeetPosition - transform.position).Flat();
+            if (away.sqrMagnitude < 1e-4f) away = -transform.forward;
+            away.Normalize();
+            ArenaFx.Ring(transform.position, new Color(1f, 0.6f, 0.2f), 2.7f, 0.35f);
+            ArenaFx.FloatText("RUGIDO!", Center + Vector3.up * 1.2f, new Color(1f, 0.6f, 0.3f), 1.4f);
+            if (Vector3.Distance(Player.FeetPosition.Flat(), transform.position.Flat()) < 2.5f)
+            {
+                Player.Push(away * 5f);
+                Player.TakeDamage(6f, transform.position);
+            }
+            ArenaInput.Haptic(0.8f, 0.15f); ArenaInput.Haptic(0.8f, 0.15f, left: true);
+            SetState(AiState.Recover);
+        }
+
         protected override bool ExtraAI(float dt, float d)
         {
             if (Phase < 2) return false;

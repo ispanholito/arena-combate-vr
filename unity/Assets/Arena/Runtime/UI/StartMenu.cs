@@ -31,6 +31,7 @@ namespace Arena
 
         void Update()
         {
+            if (!panel || !player || !ArenaGame.Instance) return;
             bool show = ArenaGame.InMenu;
             if (panel.gameObject.activeSelf != show) panel.gameObject.SetActive(show);
             if (!show) return;

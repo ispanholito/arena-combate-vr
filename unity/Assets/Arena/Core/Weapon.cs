@@ -83,3 +83,33 @@ namespace Arena.Core
         public static float HapticFromImpulse(float impulse, WeaponDef w) => Math.Clamp(impulse / (Mass(w) * 3f), 0f, 1f);
     }
 }
+
+namespace Arena.Core
+{
+    // Parte da arma que causa dano (no espaço local da arma: Z = cabo → ponta, empunhadura em Z=0).
+    // Espada: a lâmina toda (dois gumes, qualquer corte de fio vale). Machado: só o GUME da cabeça, que fica
+    // 30 cm ao lado do cabo e olha para -Y (antes o dano era medido pelo cabo e a cabeça batia antes de "chegar").
+    public readonly struct WeaponStrike
+    {
+        public readonly System.Numerics.Vector3 A, B;     // segmento que acerta
+        public readonly System.Numerics.Vector3 EdgeDir;  // direção para onde o gume corta (zero = não tem gume único)
+        public bool HasSingleEdge => EdgeDir != System.Numerics.Vector3.Zero;
+
+        public WeaponStrike(System.Numerics.Vector3 a, System.Numerics.Vector3 b, System.Numerics.Vector3 edge) { A = a; B = b; EdgeDir = edge; }
+
+        public static WeaponStrike For(WeaponDef w) => w.Kind switch
+        {
+            WeaponKind.Machado => new WeaponStrike(new System.Numerics.Vector3(0f, -0.3f, 0.8f), new System.Numerics.Vector3(0f, -0.3f, 1.04f),
+                                                   new System.Numerics.Vector3(0f, -1f, 0f)),
+            _ => new WeaponStrike(new System.Numerics.Vector3(0f, 0f, 0.12f), new System.Numerics.Vector3(0f, 0f, w.Length), System.Numerics.Vector3.Zero),
+        };
+
+        // Qualidade do corte de um gume único: 1 = gume na frente do movimento, 0 = de lado ou de costas.
+        public static float SingleEdgeAlignment(System.Numerics.Vector3 edgeWorld, System.Numerics.Vector3 velocity)
+        {
+            float speed = velocity.Length();
+            if (speed < 1e-4f) return 0f;
+            return Math.Clamp(System.Numerics.Vector3.Dot(System.Numerics.Vector3.Normalize(edgeWorld), velocity / speed), 0f, 1f);
+        }
+    }
+}

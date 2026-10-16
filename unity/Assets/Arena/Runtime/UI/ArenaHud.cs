@@ -82,6 +82,8 @@ namespace Arena
 
         void LateUpdate()
         {
+            // Se o código for recarregado com o jogo rodando, as referências criadas no Start somem: fica quieto.
+            if (!player || !pausePanel || player.State == null) return;
             pausePanel.gameObject.SetActive(ArenaGame.Paused);
             var s = player.State;
             SetFill(hp, s.Hp.Fraction);

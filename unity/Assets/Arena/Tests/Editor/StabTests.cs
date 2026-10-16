@@ -39,3 +39,15 @@ namespace Arena.Core.Tests
         }
     }
 }
+
+namespace Arena.Core.Tests
+{
+    public class StabDepthTests
+    {
+        [Test]
+        public void Sword_CanGoInAlmostToTheGuard()
+        {
+            Assert.Greater(StabRules.MaxDepth(WeaponDef.EspadaLonga), 0.8f, "dá para atravessar um goblin (0,64 m de diâmetro)");
+        }
+    }
+}

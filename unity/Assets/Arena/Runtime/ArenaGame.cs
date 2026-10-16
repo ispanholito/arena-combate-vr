@@ -23,6 +23,15 @@ namespace Arena
 
         public const float BonfireRadius = 1.6f, BonfireHealPerSecond = 25f;
 
+        // Física na mesma frequência da tela do headset (Quest 2: 72 Hz). Com 90 Hz de física e 72 de tela, a arma
+        // avançava ora 1 ora 2 passos por quadro e tremia.
+        void SyncPhysicsRate()
+        {
+            if (!UnityEngine.XR.XRSettings.isDeviceActive || OVRManager.display == null) return;
+            float hz = OVRManager.display.displayFrequency;
+            if (hz >= 60f && Mathf.Abs(Time.fixedDeltaTime - 1f / hz) > 1e-5f) Time.fixedDeltaTime = 1f / hz;
+        }
+
         // ---------- Pausa ----------
         public static bool Paused => Instance && Instance.paused;
         bool paused;
@@ -40,7 +49,7 @@ namespace Arena
         void Awake()
         {
             Instance = this;
-            Time.fixedDeltaTime = 1f / 90f;   // física a 90 Hz: arma rápida e fina precisa de passos curtos
+            Time.fixedDeltaTime = 1f / 90f;   // no VR passa a seguir a frequência da tela (ver Update)
             OVRManager.HMDUnmounted += PauseFromSystem;
             OVRManager.InputFocusLost += PauseFromSystem;
         }
@@ -108,6 +117,7 @@ namespace Arena
         {
             float dt = Time.deltaTime;
             MessageTime -= dt;
+            SyncPhysicsRate();
             if (Mode == GameMode.Treino)
             {
                 player.State.SetInvulnerable(1f);

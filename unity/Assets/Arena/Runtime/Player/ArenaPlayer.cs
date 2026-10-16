@@ -182,11 +182,16 @@ namespace Arena
                 var mv = Input.Move;
                 rigRoot.position += (f * mv.y + r * mv.x) * Combat.MoveSpeed * dt;
             }
+            if (pushVel.sqrMagnitude > 1e-4f) { rigRoot.position += pushVel * dt; pushVel *= Mathf.Exp(-6f * dt); }
             // Mantém a cabeça dentro da arena (vale também para quem anda no quarto)
             var hp = head.position;
             var clamped = ArenaUtil.ClampToArena(hp);
             rigRoot.position += new Vector3(clamped.x - hp.x, 0, clamped.z - hp.z);
         }
+
+        // Empurrão no jogador (onda de choque do chefe): somado ao movimento e amortecido.
+        Vector3 pushVel;
+        public void Push(Vector3 velocity) => pushVel = velocity.Flat();
 
         public void TryDash()
         {

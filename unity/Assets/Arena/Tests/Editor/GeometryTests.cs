@@ -45,3 +45,26 @@ namespace Arena.Core.Tests
         }
     }
 }
+
+namespace Arena.Core.Tests
+{
+    public class WeakPointTests
+    {
+        [Test]
+        public void ClosestParam_GivesHitHeight()
+        {
+            // Lâmina horizontal na altura 1,0 cruzando um corpo de 0 a 1,25 → 80% da altura.
+            float t = Geometry.ClosestParamOnSecond(new System.Numerics.Vector3(-1, 1f, 0), new System.Numerics.Vector3(1, 1f, 0),
+                                                    new System.Numerics.Vector3(0, 0, 0), new System.Numerics.Vector3(0, 1.25f, 0));
+            Assert.AreEqual(0.8f, t, 1e-3);
+        }
+
+        [Test]
+        public void Head_DoesMoreDamage_SlimeHasNoHead()
+        {
+            Assert.AreEqual(WeakPoints.HeadMultiplier, WeakPoints.Multiplier(EnemyKind.Goblin, 0.85f));
+            Assert.AreEqual(1f, WeakPoints.Multiplier(EnemyKind.Goblin, 0.4f));
+            Assert.AreEqual(1f, WeakPoints.Multiplier(EnemyKind.Slime, 1f));
+        }
+    }
+}

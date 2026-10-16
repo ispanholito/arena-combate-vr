@@ -55,6 +55,8 @@ namespace Arena
             {
                 Move = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, L);
                 Dash = OVRInput.GetDown(OVRInput.Button.One, L);          // X
+                Dash |= OVRInput.GetDown(OVRInput.Button.PrimaryThumbstick, R);   // clique do analógico direito também esquiva (igual ao modo mão livre)
+                ShieldToggle = OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger, L); // gatilho esquerdo: escudo nas costas / na mão
                 ToggleTree = OVRInput.GetDown(OVRInput.Button.Two, L);    // Y
                 SwitchWeapon = OVRInput.GetDown(OVRInput.Button.PrimaryThumbstick, L);
                 if (Mathf.Abs(rStick.x) > 0.7f && snapReady) { snapReady = false; SnapTurn = rStick.x > 0 ? 1 : -1; }

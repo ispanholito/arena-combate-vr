@@ -13,11 +13,20 @@ namespace Arena.Core
             return Vector3.Distance(a + ab * t, p);
         }
 
-        public static float SegmentSegmentDistance(Vector3 p1, Vector3 q1, Vector3 p2, Vector3 q2)
+        public static float SegmentSegmentDistance(Vector3 p1, Vector3 q1, Vector3 p2, Vector3 q2) => Closest(p1, q1, p2, q2, out _, out _);
+
+        // Parâmetro (0..1) do ponto do SEGUNDO segmento mais próximo do primeiro (ex.: altura do golpe no eixo do corpo).
+        public static float ClosestParamOnSecond(Vector3 p1, Vector3 q1, Vector3 p2, Vector3 q2)
+        {
+            Closest(p1, q1, p2, q2, out _, out float t);
+            return t;
+        }
+
+        static float Closest(Vector3 p1, Vector3 q1, Vector3 p2, Vector3 q2, out float s, out float t)
         {
             Vector3 d1 = q1 - p1, d2 = q2 - p2, r = p1 - p2;
             float a = Vector3.Dot(d1, d1), e = Vector3.Dot(d2, d2), f = Vector3.Dot(d2, r);
-            float s, t;
+            s = 0f; t = 0f;
             if (a <= 1e-6f && e <= 1e-6f) return Vector3.Distance(p1, p2);
             if (a <= 1e-6f) { s = 0f; t = Math.Clamp(f / e, 0f, 1f); }
             else

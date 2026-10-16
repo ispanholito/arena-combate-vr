@@ -5,7 +5,7 @@ namespace Arena
 {
     // Escudo da Lâmina na mão esquerda (controle esquerdo).
     // Largar o controle esquerdo e mostrar a mão = escudo vai para as costas e a mão fica livre para os sinais.
-    // Desktop: F alterna o escudo, botão direito levanta (apertar logo antes do golpe = aparo).
+    // Gatilho esquerdo (VR) ou F (desktop) guarda/tira o escudo. Desktop: botão direito levanta (logo antes do golpe = aparo).
     [RequireComponent(typeof(ArenaPlayer))]
     public sealed class PlayerShield : MonoBehaviour
     {
@@ -25,7 +25,7 @@ namespace Arena
 
         ArenaPlayer player;
         Transform visual;
-        bool desktopEquipped = true;
+        bool desktopEquipped = true;   // falso = escudo guardado (F no desktop, gatilho esquerdo no VR)
         Vector3 prevCenter;
         readonly Vector3[] now = new Vector3[4], prev = new Vector3[4];
         bool hasPrev;
@@ -46,13 +46,14 @@ namespace Arena
         void Update()
         {
             bool vr = player.IsVr;
-            if (!vr && player.Input.ShieldToggle && Available)
+            // F (desktop) ou gatilho esquerdo (VR): guarda o escudo nas costas / tira de novo.
+            if (player.Input.ShieldToggle && Available && !player.TreeOpen && !ArenaGame.Blocked)
             {
                 desktopEquipped = !desktopEquipped;
-                ArenaGame.Instance?.Message(desktopEquipped ? "Escudo na mão" : "Escudo nas costas: mão livre", 0.9f);
+                ArenaGame.Instance?.Message(desktopEquipped ? "Escudo na mão" : "Escudo guardado nas costas", 0.9f);
             }
 
-            Equipped = Available && (vr ? player.Input.LeftControllerConnected : desktopEquipped) && !player.TreeOpen
+            Equipped = Available && desktopEquipped && (!vr || player.Input.LeftControllerConnected) && !player.TreeOpen
                        && !(player.Weapon && player.Weapon.TwoHanded);   // mão esquerda na arma: escudo nas costas
             visual.gameObject.SetActive(Equipped);
             if (!Equipped) { hasPrev = false; DesktopRaised = false; return; }

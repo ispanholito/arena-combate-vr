@@ -201,7 +201,7 @@ namespace Arena
             body = go.AddComponent<Rigidbody>();
             body.mass = mass;
             body.centerOfMass = centerOfMass;
-            body.interpolation = RigidbodyInterpolation.Interpolate;
+            body.interpolation = RigidbodyInterpolation.None;   // a física roda na frequência da tela (ArenaGame)
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;   // lâmina fina e rápida não atravessa
             body.maxAngularVelocity = 50f;
             body.solverIterations = 12;
@@ -355,6 +355,7 @@ namespace Arena
         public void Tick(float dt, bool vr, bool desktopParry)
         {
             if (Def == null || dt <= 0f) return;
+            CarryWithRig(dt);
             // Alvo = pose da mão (VR) ou pose animada (desktop). A física persegue esse alvo no FixedUpdate.
             if (vr) { targetPos = player.RightHand.position; targetRot = player.RightHand.rotation * Quaternion.Euler(VrGripPitch, 0, 0); }
             else DesktopPose(dt, out targetPos, out targetRot, desktopParry);
@@ -376,7 +377,10 @@ namespace Arena
             basePrev = BasePoint; tipPrev = TipPoint;
             BasePoint = visual.TransformPoint(new Vector3(0, 0, 0.12f));
             TipPoint = visual.TransformPoint(new Vector3(0, 0, Def.Length));
-            if (!hasPrev) { basePrev = BasePoint; tipPrev = TipPoint; hasPrev = true; }
+            strikeAPrev = strikeA; strikeBPrev = strikeB;
+            var strike = WeaponStrike.For(Def);
+            strikeA = visual.TransformPoint(strike.A.ToU()); strikeB = visual.TransformPoint(strike.B.ToU());
+            if (!hasPrev) { basePrev = BasePoint; tipPrev = TipPoint; strikeAPrev = strikeA; strikeBPrev = strikeB; hasPrev = true; }
             TipVelocity = (TipPoint - tipPrev) / dt;
             TipSpeed = TipVelocity.magnitude;
 
@@ -385,10 +389,46 @@ namespace Arena
             hapticCd -= dt;
         }
 
+        // Quando o jogador anda, esquiva ou gira, a arma vai junto com o corpo (antes ela "corria atrás" da mão e tremia).
+        // A mola só cuida do movimento da mão em relação ao corpo. Também move os pontos do quadro anterior, então
+        // a velocidade da ponta passa a ser relativa ao jogador: andar com a espada parada não conta como golpe.
+        Vector3 rigPrevPos, rigVel;
+        Vector3 strikeA, strikeB, strikeAPrev, strikeBPrev;   // parte que corta (lâmina da espada, gume do machado)
+        Quaternion rigPrevRot = Quaternion.identity;
+        bool hasRigPrev;
+
+        void CarryWithRig(float dt)
+        {
+            var rig = player.rigRoot;
+            if (hasRigPrev)
+            {
+                var dRot = rig.rotation * Quaternion.Inverse(rigPrevRot);
+                Vector3 Map(Vector3 p) => rig.position + dRot * (p - rigPrevPos);
+                rigVel = (rig.position - rigPrevPos) / dt;
+                bool moved = (rig.position - rigPrevPos).sqrMagnitude > 1e-10f || Quaternion.Angle(rig.rotation, rigPrevRot) > 0.01f;
+                if (moved && mode == Mode.Held && !stuckEnemy)
+                {
+                    var p = Map(body.position); var r = dRot * body.rotation;
+                    body.position = p; body.rotation = r;
+                    visual.SetPositionAndRotation(p, r);
+                    body.linearVelocity = dRot * body.linearVelocity;
+                    wrist.position = Map(wrist.position); wrist.rotation = dRot * wrist.rotation;
+                    if (wrist2) wrist2.position = Map(wrist2.position);
+                }
+                if (moved)
+                {
+                    BasePoint = Map(BasePoint); TipPoint = Map(TipPoint);
+                    strikeA = Map(strikeA); strikeB = Map(strikeB);
+                }
+            }
+            rigPrevPos = rig.position; rigPrevRot = rig.rotation; hasRigPrev = true;
+        }
+
         void FixedUpdate()
         {
             if (Def == null || !hasTarget) return;
-            if (body && !body.isKinematic) physTipVel = body.GetPointVelocity(visual.TransformPoint(new Vector3(0, 0, Def.Length)));
+            // Velocidade da ponta relativa ao jogador (andar ou esquivar com a espada parada não crava).
+            if (body && !body.isKinematic) physTipVel = body.GetPointVelocity(visual.TransformPoint(new Vector3(0, 0, Def.Length))) - rigVel;
             wrist.MovePosition(targetPos);
             wrist.MoveRotation(targetRot);
             if (TwoHanded && wrist2) wrist2.MovePosition(target2Pos);
@@ -460,12 +500,12 @@ namespace Arena
             stabJoint.xMotion = ConfigurableJointMotion.Limited;
             stabJoint.yMotion = stabJoint.zMotion = ConfigurableJointMotion.Locked;
             stabJoint.angularXMotion = stabJoint.angularYMotion = stabJoint.angularZMotion = ConfigurableJointMotion.Locked;
-            stabJoint.linearLimit = new SoftJointLimit { limit = StabRules.MaxDepth };
+            stabJoint.linearLimit = new SoftJointLimit { limit = StabRules.MaxDepth(Def) };
             stabJoint.xDrive = new JointDrive { positionSpring = 0f, positionDamper = StabRules.Friction, maximumForce = float.MaxValue };
             stabJoint.enablePreprocessing = false;
             if (DebugStab) Debug.Log("[Cravar] CRAVOU");
             enemy.SetImpaled(true);
-            enemy.TakeStab(speed, physTipVel, Def, player.State);
+            enemy.TakeStab(speed, physTipVel, Def, player.State, WeakPoints.IsHead(enemy.Def.Kind, enemy.HeightFraction(contact)));
             bleedAcc = 0f; stuckTime = 0f;
             ArenaFx.Burst(contact, new Color(0.7f, 0.12f, 0.16f), 14, 3f);
             ArenaInput.Haptic(1f, 0.12f);
@@ -481,7 +521,11 @@ namespace Arena
             var physTip = body.position + body.rotation * new Vector3(0, 0, Def.Length);
             float depth = Vector3.Dot(physTip - entry, body.rotation * Vector3.forward);
             if (stuckTime > 0.2f && StabRules.Exited(depth)) { if (DebugStab) Debug.Log("[Cravar] saiu (puxou para tras)"); ReleaseStab(false); return; }
-            if (stuckTime > 0.2f && StabRules.Ripped(Separation)) { if (DebugStab) Debug.Log("[Cravar] arrancou"); ReleaseStab(true); return; }
+            // Só o puxão para o LADO arranca (empurrar mais para dentro ou puxar ao longo da lâmina não).
+            var pull = targetPos - visual.position;
+            var bladeAxis = body.rotation * Vector3.forward;
+            float lateral = (pull - Vector3.Dot(pull, bladeAxis) * bladeAxis).magnitude;
+            if (stuckTime > 0.2f && StabRules.Ripped(lateral)) { if (DebugStab) Debug.Log("[Cravar] arrancou"); ReleaseStab(true); return; }
             // Sangramento enquanto a lâmina está dentro.
             bleedAcc += StabRules.BleedDps * dt;
             if (bleedAcc >= StabRules.BleedDps * StabRules.BleedTick)
@@ -522,15 +566,26 @@ namespace Arena
 
         void CheckHits()
         {
-            var bladeDir = BladeDir.ToN();
-            float edge = Geometry.EdgeAlignment(bladeDir, TipVelocity.ToN());
+            var strike = WeaponStrike.For(Def);
+            float dt = Mathf.Max(Time.deltaTime, 1e-4f);
+            var strikeVel = (strikeB - strikeBPrev) / dt;
+            // Qualidade do corte: espada = qualquer fio (perpendicular à lâmina) ou estocada; machado = gume na frente.
+            float edge = strike.HasSingleEdge
+                ? WeaponStrike.SingleEdgeAlignment(visual.TransformDirection(strike.EdgeDir.ToU()).ToN(), strikeVel.ToN())
+                : Geometry.EdgeAlignment(BladeDir.ToN(), TipVelocity.ToN());
+            float speed = Mathf.Min(Mathf.Max(TipSpeed, strikeVel.magnitude), Combat.SpeedCap);
+            float radius = strike.HasSingleEdge ? 0.06f : 0.1f;
             for (int i = ArenaEnemy.All.Count - 1; i >= 0; i--)
             {
                 var e = ArenaEnemy.All[i];
                 if (e == null || e.Dead) continue;
                 e.BodyAxis(out var a, out var b);
-                if (Geometry.SweptBladeHits(basePrev.ToN(), tipPrev.ToN(), BasePoint.ToN(), TipPoint.ToN(), a.ToN(), b.ToN(), e.Radius + 0.1f))
-                    e.TakeMeleeHit(Mathf.Min(TipSpeed, Combat.SpeedCap), edge, TipVelocity, Def, player.State, TwoHandRules.DamageMultiplier(Def, TwoHanded));
+                if (!Geometry.SweptBladeHits(strikeAPrev.ToN(), strikeBPrev.ToN(), strikeA.ToN(), strikeB.ToN(), a.ToN(), b.ToN(), e.Radius + radius))
+                    continue;
+                // Altura do acerto no corpo: cabeça causa mais dano.
+                float height = Geometry.ClosestParamOnSecond(strikeA.ToN(), strikeB.ToN(), a.ToN(), b.ToN());
+                bool head = WeakPoints.IsHead(e.Def.Kind, height);
+                e.TakeMeleeHit(speed, edge, strikeVel, Def, player.State, TwoHandRules.DamageMultiplier(Def, TwoHanded), head);
             }
         }
 

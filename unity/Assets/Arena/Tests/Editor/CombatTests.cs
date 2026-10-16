@@ -256,3 +256,54 @@ namespace Arena.Core.Tests
         }
     }
 }
+
+namespace Arena.Core.Tests
+{
+    public class WeaponStrikeTests
+    {
+        [Test]
+        public void Axe_StrikesWithTheEdgeOffTheHandle()
+        {
+            var s = WeaponStrike.For(WeaponDef.MachadoPesado);
+            Assert.IsTrue(s.HasSingleEdge);
+            Assert.Less(s.A.Y, -0.2f, "o gume fica ao lado do cabo");
+        }
+
+        [Test]
+        public void EdgeFirst_BeatsFlatSide()
+        {
+            var edge = new System.Numerics.Vector3(0, -1, 0);
+            Assert.AreEqual(1f, WeaponStrike.SingleEdgeAlignment(edge, new System.Numerics.Vector3(0, -5, 0)), 1e-3);
+            Assert.AreEqual(0f, WeaponStrike.SingleEdgeAlignment(edge, new System.Numerics.Vector3(5, 0, 0)), 1e-3);
+            Assert.Greater(Combat.MeleeDamage(6f, WeaponDef.MachadoPesado, false, true, 1f), Combat.MeleeDamage(6f, WeaponDef.MachadoPesado, false, true, 0f));
+        }
+
+        [Test]
+        public void Sword_StrikesAlongTheWholeBlade()
+        {
+            var s = WeaponStrike.For(WeaponDef.EspadaLonga);
+            Assert.IsFalse(s.HasSingleEdge);
+            Assert.AreEqual(WeaponDef.EspadaLonga.Length, s.B.Z, 1e-4);
+        }
+    }
+}
+
+namespace Arena.Core.Tests
+{
+    public class GroundAimTests
+    {
+        [Test]
+        public void AimingDown_HitsGroundAtRightDistance()
+        {
+            // Da altura 1,5 m, 45° para baixo → 1,5 m à frente.
+            Assert.AreEqual(1.5f, Combat.GroundAimReach(1.5f, -0.7071f, 0.7071f, 12f), 1e-3);
+        }
+
+        [Test]
+        public void AimingFarOrUp_StaysAtMaxRange()
+        {
+            Assert.AreEqual(12f, Combat.GroundAimReach(1.5f, -0.01f, 0.99f, 12f), 1e-3);
+            Assert.AreEqual(12f, Combat.GroundAimReach(1.5f, 0.3f, 0.95f, 12f), 1e-3);
+        }
+    }
+}

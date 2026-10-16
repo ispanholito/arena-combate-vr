@@ -35,6 +35,16 @@ namespace Arena.Core
         public const float IceDamage = 18f, IcePosture = 0.9f, IceSlowSeconds = 2.5f, IceFreezeSeconds = 1.5f;
         public const int IcePierce = 3;
         public const float RootSeconds = 3f, RootRadius = 2.2f;
+        public const float RootMaxRange = 12f;
+
+        // Mira no chão: distância horizontal até onde o raio (da altura h, direção com componente vertical dirY e horizontal
+        // dirFlat) toca o chão, limitada ao alcance. Mirando para cima ou longe demais fica TRAVADA no alcance máximo
+        // (antes ela pulava para 6 m na frente do jogador).
+        public static float GroundAimReach(float originHeight, float dirY, float dirFlat, float maxRange)
+        {
+            if (dirY >= -1e-3f || dirFlat < 1e-4f) return maxRange;
+            return Math.Min(maxRange, originHeight * dirFlat / -dirY);
+        }
         public const float WindSlashDamage = 24f, WindSlashWidth = 2.2f, WindSlashHitRadius = 1.0f;   // corte quase 2x maior (era 1,2 m / 0,55)
         // Postura de Contra: o contra-ataque causa dano alto direto (não quebra mais a postura).
         public const float CounterDamage = 90f;
