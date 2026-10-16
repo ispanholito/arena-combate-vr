@@ -26,7 +26,7 @@ namespace Arena
         // Inclinação da lâmina em relação ao controle (graus). Ajustar no Quest: negativo = lâmina mais para cima.
         public float VrGripPitch = -40f;
 
-        enum Mode { Held, Thrown, Recalling }
+        enum Mode { Held, Thrown, Recalling, Embedded }
         Mode mode = Mode.Held;
 
         ArenaPlayer player;
@@ -38,13 +38,8 @@ namespace Arena
         float desktopSwingT = -1f, desktopPointT, farTime, hapticCd;
         bool hasPrev, hasTarget;
         // Fase 3: lâmina cravada
-        ArenaEnemy stuckEnemy;
-        ConfigurableJoint stabJoint;
-        Vector3 entryLocal;
         float bleedAcc, thrustT = -1f;
         Vector3 physTipVel;   // velocidade da ponta no último passo de física
-        float stuckTime;
-        public bool Stuck => stuckEnemy != null;
 
         // Fase 4: segunda mão
         public bool TwoHanded { get; private set; }
@@ -305,6 +300,7 @@ namespace Arena
         public void Recall()
         {
             if (Held) return;
+            if (mode == Mode.Embedded) return;   // cravada: segurar o gatilho para arrancar (UpdateEmbedded)
             mode = Mode.Recalling;
             body.isKinematic = true;
         }
@@ -384,7 +380,7 @@ namespace Arena
             TipVelocity = (TipPoint - tipPrev) / dt;
             TipSpeed = TipVelocity.magnitude;
 
-            if (stuckEnemy) UpdateStab(dt);
+            if (Stuck) UpdateStab(dt);
             else if (TipSpeed > Combat.MinSwingSpeed) CheckHits();
             hapticCd -= dt;
         }
@@ -406,7 +402,7 @@ namespace Arena
                 Vector3 Map(Vector3 p) => rig.position + dRot * (p - rigPrevPos);
                 rigVel = (rig.position - rigPrevPos) / dt;
                 bool moved = (rig.position - rigPrevPos).sqrMagnitude > 1e-10f || Quaternion.Angle(rig.rotation, rigPrevRot) > 0.01f;
-                if (moved && mode == Mode.Held && !stuckEnemy)
+                if (moved && mode == Mode.Held)
                 {
                     var p = Map(body.position); var r = dRot * body.rotation;
                     body.position = p; body.rotation = r;
@@ -434,6 +430,12 @@ namespace Arena
             if (TwoHanded && wrist2) wrist2.MovePosition(target2Pos);
             if (mode != Mode.Held) return;
             ApplyDrives();   // a Força muda ao subir de nível
+            // Inimigo espetado pesa na ponta da espada.
+            if (skewered)
+            {
+                var at = visual.TransformPoint(new Vector3(0f, 0f, Def.Length - skewerCenterFromTip));
+                body.AddForceAtPosition(Vector3.down * skewered.Def.Mass * StabRules.SkewerWeightKgPerMass * 9.81f, at);
+            }
             // Presa longe da mão por muito tempo (atrás de uma parede, por exemplo): volta para a mão.
             if (Vector3.Distance(body.position, targetPos) > WeaponPhysics.SnapDistance)
             {
@@ -474,12 +476,23 @@ namespace Arena
             ArenaInput.Haptic(amp, 0.04f + 0.08f * amp);
         }
 
-        // ---------- Fase 3: cravar ----------
-        // Estocada com a ponta: a lâmina atravessa o colisor do inimigo e fica presa por uma junta que só deixa deslizar
-        // ao longo dela (com atrito). Puxar para trás solta; puxar forte para o lado arranca; a mão longe arrasta o inimigo.
+        // ---------- Fase 3: espetar e cravar (refeito depois do teste no Quest) ----------
+        // Estocada com a ponta (StabRules):
+        //  - Slime/goblin (Skewer): a lâmina atravessa e o inimigo fica ESPETADO nela, pesando na mão. Golpe rápido o
+        //    arremessa (bate e leva dano pela velocidade); apontar a espada para baixo faz ele escorregar e cair.
+        //  - Chefe/boneco (Embed): a espada fica CRAVADA no monstro e sai da mão; segurar o gatilho para arrancar.
+        ArenaEnemy skewered;
+        float skewerT, skewerCenterFromTip, skewerCenterY;
+        Vector3 skewerStartPos;
+        ArenaEnemy embeddedIn;
+        Vector3 embedLocalPos;
+        Quaternion embedLocalRot;
+        public float PullProgress { get; private set; }   // 0..1 ao arrancar a espada cravada
+        public bool Embedded => mode == Mode.Embedded;
+
         bool TryStab(ArenaEnemy enemy, Collision c)
         {
-            if (mode != Mode.Held || stuckEnemy || enemy.Dead || !enemy.Body || c.contactCount == 0) return false;
+            if (mode != Mode.Held || Stuck || enemy.Dead || !enemy.Body || c.contactCount == 0) return false;
             var contact = c.GetContact(0).point;
             // Velocidade da ponta medida no passo de física ANTES do contato (a do quadro anterior mistura a rotação da arma).
             float speed = physTipVel.magnitude;
@@ -489,80 +502,147 @@ namespace Arena
             if (DebugStab) Debug.Log($"[Cravar] vel={speed:0.0} alinh={alignment:0.00} distPonta={fromTip:0.00}");
             if (!StabRules.CanStab(Def.Kind, speed, alignment, fromTip)) return false;
 
-            stuckEnemy = enemy;
-            entryLocal = enemy.transform.InverseTransformPoint(contact);
+            ReleaseSecondHand();
             foreach (var col in visual.GetComponents<Collider>()) Physics.IgnoreCollision(col, enemy.BodyCollider, true);
-            stabJoint = visual.gameObject.AddComponent<ConfigurableJoint>();
-            stabJoint.connectedBody = enemy.Body;
-            stabJoint.axis = Vector3.forward;      // eixo X da junta = comprimento da lâmina
-            stabJoint.secondaryAxis = Vector3.up;
-            stabJoint.anchor = new Vector3(0f, 0f, Def.Length);
-            stabJoint.xMotion = ConfigurableJointMotion.Limited;
-            stabJoint.yMotion = stabJoint.zMotion = ConfigurableJointMotion.Locked;
-            stabJoint.angularXMotion = stabJoint.angularYMotion = stabJoint.angularZMotion = ConfigurableJointMotion.Locked;
-            stabJoint.linearLimit = new SoftJointLimit { limit = StabRules.MaxDepth(Def) };
-            stabJoint.xDrive = new JointDrive { positionSpring = 0f, positionDamper = StabRules.Friction, maximumForce = float.MaxValue };
-            stabJoint.enablePreprocessing = false;
-            if (DebugStab) Debug.Log("[Cravar] CRAVOU");
-            enemy.SetImpaled(true);
-            enemy.TakeStab(speed, physTipVel, Def, player.State, WeakPoints.IsHead(enemy.Def.Kind, enemy.HeightFraction(contact)));
-            bleedAcc = 0f; stuckTime = 0f;
+            bool head = WeakPoints.IsHead(enemy.Def.Kind, enemy.HeightFraction(contact));
+            bleedAcc = 0f;
             ArenaFx.Burst(contact, new Color(0.7f, 0.12f, 0.16f), 14, 3f);
             ArenaInput.Haptic(1f, 0.12f);
+
+            if (StabRules.StyleFor(enemy.Def.Kind) == StabStyle.Skewer)
+            {
+                skewered = enemy;
+                skewerT = 0f;
+                skewerStartPos = enemy.transform.position;
+                skewerCenterFromTip = StabRules.SkewerCenterFromTip(Def, enemy.Radius);
+                skewerCenterY = enemy.Center.y - enemy.transform.position.y;
+                enemy.SetImpaled(true);
+                if (DebugStab) Debug.Log("[Cravar] ESPETOU " + enemy.Def.Name);
+            }
+            else
+            {
+                // Crava e solta da mão: a arma passa a seguir o monstro.
+                embeddedIn = enemy;
+                mode = Mode.Embedded;
+                if (joint) Destroy(joint);
+                body.isKinematic = true;
+                // Afunda um pouco a lâmina para ficar visivelmente cravada.
+                var deeper = visual.position + bladeDir * Mathf.Min(0.25f, StabRules.MaxDepth(Def) * 0.3f);
+                visual.position = deeper; body.position = deeper;
+                embedLocalPos = enemy.transform.InverseTransformPoint(visual.position);
+                embedLocalRot = Quaternion.Inverse(enemy.transform.rotation) * visual.rotation;
+                PullProgress = 0f;
+                if (DebugStab) Debug.Log("[Cravar] CRAVOU em " + enemy.Def.Name);
+                ArenaGame.Instance?.Message("Espada cravada! Segure o gatilho para arrancar", 1.5f);
+            }
+            enemy.TakeStab(speed, physTipVel, Def, player.State, head);
             return true;
         }
 
+        public bool Stuck => skewered || embeddedIn;
+
         void UpdateStab(float dt)
         {
-            if (!stuckEnemy || stuckEnemy.Dead) { ReleaseStab(false); return; }
-            stuckTime += dt;
-            // Profundidade pela pose da física (a do transform é suavizada e fica um pouco atrás).
-            var entry = stuckEnemy.transform.TransformPoint(entryLocal);
-            var physTip = body.position + body.rotation * new Vector3(0, 0, Def.Length);
-            float depth = Vector3.Dot(physTip - entry, body.rotation * Vector3.forward);
-            if (stuckTime > 0.2f && StabRules.Exited(depth)) { if (DebugStab) Debug.Log("[Cravar] saiu (puxou para tras)"); ReleaseStab(false); return; }
-            // Só o puxão para o LADO arranca (empurrar mais para dentro ou puxar ao longo da lâmina não).
-            var pull = targetPos - visual.position;
-            var bladeAxis = body.rotation * Vector3.forward;
-            float lateral = (pull - Vector3.Dot(pull, bladeAxis) * bladeAxis).magnitude;
-            if (stuckTime > 0.2f && StabRules.Ripped(lateral)) { if (DebugStab) Debug.Log("[Cravar] arrancou"); ReleaseStab(true); return; }
-            // Sangramento enquanto a lâmina está dentro.
-            bleedAcc += StabRules.BleedDps * dt;
-            if (bleedAcc >= StabRules.BleedDps * StabRules.BleedTick)
-            {
-                stuckEnemy.ApplyDamage(bleedAcc, 0.3f, null, 0f, new Color(0.85f, 0.2f, 0.2f), canCrit: false);
-                bleedAcc = 0f;
-                if (!stuckEnemy || stuckEnemy.Dead) { ReleaseStab(false); return; }
-            }
-            // Mão longe da arma presa: arrasta o inimigo.
-            float drag = StabRules.DragSpeed(Separation);
-            if (drag > 0f) stuckEnemy.Drag((targetPos - visual.position).normalized * drag, dt);
+            if (skewered) UpdateSkewer(dt);
+            else if (embeddedIn) UpdateEmbedded(dt);
         }
 
-        void ReleaseStab(bool ripped)
+        void Bleed(ArenaEnemy e, float dt)
         {
-            if (stabJoint) Destroy(stabJoint);
-            stabJoint = null;
-            var e = stuckEnemy;
-            stuckEnemy = null;
+            bleedAcc += StabRules.BleedDps * dt;
+            if (bleedAcc < StabRules.BleedDps * StabRules.BleedTick) return;
+            e.ApplyDamage(bleedAcc, 0.3f, null, 0f, new Color(0.85f, 0.2f, 0.2f), canCrit: false);
+            bleedAcc = 0f;
+        }
+
+        void UpdateSkewer(float dt)
+        {
+            var e = skewered;
+            if (!e || e.Dead) { ReleaseSkewer(Vector3.zero); return; }
+            skewerT += dt;
+            // O centro do inimigo fica num ponto da lâmina: a ponta sai do outro lado. Desliza até lá em ~0,12 s.
+            var center = visual.TransformPoint(new Vector3(0f, 0f, Def.Length - skewerCenterFromTip));
+            var goal = center - Vector3.up * skewerCenterY;
+            float k = Mathf.Clamp01(skewerT / StabRules.SkewerSlideSeconds);
+            e.transform.position = Vector3.Lerp(skewerStartPos, goal, k * k);
+            Bleed(e, dt);
+            if (!skewered) return;
+            if (skewerT < 0.25f) return;
+            // Puxar a espada para TRÁS ao longo da lâmina: o inimigo só escorrega e cai (não é arremesso).
+            if (TipSpeed > 1.5f && Vector3.Dot(TipVelocity / TipSpeed, BladeDir) < -0.75f) { ReleaseSkewer(Vector3.down * 0.5f); return; }
+            // Golpe rápido para o lado ou para frente: arremessa o inimigo na direção do golpe.
+            if (TipSpeed > StabRules.FlingMinSpeed)
+            {
+                var v = (TipVelocity + rigVel) * StabRules.FlingMultiplier(e.Def.Kind);
+                ReleaseSkewer(Vector3.ClampMagnitude(v, 14f));
+                return;
+            }
+            // Lâmina apontada para baixo: o inimigo escorrega e cai.
+            if (BladeDir.y < -0.7f) ReleaseSkewer(Vector3.down * 0.5f);
+        }
+
+        void ReleaseSkewer(Vector3 launchVelocity)
+        {
+            var e = skewered;
+            skewered = null;
             if (!e) return;
             if (e.BodyCollider && visual)
                 foreach (var col in visual.GetComponents<Collider>()) Physics.IgnoreCollision(col, e.BodyCollider, false);
             e.SetImpaled(false);
-            if (ripped && !e.Dead)
+            if (!e.Dead)
             {
-                e.ApplyDamage(StabRules.RipDamage, 0.5f, null, 0f, new Color(1f, 0.4f, 0.4f), canCrit: false);
-                ArenaFx.FloatText("ARRANCOU", e.Center + Vector3.up * 0.5f, new Color(1f, 0.5f, 0.5f), 1f);
-                ArenaFx.Burst(TipPoint, new Color(0.7f, 0.12f, 0.16f), 18, 4f);
-                ArenaInput.Haptic(0.9f, 0.1f);
+                e.Launch(launchVelocity);
+                if (launchVelocity.magnitude > 3f) ArenaInput.Haptic(0.8f, 0.08f);
             }
         }
 
-        // O inimigo vai sumir (morreu ou foi removido): solta a espada antes que a junta fique presa no ar.
+        void UpdateEmbedded(float dt)
+        {
+            var e = embeddedIn;
+            if (!e || e.Dead) { FinishEmbed(false); return; }
+            var p = e.transform.TransformPoint(embedLocalPos);
+            var r = e.transform.rotation * embedLocalRot;
+            visual.SetPositionAndRotation(p, r);
+            body.position = p; body.rotation = r;
+            Bleed(e, dt);
+            if (!embeddedIn) return;
+            // Segurar o gatilho arranca (mais tempo no chefe). Soltar perde o progresso aos poucos.
+            float need = StabRules.PullSeconds(e.Def.Kind);
+            if (player.Input.TriggerHeld) PullProgress += dt / need;
+            else PullProgress = Mathf.Max(0f, PullProgress - dt * StabRules.PullDecay / need);
+            if (PullProgress >= 1f)
+            {
+                e.ApplyDamage(StabRules.RipDamage, 0.6f, null, 0f, new Color(1f, 0.4f, 0.4f), canCrit: false);
+                ArenaFx.FloatText("ARRANCOU", e.Center + Vector3.up * 0.5f, new Color(1f, 0.5f, 0.5f), 1.1f);
+                ArenaFx.Burst(TipPoint, new Color(0.7f, 0.12f, 0.16f), 18, 4f);
+                ArenaInput.Haptic(1f, 0.15f);
+                FinishEmbed(true);
+            }
+        }
+
+        void FinishEmbed(bool returnToHand)
+        {
+            var e = embeddedIn;
+            embeddedIn = null;
+            PullProgress = 0f;
+            if (e && e.BodyCollider && visual)
+                foreach (var col in visual.GetComponents<Collider>()) Physics.IgnoreCollision(col, e.BodyCollider, false);
+            Attach();   // volta para a mão (se o monstro morreu, também volta: nada de espada perdida)
+        }
+
+        void ReleaseStab(bool _)
+        {
+            if (skewered) ReleaseSkewer(Vector3.zero);
+            if (embeddedIn) { embeddedIn = null; PullProgress = 0f; }
+        }
+
+        // O inimigo vai sumir (morreu ou foi removido): solta a espada.
         public void OnEnemyRemoved(ArenaEnemy e)
         {
-            if (stuckEnemy == e) ReleaseStab(false);
+            if (skewered == e) ReleaseSkewer(Vector3.zero);
+            if (embeddedIn == e) FinishEmbed(true);
         }
+
 
         void CheckHits()
         {

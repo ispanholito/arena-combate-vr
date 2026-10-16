@@ -111,6 +111,8 @@ namespace Arena
             if (handPowers && handPowers.HandTracked && player.Input.LeftHandFree)
                 sb.Append("\n<color=#999>Mão: ").Append(handPowers.CurrentShape).Append("</color>");
             if (player.Weapon && player.Weapon.TwoHanded) sb.Append("\n<color=#ffd36b>Duas mãos</color>");
+            if (player.Weapon && player.Weapon.Embedded)
+                sb.Append("\n<color=#ff8080>Espada cravada: segure o gatilho ").Append((player.Weapon.PullProgress * 100f).ToString("0")).Append("%</color>");
             if (s.CounterStance > 0f) sb.Append("\n<color=#ffd36b>CONTRA ATIVO</color>");
             if (s.WindCharges > 0) sb.Append("\n<color=#cff4ff>Vento: ").Append(s.WindCharges).Append("</color>");
             if (ArenaGame.Instance && ArenaGame.Instance.NearBonfire) sb.Append("\n<color=#ffb060>Fogueira: curando</color>");

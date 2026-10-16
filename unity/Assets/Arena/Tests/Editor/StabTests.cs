@@ -11,6 +11,13 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void VrThrust_WithBladeTiltedFromController_StillStabs()
+        {
+            // Lâmina 40° inclinada em relação ao movimento: cos(40°) ≈ 0,77 (antes exigia 0,8 e nunca cravava no Quest).
+            Assert.IsTrue(StabRules.CanStab(WeaponKind.Espada, 2.5f, 0.77f, 0.1f));
+        }
+
+        [Test]
         public void SideSlash_SlowPoke_FarFromTip_OrAxe_DoNotStab()
         {
             Assert.IsFalse(StabRules.CanStab(WeaponKind.Espada, 6f, 0.2f, 0.1f), "corte lateral");
@@ -20,34 +27,48 @@ namespace Arena.Core.Tests
         }
 
         [Test]
-        public void StabDamage_BeatsSameSpeedThrust()
+        public void SmallEnemies_AreSkewered_BigOnesEmbed()
         {
-            float stab = StabRules.StabDamage(4f, WeaponDef.EspadaLonga, false, true);
-            Assert.AreEqual(Combat.MeleeDamage(4f, WeaponDef.EspadaLonga, false, true, 1f) * StabRules.DamageMultiplier, stab, 1e-3);
+            Assert.AreEqual(StabStyle.Skewer, StabRules.StyleFor(EnemyKind.Slime));
+            Assert.AreEqual(StabStyle.Skewer, StabRules.StyleFor(EnemyKind.Goblin));
+            Assert.AreEqual(StabStyle.Embed, StabRules.StyleFor(EnemyKind.ReiGoblin));
+            Assert.AreEqual(StabStyle.Embed, StabRules.StyleFor(EnemyKind.Boneco));
         }
 
         [Test]
-        public void ExitRipAndDrag()
+        public void Slime_FliesFartherThanGoblin_BossIsHardestToPull()
         {
-            Assert.IsFalse(StabRules.Exited(0.1f));
-            Assert.IsTrue(StabRules.Exited(-0.05f));
-            Assert.IsFalse(StabRules.Ripped(0.3f));
-            Assert.IsTrue(StabRules.Ripped(0.5f));
-            Assert.AreEqual(0f, StabRules.DragSpeed(0.1f));
-            Assert.Greater(StabRules.DragSpeed(0.3f), 0f);
-            Assert.AreEqual(StabRules.MaxDragSpeed, StabRules.DragSpeed(5f), 1e-3);
+            Assert.Greater(StabRules.FlingMultiplier(EnemyKind.Slime), StabRules.FlingMultiplier(EnemyKind.Goblin));
+            Assert.Greater(StabRules.PullSeconds(EnemyKind.ReiGoblin), StabRules.PullSeconds(EnemyKind.Boneco));
         }
-    }
-}
 
-namespace Arena.Core.Tests
-{
-    public class StabDepthTests
-    {
+        [Test]
+        public void Skewer_BladeComesOutTheOtherSide()
+        {
+            // Centro do goblin a (raio + 8 cm) da ponta: a ponta passa 8 cm do outro lado.
+            float r = EnemyDef.Goblin.Radius;
+            Assert.AreEqual(r + 0.08f, StabRules.SkewerCenterFromTip(WeaponDef.EspadaLonga, r), 1e-4);
+        }
+
+        [Test]
+        public void ImpactDamage_GrowsWithSpeed_SlowLandingIsFree()
+        {
+            Assert.AreEqual(0f, StabRules.ImpactDamage(1f));
+            Assert.Greater(StabRules.ImpactDamage(10f), StabRules.ImpactDamage(5f));
+            Assert.GreaterOrEqual(StabRules.ImpactDamage(8f), EnemyDef.Slime().MaxHp, "slime arremessado forte explode ao bater");
+        }
+
+        [Test]
+        public void StabDamage_IsBonusOverThrust()
+        {
+            Assert.AreEqual(Combat.MeleeDamage(4f, WeaponDef.EspadaLonga, false, true, 1f) * StabRules.DamageMultiplier,
+                            StabRules.StabDamage(4f, WeaponDef.EspadaLonga, false, true), 1e-3);
+        }
+
         [Test]
         public void Sword_CanGoInAlmostToTheGuard()
         {
-            Assert.Greater(StabRules.MaxDepth(WeaponDef.EspadaLonga), 0.8f, "dá para atravessar um goblin (0,64 m de diâmetro)");
+            Assert.Greater(StabRules.MaxDepth(WeaponDef.EspadaLonga), 0.8f);
         }
     }
 }

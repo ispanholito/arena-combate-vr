@@ -51,9 +51,11 @@ namespace Arena
         public void TakeStab(float tipSpeed, Vector3 dir, WeaponDef weapon, PlayerState ps, bool head = false)
         {
             if (Dead || SpawnGrace > 0f) return;
+            ArenaFx.FloatText("CRAVOU!", Center + Vector3.up * (0.6f + bodyTop * 0.3f), new Color(1f, 0.55f, 0.45f), 1.1f);
+            // A mesma estocada já pode ter contado como golpe normal um instante antes do contato físico: não cobra duas vezes.
+            if (hitCooldown > 0f) return;
             bool hasSta = ps.SpendSwingStamina(weapon);
             hitCooldown = Combat.HitCooldown;
-            ArenaFx.FloatText("CRAVOU!", Center + Vector3.up * (0.6f + bodyTop * 0.3f), new Color(1f, 0.55f, 0.45f), 1.1f);
             if (comboBreaker.RegisterHit(State.Posture.IsBroken)) { ComboBreak(); return; }
             if (head) HeadText();
             ApplyDamage(StabRules.StabDamage(tipSpeed, weapon, ps.Has(SkillIds.FioAfiado), hasSta) * (head ? WeakPoints.HeadMultiplier : 1f), 0.9f, dir, 0f);
@@ -234,13 +236,61 @@ namespace Arena
             if (State.Rooted > 0f || State.Frozen > 0f || Impaled) knock = Vector3.zero;   // preso: só inclina
             knock = Vector3.ClampMagnitude(knock, ImpactReaction.MaxKnockSpeed);
             UpdateLean(dt);
-            knock *= Mathf.Exp(-4f * dt);
-            transform.position = ArenaUtil.ClampToArena(transform.position + knock * dt);
             UpdateBars();
             UpdateFlash(dt);
+            if (Flying) { UpdateFlight(dt); return; }
+            knock *= Mathf.Exp(-4f * dt);
+            if (!Impaled) transform.position = ArenaUtil.ClampToArena(transform.position + knock * dt);
+            if (Impaled) return;   // espetado na espada: quem move é a arma, e ele não ataca
             if (Player == null || State.Frozen > 0f) return;
             var to = (Player.FeetPosition - transform.position).Flat();
             Think(dt, to, to.magnitude);
+        }
+
+        // ---------- Arremessado da espada (Fase 3) ----------
+        public bool Flying { get; private set; }
+        Vector3 flyVel;
+
+        public void Launch(Vector3 velocity)
+        {
+            if (Dead) return;
+            knock = Vector3.zero;
+            if (velocity.sqrMagnitude < 0.01f && transform.position.y < 0.05f) return;   // já no chão: só solta
+            Flying = true;
+            flyVel = velocity;
+        }
+
+        void UpdateFlight(float dt)
+        {
+            flyVel.y -= 9.81f * dt;
+            var p = transform.position + flyVel * dt;
+            float h = Combat.ArenaHalfSize;
+            bool wall = Mathf.Abs(p.x) > h || Mathf.Abs(p.z) > h;
+            bool ground = p.y <= 0f && flyVel.y < 0f;
+            ArenaEnemy other = null;
+            foreach (var e in All)
+            {
+                if (e == this || e == null || e.Dead || e.Flying) continue;
+                if (Vector3.Distance(Center + (p - transform.position), e.Center) < Radius + e.Radius) { other = e; break; }
+            }
+            transform.position = ArenaUtil.ClampToArena(new Vector3(p.x, Mathf.Max(0f, p.y), p.z));
+            if (!wall && !ground && other == null) return;
+
+            // Bateu: leva dano pela velocidade (o slime normalmente explode); quem levou a pancada também.
+            float speed = flyVel.magnitude;
+            float dmg = StabRules.ImpactDamage(speed);
+            var dir = flyVel;
+            Flying = false;
+            flyVel = Vector3.zero;
+            transform.position = new Vector3(transform.position.x, 0f, transform.position.z);
+            if (dmg > 0f)
+            {
+                ArenaFx.Burst(Center, bloodColor, 16, 4f, 1.3f);
+                ArenaFx.FloatText("IMPACTO", Center + Vector3.up * 0.6f, new Color(1f, 0.7f, 0.4f), 1.1f);
+                if (other) other.ApplyDamage(dmg * 0.7f, 0.8f, dir, 2f, null, canCrit: false);
+                ApplyDamage(dmg, 0.8f, null, 0f, null, canCrit: false);
+                ArenaInput.Haptic(0.5f, 0.06f);
+            }
         }
 
         protected void FacePlayer(Vector3 toPlayer, float dt, float speed = 10f)
