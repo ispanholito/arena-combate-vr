@@ -201,15 +201,24 @@ namespace Arena.Core
         public static Rarity MinRarity(EnemyKind k) => k == EnemyKind.ReiGoblin ? Rarity.Raro : k == EnemyKind.Mimico ? Rarity.Incomum : Rarity.Comum;
 
         // Ouro com variação de ±30%.
-        public int RollGold(EnemyKind k)
+        public int RollGold(EnemyKind k, int tier = 1)
         {
             int g = BaseGold(k);
             if (g == 0) return 0;
-            return Math.Max(1, (int)Math.Round(g * (0.7 + rng.NextDouble() * 0.6)));
+            return Math.Max(1, (int)Math.Round(g * ArcadeRules.GoldMultiplier(tier) * (0.7 + rng.NextDouble() * 0.6)));
         }
 
-        public Rarity RollRarity(Rarity min = Rarity.Comum)
+        public Rarity RollRarity(Rarity min = Rarity.Comum, int tier = 1)
         {
+            if (tier > 1)   // modo arcade: profundidades maiores favorecem as raras
+            {
+                var w = ArcadeRules.RarityWeights(tier);
+                double tot = 0;
+                for (int i = (int)min; i < w.Length; i++) tot += w[i];
+                double x = rng.NextDouble() * tot;
+                for (int i = (int)min; i < w.Length; i++) { x -= w[i]; if (x < 0) return (Rarity)i; }
+                return Rarity.Lendario;
+            }
             int total = 0;
             for (int i = (int)min; i < RarityWeights.Length; i++) total += RarityWeights[i];
             int r = rng.Next(total);
@@ -221,10 +230,10 @@ namespace Arena.Core
             return Rarity.Lendario;
         }
 
-        public ItemInstance RollItem(Rarity min = Rarity.Comum)
+        public ItemInstance RollItem(Rarity min = Rarity.Comum, int tier = 1)
         {
             var def = WeaponDef.All[rng.Next(WeaponDef.All.Length)];
-            var rarity = RollRarity(min);
+            var rarity = RollRarity(min, tier);
             int count = rarity == Rarity.Comum ? 0 : rng.Next(Math.Max(1, ItemInstance.MaxAffixes(rarity) - 1), ItemInstance.MaxAffixes(rarity) + 1);
             var kinds = new List<AffixKind>((AffixKind[])Enum.GetValues(typeof(AffixKind)));
             var affixes = new List<Affix>();
@@ -256,18 +265,18 @@ namespace Arena.Core
         }
 
         // Baú da dungeon: ouro (mais nos andares fundos) e 60% de chance de arma Incomum ou melhor.
-        public (int gold, ItemInstance item) RollChest(int floor)
+        public (int gold, ItemInstance item) RollChest(int floor, int tier = 1)
         {
-            int gold = (int)Math.Round((15 + 10 * floor) * (0.8 + rng.NextDouble() * 0.4));
-            var item = rng.NextDouble() < 0.6 ? RollItem(Rarity.Incomum) : null;
+            int gold = (int)Math.Round((15 + 10 * floor) * ArcadeRules.GoldMultiplier(tier) * (0.8 + rng.NextDouble() * 0.4));
+            var item = rng.NextDouble() < 0.6 ? RollItem(Rarity.Incomum, tier) : null;
             return (gold, item);
         }
 
         // Rola o loot de um inimigo morto. Retorna null se não caiu arma.
-        public ItemInstance RollDrop(EnemyKind k)
+        public ItemInstance RollDrop(EnemyKind k, int tier = 1)
         {
             if (rng.NextDouble() >= DropChance(k)) return null;
-            return RollItem(MinRarity(k));
+            return RollItem(MinRarity(k), tier);
         }
     }
 }

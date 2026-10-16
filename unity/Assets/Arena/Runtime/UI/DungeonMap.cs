@@ -53,7 +53,7 @@ namespace Arena
             content = new GameObject("Conteudo").transform;
             content.SetParent(panel, false);
             var f = run.Floor;
-            title.text = "Andar " + f.Number + " de " + DungeonGenerator.Floors;
+            title.text = "Andar " + f.Number + " de " + DungeonGenerator.Floors + " · profundidade " + run.Tier;
             for (int i = 1; i < f.Rooms.Count; i++)
                 if (MapProjection.Revealed(f, i) && MapProjection.Revealed(f, i - 1))
                     Rect(proj, f.Corridors[i - 1], new Color(0.35f, 0.33f, 0.3f), 0f);

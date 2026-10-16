@@ -166,7 +166,7 @@ namespace Arena
                 spawnWaves = false;
                 if (arenaWorld) arenaWorld.gameObject.SetActive(false);
                 var saved = SaveSystem.Load();
-                dungeon.Begin(Random.Range(1, 1000000), saved?.bossesDefeated ?? 0);
+                dungeon.Begin(Random.Range(1, 1000000), player.State.DungeonTier);
             }
         }
 
@@ -186,6 +186,10 @@ namespace Arena
             ArenaEnemy.All.Clear();
             Boss = null;
         }
+
+        // Profundidade do modo arcade no modo atual (1 fora da dungeon/arena).
+        public int CurrentTier => player == null || player.State == null ? 1
+            : Mode == GameMode.Dungeon ? player.State.DungeonTier : Mode == GameMode.Arena ? player.State.ArenaTier : 1;
 
         public void SetBoss(GoblinKing king) => Boss = king;
 
@@ -272,7 +276,7 @@ namespace Arena
 
         public ArenaEnemy Spawn(EnemyDef def, Vector3 pos, bool fromDirector)
         {
-            if (def.Kind != EnemyKind.Boneco) def = def.WithHp(DifficultyRules.EnemyHp(SaveSystem.Options.Difficulty));
+            if (def.Kind != EnemyKind.Boneco) def = def.WithHp(DifficultyRules.EnemyHp(SaveSystem.Options.Difficulty) * ArcadeRules.HpMultiplier(CurrentTier));
             var go = new GameObject(def.Name);
             go.transform.SetParent(enemyRoot, false);
             go.transform.position = ArenaUtil.ClampToArena(new Vector3(pos.x, 0, pos.z));
@@ -303,6 +307,8 @@ namespace Arena
             {
                 Boss = null;
                 dungeon.OnBossKilled(e.Center);
+                player.State.DungeonTier = ArcadeRules.Clamp(player.State.DungeonTier + 1);
+                Message("Rei Goblin derrotado! Profundidade " + player.State.DungeonTier + " liberada (mais difícil, itens mais raros)", 3.5f);
                 var saved = SaveSystem.Load();
                 SaveSystem.Save(player.State, -1, (saved?.bossesDefeated ?? 0) + 1);
             }
@@ -311,7 +317,8 @@ namespace Arena
                 Director.OnBossDefeated();
                 player.State.ResetKills();
                 Boss = null;
-                Message("Rei Goblin derrotado!", 2.5f);
+                player.State.ArenaTier = ArcadeRules.Clamp(player.State.ArenaTier + 1);
+                Message("Rei Goblin derrotado! Arena na profundidade " + player.State.ArenaTier, 2.5f);
             }
             if (player.State.Progression.Level > levelBefore)
                 Message($"Nível {player.State.Progression.Level}! +1 ponto de habilidade (abra a árvore)", 2f);
@@ -322,13 +329,13 @@ namespace Arena
         void DropLoot(ArenaEnemy e)
         {
             if (Mode == GameMode.Treino) return;
-            int gold = Loot.RollGold(e.Def.Kind);
+            int gold = Loot.RollGold(e.Def.Kind, CurrentTier);
             if (gold > 0)
             {
                 player.State.AddGold(gold);
                 ArenaFx.FloatText("+" + gold + " ouro", e.Center + Vector3.up * 0.9f, new Color(1f, 0.85f, 0.3f), 0.9f);
             }
-            var item = Loot.RollDrop(e.Def.Kind);
+            var item = Loot.RollDrop(e.Def.Kind, CurrentTier);
             if (item == null) return;
             var dir = Random.insideUnitCircle.normalized;
             WeaponPickup.Spawn(item, e.Center, new Vector3(dir.x * 1.5f, 3.5f, dir.y * 1.5f));
@@ -344,6 +351,16 @@ namespace Arena
 
         public void OnPlayerDied(int lostXp)
         {
+            // Modo arcade: morrer volta à profundidade 1. Na dungeon a descida acaba e você volta ao santuário.
+            if (Mode == GameMode.Dungeon)
+            {
+                player.State.DungeonTier = 1;
+                if (!player.Weapon.Held) player.Weapon.Recall();
+                GoToSanctuary();
+                Message($"Você morreu: perdeu {lostXp} XP e a dungeon recomeça da profundidade 1", 3.5f);
+                return;
+            }
+            if (Mode == GameMode.Arena) player.State.ArenaTier = 1;
             foreach (var e in ArenaEnemy.All.ToArray()) if (e) Destroy(e.gameObject);
             ArenaEnemy.All.Clear();
             Boss = null;

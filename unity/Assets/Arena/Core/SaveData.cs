@@ -18,6 +18,8 @@ namespace Arena.Core
         public int activeSlot;
         public int deepestFloor;               // andar mais fundo alcançado na dungeon
         public int bossesDefeated;
+        public int dungeonTier = 1;
+        public int arenaTier = 1;
         public List<string> skills = new List<string>();
         public List<ItemSave> items = new List<ItemSave>();
         public List<ItemSave> lostItems = new List<ItemSave>();   // armas esquecidas (voltam no santuário)
@@ -31,6 +33,8 @@ namespace Arena.Core
                 level = ps.Progression.Level,
                 xp = ps.Progression.Xp,
                 gold = ps.Gold,
+                dungeonTier = ps.DungeonTier,
+                arenaTier = ps.ArenaTier,
                 activeSlot = ps.ActiveSlot,
                 skills = ps.Tree.Unlocked.ToList(),
             };
@@ -47,6 +51,8 @@ namespace Arena.Core
             var ps = new PlayerState(cls, maxLevel);
             ps.RestoreProgress(level, xp, skills ?? new List<string>());
             ps.SetGold(gold);
+            ps.DungeonTier = ArcadeRules.Clamp(dungeonTier);
+            ps.ArenaTier = ArcadeRules.Clamp(arenaTier);
             if (items != null)
                 for (int i = 0; i < ps.Loadout.Length && i < items.Count; i++)
                 {

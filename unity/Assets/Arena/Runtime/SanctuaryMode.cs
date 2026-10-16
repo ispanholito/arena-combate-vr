@@ -17,6 +17,9 @@ namespace Arena
         Transform root, anvil;
         TextMesh anvilText;
         readonly List<(Transform t, ArenaGame.GameMode mode)> portals = new List<(Transform, ArenaGame.GameMode)>();
+        readonly Dictionary<ArenaGame.GameMode, (TextMesh label, string title, string desc)> portalLabels = new Dictionary<ArenaGame.GameMode, (TextMesh, string, string)>();
+        readonly List<(Transform t, ArenaGame.GameMode mode)> resetStones = new List<(Transform, ArenaGame.GameMode)>();
+        float resetArmT = -1f; ArenaGame.GameMode resetArmMode;
         float portalCd;
 
         void Awake() => game = GetComponent<ArenaGame>();
@@ -63,6 +66,8 @@ namespace Arena
             Portal(new Vector3(-4.5f, 0, 6f), ArenaGame.GameMode.Arena, "ARENA", "ondas e o Rei Goblin", new Color(1f, 0.45f, 0.3f));
             Portal(new Vector3(0f, 0, 6.5f), ArenaGame.GameMode.Dungeon, "DUNGEON", "2 andares, baús e o chefe", new Color(0.55f, 0.35f, 1f));
             Portal(new Vector3(4.5f, 0, 6f), ArenaGame.GameMode.Treino, "TREINO", "boneco; nível 10 (não salva)", new Color(0.4f, 0.9f, 0.5f));
+            ResetStone(new Vector3(-2.7f, 0, 5.2f), ArenaGame.GameMode.Arena);
+            ResetStone(new Vector3(1.8f, 0, 5.4f), ArenaGame.GameMode.Dungeon);
 
             var sign = ArenaFx.MakeText(root, "SANTUÁRIO\n<size=40>Fogueira: cura, árvore (A+B), respec e classe · Bigorna: ferreiro (grip/E) · Portais: entre neles</size>",
                                         0.008f, new Color(0.95f, 0.9f, 0.8f));
@@ -79,6 +84,8 @@ namespace Arena
             if (root) Destroy(root.gameObject);
             root = null;
             portals.Clear();
+            portalLabels.Clear();
+            resetStones.Clear();
         }
 
         GameObject Box(Vector3 pos, Vector3 size, Material m)
@@ -113,6 +120,54 @@ namespace Arena
             return t;
         }
 
+        // Pedra do recomeço ao lado dos portais da Arena e da Dungeon: grip duas vezes volta a profundidade a 1.
+        void ResetStone(Vector3 pos, ArenaGame.GameMode mode)
+        {
+            var t = new GameObject("Pedra do recomeço").transform;
+            t.SetParent(root, false);
+            t.position = pos;
+            ArenaUtil.Prim(PrimitiveType.Cylinder, t, new Vector3(0, 0.45f, 0), new Vector3(0.45f, 0.45f, 0.45f), ArenaUtil.Lit(new Color(0.3f, 0.3f, 0.33f)), keepCollider: true);
+            ArenaUtil.Prim(PrimitiveType.Sphere, t, new Vector3(0, 1f, 0), Vector3.one * 0.2f, ArenaUtil.Lit(new Color(0.5f, 0.8f, 1f), new Color(0.3f, 0.5f, 0.9f)));
+            var lbl = ArenaFx.MakeText(t, "RECOMEÇAR\n<size=40>grip 2x: volta à profundidade 1</size>", 0.005f, new Color(0.7f, 0.85f, 1f));
+            lbl.transform.localPosition = new Vector3(0, 1.45f, 0);
+            resetStones.Add((t, mode));
+        }
+
+        int TierOf(ArenaGame.GameMode m) => m == ArenaGame.GameMode.Dungeon ? game.Player.State.DungeonTier : m == ArenaGame.GameMode.Arena ? game.Player.State.ArenaTier : 0;
+
+        void UpdatePortalLabels()
+        {
+            foreach (var kv in portalLabels)
+            {
+                int tier = TierOf(kv.Key);
+                string depth = tier > 0 ? "\n<size=46><color=#ffd36b>profundidade " + tier + "</color></size>" : "";
+                kv.Value.label.text = kv.Value.title + depth + "\n<size=40>" + kv.Value.desc + "</size>";
+            }
+        }
+
+        bool TryResetStone(ArenaPlayer player)
+        {
+            foreach (var (t, mode) in resetStones)
+            {
+                if (!t || !Near(player, t.position, 1.2f, 1.6f)) continue;
+                if (TierOf(mode) <= 1) { game.Message("Já está na profundidade 1", 1.2f); return true; }
+                if (resetArmT > 0f && resetArmMode == mode)
+                {
+                    if (mode == ArenaGame.GameMode.Dungeon) game.Player.State.DungeonTier = 1; else game.Player.State.ArenaTier = 1;
+                    resetArmT = -1f;
+                    ArenaAudio.Play(Sfx.Broken, t.position + Vector3.up, 0.8f, 1.2f);
+                    game.Message((mode == ArenaGame.GameMode.Dungeon ? "Dungeon" : "Arena") + " voltou à profundidade 1", 1.8f);
+                    game.RequestSave();
+                    return true;
+                }
+                resetArmT = 3f; resetArmMode = mode;
+                ArenaAudio.Play2D(Sfx.Click, 0.8f, 0.8f);
+                game.Message("Grip de novo em 3 s para recomeçar da profundidade 1 (agora: " + TierOf(mode) + ")", 2.5f);
+                return true;
+            }
+            return false;
+        }
+
         void Portal(Vector3 pos, ArenaGame.GameMode mode, string title, string desc, Color c)
         {
             var t = new GameObject("Portal " + title).transform;
@@ -129,6 +184,7 @@ namespace Arena
             var label = ArenaFx.MakeText(t, title + "\n<size=40>" + desc + "</size>", 0.012f, Color.white);
             label.transform.localPosition = new Vector3(0, 3.3f, 0);
             label.transform.localRotation = Quaternion.LookRotation(Vector3.forward);
+            portalLabels[mode] = (label, title, desc);
             var l = new GameObject("Luz").AddComponent<Light>();
             l.transform.SetParent(t, false);
             l.transform.localPosition = new Vector3(0, 1.5f, -0.8f);
@@ -140,6 +196,8 @@ namespace Arena
         {
             if (!root || ArenaGame.Blocked) return;
             portalCd -= Time.deltaTime;
+            resetArmT -= Time.deltaTime;
+            UpdatePortalLabels();
             var feet = game.Player.FeetPosition;
             if (portalCd <= 0f)
                 foreach (var (t, mode) in portals)
@@ -274,7 +332,7 @@ namespace Arena
         public bool TryInteract(ArenaPlayer player)
         {
             if (!root || !anvil) return false;
-            if (TryStore(player) || TrySell(player)) return true;
+            if (TryResetStone(player) || TryStore(player) || TrySell(player)) return true;
             float d = player.IsVr
                 ? Mathf.Min(Vector3.Distance(player.RightHand.position, anvil.position + Vector3.up * 0.75f), (player.FeetPosition - anvil.position).Flat().magnitude)
                 : (player.FeetPosition - anvil.position).Flat().magnitude;

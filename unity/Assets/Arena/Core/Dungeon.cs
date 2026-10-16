@@ -167,7 +167,7 @@ namespace Arena.Core
         public const float Cell = 18f, CorridorWidth = 4f;   // inteiro par: bordas em metros inteiros (paredes certas)
         public const int Floors = 2;
 
-        public static DungeonFloor Generate(int seed, int floor, int bossesDefeated = 0)
+        public static DungeonFloor Generate(int seed, int floor, int tier = 1)
         {
             var rng = new Random(seed * 31 + floor * 7919);
             bool last = floor >= Floors;
@@ -186,10 +186,10 @@ namespace Arena.Core
                 int d = k == RoomKind.Chefe ? 16 : k == RoomKind.Combate ? 10 + 2 * rng.Next(0, 3) : 8;
                 var (cx, cz) = (cells[i].x * Cell, cells[i].z * Cell);
                 var room = new DungeonRoom { Index = i, Kind = k, Rect = Rect2.Centered(cx, cz, w, d), EnteredFrom = i - 1 };
-                if (k == RoomKind.Combate) room.Enemies = RollEnemies(rng, floor, i);
+                if (k == RoomKind.Combate) room.Enemies = RollEnemies(rng, floor, i, tier);
                 if (k == RoomKind.Combate) room.HasChest = rng.NextDouble() < 0.4;
                 if (room.HasChest) room.ChestIsMimic = rng.NextDouble() < MimicRules.Chance(floor);
-                if (k == RoomKind.Chefe) room.Enemies.Add(EnemyDef.ReiGoblin(bossesDefeated));
+                if (k == RoomKind.Chefe) room.Enemies.Add(EnemyDef.ReiGoblin());   // a vida extra vem da profundidade (ArcadeRules)
                 if (k == RoomKind.Inicio || k == RoomKind.Fogueira || k == RoomKind.Escada) room.Cleared = true;
                 f.Rooms.Add(room);
             }
@@ -271,9 +271,9 @@ namespace Arena.Core
         }
 
         // Andar 1: slimes, goblins e alguns arqueiros. Andar 2: goblins, esqueletos, arqueiros e poucos slimes. Salas mais fundas têm mais inimigos.
-        public static List<EnemyDef> RollEnemies(Random rng, int floor, int roomIndex)
+        public static List<EnemyDef> RollEnemies(Random rng, int floor, int roomIndex, int tier = 1)
         {
-            int n = Math.Min(6, 2 + floor + roomIndex / 2 + rng.Next(0, 2));
+            int n = Math.Min(6, 2 + floor + roomIndex / 2 + rng.Next(0, 2)) + ArcadeRules.ExtraEnemies(tier);
             var list = new List<EnemyDef>();
             for (int i = 0; i < n; i++)
             {
@@ -289,21 +289,21 @@ namespace Arena.Core
     public sealed class DungeonRun
     {
         public int Seed { get; }
-        public int BossesDefeated { get; }
+        public int Tier { get; }   // profundidade do modo arcade
         public DungeonFloor Floor { get; private set; }
         public DungeonRoom ActiveRoom { get; private set; }   // sala em combate (inimigos vivos)
         public DungeonRoom CheckpointRoom { get; private set; }
         public bool Victory { get; private set; }
 
-        public DungeonRun(int seed, int bossesDefeated = 0)
+        public DungeonRun(int seed, int tier = 1)
         {
-            Seed = seed; BossesDefeated = bossesDefeated;
+            Seed = seed; Tier = ArcadeRules.Clamp(tier);
             GoToFloor(1);
         }
 
         public void GoToFloor(int n)
         {
-            Floor = DungeonGenerator.Generate(Seed, n, BossesDefeated);
+            Floor = DungeonGenerator.Generate(Seed, n, Tier);
             ActiveRoom = null;
             CheckpointRoom = Floor.Start;
         }

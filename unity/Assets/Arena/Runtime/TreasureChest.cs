@@ -95,7 +95,7 @@ namespace Arena
             opened = true;
             var game = ArenaGame.Instance;
             if (mimic && game) { Reveal(game); return; }
-            var (gold, item) = game ? game.Loot.RollChest(floor) : (10, null);
+            var (gold, item) = game ? game.Loot.RollChest(floor, game.CurrentTier) : (10, null);
             player.State.AddGold(gold);
             var top = transform.position + Vector3.up * 0.8f;
             ArenaFx.FloatText("+" + gold + " ouro", top + Vector3.up * 0.3f, new Color(1f, 0.85f, 0.3f), 1f);

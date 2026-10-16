@@ -264,7 +264,7 @@ namespace Arena
         // ---------- Dano ----------
         public void TakeDamage(float amount, Vector3 from, bool ignoreGuardCooldown = false)
         {
-            amount *= DifficultyRules.DamageTaken(SaveSystem.Options.Difficulty);
+            amount *= DifficultyRules.DamageTaken(SaveSystem.Options.Difficulty) * ArcadeRules.DamageMultiplier(ArenaGame.Instance ? ArenaGame.Instance.CurrentTier : 1);
             if (!State.TakeDamage(amount)) return;
             Hurt?.Invoke(amount);
             ArenaAudio.Play2D(Sfx.Hurt, 0.8f);

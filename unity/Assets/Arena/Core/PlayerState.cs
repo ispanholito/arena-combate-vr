@@ -19,6 +19,9 @@ namespace Arena.Core
         public int WindCharges { get; private set; }
         public int Kills { get; private set; }
         public int Gold { get; private set; }
+        // Modo arcade: profundidade atual da dungeon e da arena (sobe ao vencer, volta a 1 ao morrer).
+        public int DungeonTier { get; set; } = 1;
+        public int ArenaTier { get; set; } = 1;
         // Duas armas equipadas (troca com o clique do analógico / Q). Pegar uma arma do chão troca a da mão.
         public ItemInstance[] Loadout { get; } = new ItemInstance[2];
         public int ActiveSlot { get; set; }
