@@ -13,8 +13,20 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 - **A** Ângulo da espada na mão (`VrGripPitch`) e do escudo; se o peso da arma está bom ou "mole".
 - **A** Peso que "some" ao trocar de arma: não reproduzido no editor; descobrir o passo exato (lembrar que o Treino é nível 10).
 
+## Rebalanceamento (pedido do Pablo em 2026-10-16 — próxima prioridade)
+Problema relatado: **chegar colado no Rei Goblin e ficar spamando golpes mata o chefe antes de ele matar você.** O chefe não pune quem fica parado batendo.
+- **A** **Rei Goblin — mecânicas novas**:
+  - Rugido (hoje: 4 golpes em 2,5 s sem postura quebrada → empurra 5 m/s e causa 6) precisa **jogar o jogador longe** (vários metros, com dano de verdade e um instante sem controle) e ser anunciado (o chefe enche o peito antes).
+  - Punir quem fica colado: golpe de área curto e rápido em volta dele (pisão) quando o jogador passa X s a menos de 1,5 m; agarrão/arremesso.
+  - Fases com padrões diferentes (fase 2 mais agressiva, combos de 2-3 golpes, investida), janelas claras para atacar (depois de errar um golpe pesado, postura quebrada).
+  - Mais vida efetiva ou redução de dano quando não está atordoado; dano alto só na janela de postura quebrada.
+  - Medir: tempo para matar spamando vs. jogando direito (aparo/postura) — o segundo tem que ser bem mais rápido e seguro.
+- **A** **Dificuldade**: rever os multiplicadores (fácil 0,6/0,75 · normal 1/1 · difícil 1,4/1,3) depois de jogar; talvez a dificuldade também mude a agressividade (tempo de aviso, intervalo entre ataques), não só números.
+- **A** **Dano por mana**: rever o custo-benefício das magias e poderes da mão (Bola de Fogo 20 de mana / 18-30 de dano, Lança de Gelo, Raízes 25, metralhadora 2,5 por tiro / 3 de dano, soco 20, palma 15, Pulso Arcano). Montar uma tabela dano÷mana e igualar por papel (área vs. alvo único vs. controle).
+- **A** **Habilidades**: rever números e recargas das habilidades das classes e das armas (Investida, Contra 90 de dano, Lâmina de Vento, habilidades das 6 armas e efeitos das lendárias — ex.: Fenda no Chão da lendária deu 98 e mata goblin de um golpe).
+- **A** Ferramenta: usar o **Treino** (DPS do boneco) e o medidor de FPS; se ajudar, criar um "modo laboratório" no Treino com chefe parado/ativo para medir tempo de luta.
+
 ## Combate (núcleo do jogo)
-- **A** Rei Goblin: rugido precisa **jogar o jogador longe** (hoje empurra pouco); revisar a luta inteira (você pediu para fazer depois).
 - **A** Calibrar com o boneco de treino: dano de cada arma e habilidade, estamina por golpe, força do arremesso.
 - ~~Som, passos e música ambiente~~ feitos (sintetizados). **C** Sons gravados de verdade.
 - **B** Efeitos de impacto melhores (faíscas no aparo, sangue/gosma, rastro da lâmina).
