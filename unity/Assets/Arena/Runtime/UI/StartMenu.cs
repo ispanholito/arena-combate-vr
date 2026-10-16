@@ -21,7 +21,7 @@ namespace Arena
         bool wasShown;
         readonly StringBuilder sb = new StringBuilder();
 
-        const int Rows = 4;
+        const int Rows = 5;
 
         void Start()
         {
@@ -29,7 +29,7 @@ namespace Arena
             panel = new GameObject("MenuInicial").transform;
             panel.SetParent(player.Head, false);
             panel.localPosition = new Vector3(0, 0, 1.3f);
-            ArenaUtil.Prim(PrimitiveType.Quad, panel, new Vector3(0, 0, 0.01f), new Vector3(1.25f, 0.95f, 1f), ArenaUtil.Unlit(new Color(0.06f, 0.05f, 0.08f, 0.94f)));
+            ArenaUtil.Prim(PrimitiveType.Quad, panel, new Vector3(0, 0, 0.01f), new Vector3(1.25f, 1.1f, 1f), ArenaUtil.Unlit(new Color(0.06f, 0.05f, 0.08f, 0.94f)));
             text = ArenaFx.MakeText(panel, "", 0.0056f, Color.white, TextAnchor.MiddleLeft);
             text.transform.localPosition = new Vector3(-0.57f, 0, 0);
             RefreshSave();
@@ -63,7 +63,7 @@ namespace Arena
                     if (pick == 0 && save == null) pick = 1;
                     confirmOverwrite = false;
                 }
-                else Begin(cursor == 1 ? ArenaGame.GameMode.Arena : cursor == 2 ? ArenaGame.GameMode.Dungeon : ArenaGame.GameMode.Treino);
+                else Begin(cursor == 1 ? ArenaGame.GameMode.Santuario : cursor == 2 ? ArenaGame.GameMode.Arena : cursor == 3 ? ArenaGame.GameMode.Dungeon : ArenaGame.GameMode.Treino);
             }
             Draw();
         }
@@ -93,9 +93,10 @@ namespace Arena
                 ? "progresso salvo (nível, árvore, armas, ouro)" + (save.bossesDefeated > 0 ? " · " + save.bossesDefeated + " chefe(s) vencido(s)" : "")
                 : save != null ? "<color=#ff9090>começar de novo apaga o salvo</color>" : (pick == 2 ? "cajado + mão esquerda livre" : "espada + escudo");
             Row(0, who, whoDesc);
-            Row(1, "Arena", "ondas de inimigos e o Rei Goblin");
-            Row(2, "Dungeon", "2 andares de salas, fogueiras, loot e o Rei Goblin no fim");
-            Row(3, "Treino", "boneco parado com medidor de dano; nível 10, sem tomar dano (não salva)");
+            Row(1, "Santuário", "o hub: fogueira, ferreiro e os portais para Arena, Dungeon e Treino");
+            Row(2, "Arena", "ondas de inimigos e o Rei Goblin");
+            Row(3, "Dungeon", "2 andares de salas, baús, fogueiras e o Rei Goblin no fim");
+            Row(4, "Treino", "boneco parado com medidor de dano; nível 10, sem tomar dano (não salva)");
             if (confirmOverwrite) sb.Append("<color=#ff9090>Confirme de novo para APAGAR o salvo e começar do zero</color>\n");
             sb.Append("\n<size=40><color=#999>")
               .Append(player.IsVr ? "Analógico direito: cima/baixo · A: escolher (na 1ª linha troca o personagem)" : "Setas ou W/S: cima/baixo · Enter ou E: escolher (na 1ª linha troca o personagem)")

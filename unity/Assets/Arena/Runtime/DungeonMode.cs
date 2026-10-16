@@ -178,7 +178,7 @@ namespace Arena
 
             if (portal && portalCd <= 0f && (portal.position - p).Flat().magnitude < 1.1f)
             {
-                if (portalHome) { game.RequestSave(); game.ReturnToMenu(); return; }
+                if (portalHome) { game.RequestSave(); game.GoToSanctuary(); return; }
                 if (Run.CanDescend)
                 {
                     Run.GoToFloor(Run.Floor.Number + 1);

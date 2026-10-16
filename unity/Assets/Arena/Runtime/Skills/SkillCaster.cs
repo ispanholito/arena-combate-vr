@@ -33,7 +33,7 @@ namespace Arena
             if (dt > 0f) { handVel = player.trackingSpace.TransformDirection((handLocal - handPrev) / dt); handPrev = handLocal; }
             if (player.TreeOpen) { CancelAims(); return; }
             // Grip perto de uma arma no chão: pega (em vez de arremessar a da mão).
-            if (I.PickupPressed && (TreasureChest.TryOpen(player) || WeaponPickup.TryPickup(player))) { CancelAims(); return; }
+            if (I.PickupPressed && ((ArenaGame.Instance && ArenaGame.Instance.Sanctuary && ArenaGame.Instance.Sanctuary.TryInteract(player)) || TreasureChest.TryOpen(player) || WeaponPickup.TryPickup(player))) { CancelAims(); return; }
             if (S.Class.Id == ClassId.Lamina) Lamina(); else Elementalista(dt);
         }
 

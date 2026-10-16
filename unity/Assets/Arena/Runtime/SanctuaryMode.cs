@@ -1,0 +1,186 @@
+using System.Collections.Generic;
+using Arena.Core;
+using UnityEngine;
+
+namespace Arena
+{
+    // Santuário (hub): sala segura com a fogueira (cura, árvore, respec, troca de classe), a bigorna do ferreiro e
+    // três portais (Arena, Dungeon, Treino). O jogo volta para cá depois de vencer a dungeon ou pela pausa.
+    public sealed class SanctuaryMode : MonoBehaviour
+    {
+        public const float HalfSize = 8f;
+        public const float AnvilRange = 1.6f, PortalRange = 1.1f;
+
+        public bool Active => root;
+
+        ArenaGame game;
+        Transform root, anvil;
+        TextMesh anvilText;
+        readonly List<(Transform t, ArenaGame.GameMode mode)> portals = new List<(Transform, ArenaGame.GameMode)>();
+        float portalCd;
+
+        void Awake() => game = GetComponent<ArenaGame>();
+
+        public void Begin()
+        {
+            End();
+            root = new GameObject("Santuario").transform;
+            var area = new WalkArea(new[] { new Rect2(-HalfSize, -HalfSize, HalfSize, HalfSize) });
+            ArenaUtil.Area = area;
+            var stone = ArenaUtil.Lit(new Color(0.34f, 0.32f, 0.3f));
+            var wall = ArenaUtil.Lit(new Color(0.3f, 0.27f, 0.25f));
+            Box(new Vector3(0, -0.05f, 0), new Vector3(HalfSize * 2, 0.1f, HalfSize * 2), stone);
+            foreach (var (x0, z0, x1, z1) in area.WallSegments())
+            {
+                bool alongX = Mathf.Approximately(z0, z1);
+                float len = alongX ? x1 - x0 : z1 - z0;
+                var c = new Vector3((x0 + x1) * 0.5f, 2.5f, (z0 + z1) * 0.5f);
+                c += (alongX ? new Vector3(0, 0, Mathf.Sign(z0)) : new Vector3(Mathf.Sign(x0), 0, 0)) * 0.15f;
+                Box(c, alongX ? new Vector3(len + 0.3f, 5f, 0.3f) : new Vector3(0.3f, 5f, len + 0.3f), wall);
+            }
+            // Luz quente geral e tochas nos cantos.
+            Light(new Vector3(0, 4.5f, 0), 16f, 1.6f, new Color(1f, 0.75f, 0.5f));
+            foreach (var p in new[] { new Vector3(-7.6f, 2.6f, -7.6f), new Vector3(7.6f, 2.6f, -7.6f) })
+                Light(p, 7f, 1.6f, new Color(1f, 0.54f, 0.23f));
+
+            // Fogueira no centro-sul, de frente para os portais.
+            var fire = Bonfire(new Vector3(0, 0, -2.5f));
+            game.bonfire = fire;
+
+            // Bigorna do ferreiro (à esquerda da fogueira).
+            anvil = new GameObject("Bigorna").transform;
+            anvil.SetParent(root, false);
+            anvil.position = new Vector3(-4f, 0, -2.5f);
+            var iron = ArenaUtil.Lit(new Color(0.25f, 0.26f, 0.28f), new Color(0.03f, 0.03f, 0.04f));
+            ArenaUtil.Prim(PrimitiveType.Cube, anvil, new Vector3(0, 0.3f, 0), new Vector3(0.35f, 0.6f, 0.35f), ArenaUtil.Lit(new Color(0.3f, 0.2f, 0.1f)), keepCollider: true);
+            ArenaUtil.Prim(PrimitiveType.Cube, anvil, new Vector3(0, 0.72f, 0), new Vector3(0.7f, 0.22f, 0.3f), iron, keepCollider: true);
+            ArenaUtil.Prim(PrimitiveType.Cube, anvil, new Vector3(0.42f, 0.76f, 0), new Vector3(0.2f, 0.12f, 0.14f), iron);
+            anvilText = ArenaFx.MakeText(anvil, "", 0.005f, new Color(1f, 0.85f, 0.4f));
+            anvilText.transform.localPosition = new Vector3(0, 1.6f, 0);
+
+            // Portais na parede norte.
+            portals.Clear();
+            Portal(new Vector3(-4.5f, 0, 6f), ArenaGame.GameMode.Arena, "ARENA", "ondas e o Rei Goblin", new Color(1f, 0.45f, 0.3f));
+            Portal(new Vector3(0f, 0, 6.5f), ArenaGame.GameMode.Dungeon, "DUNGEON", "2 andares, baús e o chefe", new Color(0.55f, 0.35f, 1f));
+            Portal(new Vector3(4.5f, 0, 6f), ArenaGame.GameMode.Treino, "TREINO", "boneco; nível 10 (não salva)", new Color(0.4f, 0.9f, 0.5f));
+
+            var sign = ArenaFx.MakeText(root, "SANTUÁRIO\n<size=40>Fogueira: cura, árvore (A+B), respec e classe · Bigorna: ferreiro (grip/E) · Portais: entre neles</size>",
+                                        0.008f, new Color(0.95f, 0.9f, 0.8f));
+            sign.transform.position = new Vector3(0, 3.6f, -7.7f);
+            sign.transform.rotation = Quaternion.LookRotation(Vector3.back);
+            portalCd = 1.5f;
+            game.Player.TeleportTo(game.BonfireStandPoint, new Vector3(0, 0, 6f));
+        }
+
+        public void End()
+        {
+            if (root) Destroy(root.gameObject);
+            root = null;
+            portals.Clear();
+        }
+
+        GameObject Box(Vector3 pos, Vector3 size, Material m)
+        {
+            var go = ArenaUtil.Prim(PrimitiveType.Cube, root, pos, size, m, keepCollider: true);
+            go.name = "Parede";
+            return go;
+        }
+
+        void Light(Vector3 pos, float range, float intensity, Color c)
+        {
+            var l = new GameObject("Luz").AddComponent<Light>();
+            l.transform.SetParent(root, false);
+            l.transform.position = pos;
+            l.type = LightType.Point; l.range = range; l.intensity = intensity; l.color = c;
+        }
+
+        Transform Bonfire(Vector3 pos)
+        {
+            var t = new GameObject("Fogueira do santuário").transform;
+            t.SetParent(root, false);
+            t.position = pos;
+            t.rotation = Quaternion.LookRotation(Vector3.forward);
+            var wood = ArenaUtil.Lit(new Color(0.3f, 0.19f, 0.1f));
+            for (int i = 0; i < 3; i++)
+                ArenaUtil.Prim(PrimitiveType.Cylinder, t, new Vector3(0, 0.08f, 0), new Vector3(0.1f, 0.35f, 0.1f), wood).transform.localRotation = Quaternion.Euler(90, i * 60, 0);
+            ArenaUtil.Prim(PrimitiveType.Capsule, t, new Vector3(0, 0.4f, 0), Vector3.one * 0.3f, ArenaUtil.Lit(new Color(1f, 0.48f, 0.1f), new Color(1.5f, 0.6f, 0.1f)));
+            var l = new GameObject("Luz").AddComponent<Light>();
+            l.transform.SetParent(t, false);
+            l.transform.localPosition = new Vector3(0, 0.9f, 0);
+            l.type = LightType.Point; l.color = new Color(1f, 0.48f, 0.16f); l.range = 7f; l.intensity = 2.5f;
+            return t;
+        }
+
+        void Portal(Vector3 pos, ArenaGame.GameMode mode, string title, string desc, Color c)
+        {
+            var t = new GameObject("Portal " + title).transform;
+            t.SetParent(root, false);
+            t.position = pos;
+            var mat = ArenaUtil.Lit(c * 0.6f, c * 1.2f);
+            ArenaUtil.Prim(PrimitiveType.Cylinder, t, new Vector3(0, 0.03f, 0), new Vector3(1.8f, 0.03f, 1.8f), mat);
+            // Arco: dois pilares e a viga.
+            var stone = ArenaUtil.Lit(new Color(0.35f, 0.33f, 0.32f));
+            ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(-1.05f, 1.3f, 0), new Vector3(0.25f, 2.6f, 0.25f), stone, keepCollider: true);
+            ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(1.05f, 1.3f, 0), new Vector3(0.25f, 2.6f, 0.25f), stone, keepCollider: true);
+            ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(0, 2.7f, 0), new Vector3(2.4f, 0.3f, 0.3f), stone);
+            ArenaUtil.Prim(PrimitiveType.Quad, t, new Vector3(0, 1.3f, 0), new Vector3(1.8f, 2.5f, 1f), ArenaUtil.Unlit(new Color(c.r, c.g, c.b, 0.35f)));   // véu do portal (visto do sul)
+            var label = ArenaFx.MakeText(t, title + "\n<size=40>" + desc + "</size>", 0.007f, Color.white);
+            label.transform.localPosition = new Vector3(0, 3.3f, 0);
+            label.transform.localRotation = Quaternion.LookRotation(Vector3.forward);
+            var l = new GameObject("Luz").AddComponent<Light>();
+            l.transform.SetParent(t, false);
+            l.transform.localPosition = new Vector3(0, 1.5f, -0.8f);
+            l.type = LightType.Point; l.color = c; l.range = 4f; l.intensity = 1.5f;
+            portals.Add((t, mode));
+        }
+
+        void Update()
+        {
+            if (!root || ArenaGame.Blocked) return;
+            portalCd -= Time.deltaTime;
+            var feet = game.Player.FeetPosition;
+            if (portalCd <= 0f)
+                foreach (var (t, mode) in portals)
+                    if (t && (t.position - feet).Flat().magnitude < PortalRange)
+                    {
+                        ArenaAudio.Play2D(Sfx.Skill, 0.8f, 0.6f);
+                        game.EnterFromSanctuary(mode);
+                        return;
+                    }
+            UpdateAnvilText();
+        }
+
+        void UpdateAnvilText()
+        {
+            var cam = Camera.main;
+            if (cam) anvilText.transform.rotation = Quaternion.LookRotation(anvilText.transform.position - cam.transform.position);
+            var item = game.Player.State.ActiveItem;
+            bool near = (anvil.position - game.Player.FeetPosition).Flat().magnitude < 4f;
+            anvilText.gameObject.SetActive(near);
+            if (!near || item == null) return;
+            anvilText.text = "FERREIRO\n<size=44>" + item.DisplayName + "\n" +
+                (item.CanUpgrade ? "+" + (item.Upgrade + 1) + ": " + item.UpgradeCost + " ouro (você tem " + game.Player.State.Gold + ")\ngrip / E na bigorna" : "no máximo (+5)") + "</size>";
+        }
+
+        // Grip/E perto da bigorna: melhora a arma da mão.
+        public bool TryInteract(ArenaPlayer player)
+        {
+            if (!root || !anvil) return false;
+            float d = player.IsVr
+                ? Mathf.Min(Vector3.Distance(player.RightHand.position, anvil.position + Vector3.up * 0.75f), (player.FeetPosition - anvil.position).Flat().magnitude)
+                : (player.FeetPosition - anvil.position).Flat().magnitude;
+            if (d > AnvilRange) return false;
+            var s = player.State;
+            var item = s.ActiveItem;
+            if (item == null || !item.CanUpgrade) { game.Message("Arma no máximo (+5)", 1f); ArenaAudio.Play2D(Sfx.Deny, 0.7f); return true; }
+            if (!Smithy.TryUpgrade(item, s)) { game.Message("Ouro insuficiente (" + item.UpgradeCost + ")", 1f); ArenaAudio.Play2D(Sfx.Deny, 0.7f); return true; }
+            player.EquipActive();
+            ArenaAudio.Play(Sfx.Parry, anvil.position + Vector3.up, 1f, 0.8f);
+            ArenaFx.Burst(anvil.position + Vector3.up * 0.85f, new Color(1f, 0.7f, 0.3f), 20, 3f);
+            ArenaInput.Haptic(0.8f, 0.1f);
+            game.Message(item.DisplayName + "!", 1.2f);
+            game.RequestSave();
+            return true;
+        }
+    }
+}

@@ -56,6 +56,7 @@ namespace Arena
             arenaBonfire = bonfire;
             if (!arenaWorld) { var w = GameObject.Find("Arena"); if (w) arenaWorld = w.transform; }
             dungeon = gameObject.AddComponent<DungeonMode>();
+            sanctuary = gameObject.AddComponent<SanctuaryMode>();
         }
 
         void OnDestroy()
@@ -67,7 +68,7 @@ namespace Arena
         }
 
         // ---------- Modos: menu inicial, Arena (ondas + chefe), Dungeon (2 andares + chefe) e Treino (boneco) ----------
-        public enum GameMode { Menu, Arena, Dungeon, Treino }
+        public enum GameMode { Menu, Santuario, Arena, Dungeon, Treino }
         public GameMode Mode { get; private set; } = GameMode.Menu;
         public static bool InMenu => Instance && Instance.Mode == GameMode.Menu;
         // Bloqueia habilidades, poderes e árvore (pausado ou no menu inicial).
@@ -76,9 +77,36 @@ namespace Arena
         public Transform arenaWorld;          // geometria da arena (escondida na dungeon)
         Transform arenaBonfire;
         DungeonMode dungeon;
+        SanctuaryMode sanctuary;
         public DungeonMode Dungeon => dungeon;
-        // Arena e Dungeon salvam o progresso; o Treino (nível 10 de mentira) não.
-        bool Persistent => Mode == GameMode.Arena || Mode == GameMode.Dungeon;
+        public SanctuaryMode Sanctuary => sanctuary;
+        // Santuário, Arena e Dungeon salvam o progresso; o Treino (nível 10 de mentira) não.
+        bool Persistent => Mode == GameMode.Santuario || Mode == GameMode.Arena || Mode == GameMode.Dungeon;
+
+        // Volta ao santuário (vitória na dungeon, pausa). Saindo do Treino, recarrega o personagem salvo.
+        public void GoToSanctuary()
+        {
+            if (Persistent) SaveNow();
+            var character = Mode == GameMode.Treino || player.State == null
+                ? SaveSystem.Load()?.ToPlayer() ?? new PlayerState(player.State?.Class.Id ?? ClassId.Lamina)
+                : player.State;
+            SetPaused(false);
+            StartMode(GameMode.Santuario, character);
+        }
+
+        // Portal do santuário: leva o personagem atual para o modo.
+        public void EnterFromSanctuary(GameMode mode)
+        {
+            SaveNow();
+            StartMode(mode, player.State);
+        }
+
+        // Pausa → B: do santuário vai ao menu inicial (trocar de personagem); de qualquer outro lugar, ao santuário.
+        public void BackFromPause()
+        {
+            if (Mode == GameMode.Santuario) ReturnToMenu();
+            else GoToSanctuary();
+        }
 
         void Start() => ReturnToMenu();
 
@@ -114,6 +142,14 @@ namespace Arena
             }
             player.UseCharacter(character);
             SaveNow();
+            if (mode == GameMode.Santuario)
+            {
+                spawnWaves = false;
+                if (arenaWorld) arenaWorld.gameObject.SetActive(false);
+                sanctuary.Begin();
+                Message("Santuário: escolha um portal. Fogueira cura e abre a árvore.", 3f);
+                return;
+            }
             if (mode == GameMode.Arena)
             {
                 spawnWaves = true;
@@ -133,6 +169,7 @@ namespace Arena
         void LeaveDungeon()
         {
             if (dungeon && dungeon.Active) dungeon.End();
+            if (sanctuary && sanctuary.Active) sanctuary.End();
             ArenaUtil.Area = null;
             bonfire = arenaBonfire;
             if (arenaWorld) arenaWorld.gameObject.SetActive(true);

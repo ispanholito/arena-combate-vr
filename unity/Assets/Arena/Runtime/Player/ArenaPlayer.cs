@@ -59,12 +59,15 @@ namespace Arena
         // Personagem carregado do jogo salvo (ou um novo).
         public void UseCharacter(PlayerState state)
         {
-            State = state;
-            State.LeveledUp += _ => ArenaAudio.Play2D(Sfx.Level, 0.8f);
-            State.Died += lost =>
+            if (State != state)   // o mesmo personagem passa de um modo para outro: não assina os eventos de novo
             {
-                if (ArenaGame.Instance) ArenaGame.Instance.OnPlayerDied(lost);
-            };
+                State = state;
+                State.LeveledUp += _ => ArenaAudio.Play2D(Sfx.Level, 0.8f);
+                State.Died += lost =>
+                {
+                    if (ArenaGame.Instance) ArenaGame.Instance.OnPlayerDied(lost);
+                };
+            }
             SetupLoadout();
             dashT = chargeT = 0f;
         }
@@ -103,7 +106,7 @@ namespace Arena
             if (ArenaGame.Paused)
             {
                 if (Input.MenuConfirm) game.SetPaused(false);          // A / Enter: continuar
-                else if (Input.MenuRespec) game.ReturnToMenu();      // B / R: menu inicial
+                else if (Input.MenuRespec) game.BackFromPause();     // B / R: santuário (do santuário: menu inicial)
                 if (!IsVr) Cursor.lockState = CursorLockMode.None;
                 else VrHeight(Time.unscaledDeltaTime);
                 return;
