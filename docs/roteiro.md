@@ -15,6 +15,7 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 
 ## Rebalanceamento (pedido do Pablo em 2026-10-16 — próxima prioridade)
 Problema relatado: **chegar colado no Rei Goblin e ficar spamando golpes mata o chefe antes de ele matar você.** O chefe não pune quem fica parado batendo.
+- **A** **Direção para os chefes (Pablo, 2026-10-16): estilo Souls** — luta **só contra o chefe** (sem invocar ajudantes nem ondas junto), chefe **bem difícil**, com padrões de ataque que se aprendem, avisos claros e janelas de punição. Encaixa nos pilares (aparo + barra de postura já existem). Consequências: o Rei Goblin deixa de invocar slimes; a sala do chefe tem a fogueira logo antes (já tem) para tentar de novo rápido; morrer no chefe não deve custar caminhada longa. Cuidado de VR: lutas longas cansam o braço — preferir lutas intensas e curtas (2-4 min) a esponjas de vida.
 - **A** **Rei Goblin — mecânicas novas**:
   - Rugido (hoje: 4 golpes em 2,5 s sem postura quebrada → empurra 5 m/s e causa 6) precisa **jogar o jogador longe** (vários metros, com dano de verdade e um instante sem controle) e ser anunciado (o chefe enche o peito antes).
   - Punir quem fica colado: golpe de área curto e rápido em volta dele (pisão) quando o jogador passa X s a menos de 1,5 m; agarrão/arremesso.

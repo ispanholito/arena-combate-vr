@@ -33,6 +33,7 @@ RPG de **combate físico em VR** (estilo Blade & Sorcery) com **classes e árvor
 - **Souls removido**, exceto: **aparo (parry)**, **barra de postura nos inimigos** (quebrou = janela de crítico; o jogador NÃO tem postura, bloqueio gasta estamina), **esquiva = dash** com vinheta (visual de rolamento só para quem vê de fora; câmera em 1ª pessoa nunca gira).
 - **Morte**: perde só o XP do nível atual, nunca cai de nível. Equipamento largado/esquecido reaparece na fogueira ou na próxima fase. Gesto de chamar a arma de volta para a mão.
 - **Fogueira** = checkpoint/cura.
+- **Chefes estilo Souls** (direção do Pablo, 2026-10-16): luta só contra o chefe (sem ajudantes), bem difícil, padrões aprendíveis com avisos e janelas de punição (aparo/postura). Lutas curtas e intensas (VR cansa), fogueira logo antes da sala do chefe. Ver `docs/roteiro.md` → "Rebalanceamento".
 - **Loot** (feito em 2026-10-16): 5 raridades, 0-3 atributos aleatórios, ferreiro +1 a +5 na fogueira. Ver "Armas e loot" em Estado atual.
 - **Loop**: Santuário (hub) → dungeon de 2-3 andares → chefe → portal. Sessões de 20-40 min.
 - **Solo**: escala de dificuldade + companheiros IA opcionais (planejado). Loot individual (prepara coop).
