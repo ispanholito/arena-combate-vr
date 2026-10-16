@@ -41,6 +41,7 @@ namespace Arena
         readonly HashSet<ArenaEnemy> chargeHits = new HashSet<ArenaEnemy>();
         float vignette;
         PauseMenu pauseMenu;
+        float stepDist;
 
         public float VignetteLevel => vignette;
 
@@ -202,6 +203,9 @@ namespace Arena
             {
                 var mv = Input.Move;
                 rigRoot.position += (f * mv.y + r * mv.x) * Combat.MoveSpeed * dt;
+                // Passos: um a cada 0,75 m andados com o analógico.
+                stepDist += mv.magnitude * Combat.MoveSpeed * dt;
+                if (stepDist > 0.75f) { stepDist = 0f; ArenaAudio.Play(Sfx.Step, FeetPosition, 0.35f, Random.Range(0.85f, 1.1f)); }
                 if (IsVr && SaveSystem.Options.moveVignette && mv.magnitude > 0.15f)
                     vignette = Mathf.Max(vignette, GameOptions.MoveVignetteLevel * Mathf.Min(1f, mv.magnitude));
             }

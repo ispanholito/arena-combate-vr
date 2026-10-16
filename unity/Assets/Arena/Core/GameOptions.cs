@@ -24,6 +24,7 @@ namespace Arena.Core
         public bool wristHud = false;        // HUD no pulso esquerdo (como um relógio) em vez de preso à cabeça
         public bool showFps = false;         // mostra quadros por segundo e nº de inimigos (medir desempenho no Quest)
         public int difficulty = (int)Difficulty.Normal;
+        public bool music = true;            // trilha ambiente sintetizada
 
         public Difficulty Difficulty => Enum.IsDefined(typeof(Difficulty), difficulty) ? (Difficulty)difficulty : Difficulty.Normal;
         public void CycleDifficulty() => difficulty = ((int)Difficulty + 1) % 3;

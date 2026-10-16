@@ -56,6 +56,7 @@ namespace Arena
             arenaBonfire = bonfire;
             if (!arenaWorld) { var w = GameObject.Find("Arena"); if (w) arenaWorld = w.transform; }
             dungeon = gameObject.AddComponent<DungeonMode>();
+            gameObject.AddComponent<ArenaMusic>();
             sanctuary = gameObject.AddComponent<SanctuaryMode>();
         }
 

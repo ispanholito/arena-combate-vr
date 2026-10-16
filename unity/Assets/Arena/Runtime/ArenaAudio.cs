@@ -6,7 +6,7 @@ namespace Arena
     public enum Sfx
     {
         Hit, HitHeavy, Parry, Block, Stab, Slime, Hurt, Dash, Level, Broken, Whoosh, Skill, FireCast, Explosion, Ice,
-        Wind, Roar, Click, Deny, Impact, Bone, Pickup, Shot, Slam, Windup, Death, Rip, Rattle,
+        Wind, Roar, Click, Deny, Impact, Bone, Pickup, Shot, Slam, Windup, Death, Rip, Rattle, Step,
     }
 
     // Efeitos sonoros sintetizados por código na inicialização (sem arquivos de áudio), com a mesma técnica do protótipo
@@ -75,6 +75,7 @@ namespace Arena
             Build(Sfx.Death, T(Wave.Saw, 300, 0.45f, 0.18f, 90), N(0.25f, 0.15f, 800));
             Build(Sfx.Rip, N(0.25f, 0.35f, 900), T(Wave.Saw, 160, 0.25f, 0.15f, 60));
             Build(Sfx.Rattle, N(0.05f, 0.25f, 4000), N(0.05f, 0.25f, 4000, 0.07f), N(0.05f, 0.2f, 4000, 0.14f), N(0.05f, 0.15f, 4000, 0.21f));
+            Build(Sfx.Step, N(0.07f, 0.25f, 600), T(Wave.Sine, 90, 0.08f, 0.15f, 60));
             for (int i = 0; i < 20; i++)
             {
                 var go = new GameObject("Som" + i);
