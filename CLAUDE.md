@@ -137,7 +137,8 @@ Três camadas em `unity/Assets/Arena/`:
 - Comandos úteis: `unity status` (editores abertos), `unity open unity` (abre o projeto), `unity recompile` (recompila e lista erros de compilação), `unity command ...` (executa comandos no editor aberto), `unity test`, `unity build`.
 - Para o agente controlar o editor aberto é preciso o pacote experimental **com.unity.pipeline** no projeto (ver `unity pipeline --help`). Instale-o assim que o projeto abrir pela primeira vez.
 
-. **Rebalanceamento (pedido do Pablo, 2026-10-16)**: dificuldade, dano por mana, habilidades e o Rei Goblin (spamar golpes colado nele mata o chefe antes de ele matar você; o rugido tem que jogar longe e o chefe precisa punir quem fica colado). Detalhes em `docs/roteiro.md` → "Rebalanceamento".
+## Próximos passos
+0. **Rebalanceamento (pedido do Pablo, 2026-10-16)**: dificuldade, dano por mana, habilidades e o Rei Goblin (spamar golpes colado nele mata o chefe antes de ele matar você; o rugido tem que jogar longe e o chefe precisa punir quem fica colado). Detalhes em `docs/roteiro.md` → "Rebalanceamento".
 1. ~~Instalar Unity e abrir `unity/`~~ (feito).
 2. Rodar o teste multimodal no Quest 2 → precisa aparecer **MULTIMODAL: FUNCIONANDO**.
 3. ~~Portar classes, árvore, poderes da mão, inimigos e chefe~~ (feito na arena, ver acima). **Testar a arena no Quest** e ajustar: `VrGripPitch`, posição do HUD (hoje preso à cabeça; o protótipo usava o pulso), alcance/dano.
