@@ -187,7 +187,7 @@ namespace Arena
             if (dmg <= 0f) return false;
             if (ps.ConsumeBackstab())
             {
-                dmg *= WeaponAbilities.BackstabMultiplier;
+                dmg *= ps.BackstabMultiplier;
                 ArenaFx.FloatText("PELAS COSTAS!", Center + Vector3.up * (0.75f + bodyTop * 0.3f), new Color(0.75f, 0.5f, 1f), 1.2f);
             }
             // Defesa com a arma (goblin/esqueleto): 0 = bloqueou tudo (só postura), 0,5 = golpe forte atravessou.

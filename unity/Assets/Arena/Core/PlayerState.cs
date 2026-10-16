@@ -153,7 +153,8 @@ namespace Arena.Core
 
         // Passo Sombrio: o próximo golpe dentro da janela é crítico.
         public float BackstabReady { get; private set; }
-        public void ArmBackstab() => BackstabReady = WeaponAbilities.BackstabWindow;
+        public float BackstabMultiplier { get; private set; } = WeaponAbilities.BackstabMultiplier;
+        public void ArmBackstab(float multiplier = WeaponAbilities.BackstabMultiplier) { BackstabReady = WeaponAbilities.BackstabWindow; BackstabMultiplier = multiplier; }
         public bool ConsumeBackstab()
         {
             if (BackstabReady <= 0f) return false;

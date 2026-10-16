@@ -95,6 +95,7 @@ namespace Arena
             var feet = player.FeetPosition;
             var color = WeaponModels.RarityColor(item.Rarity == Rarity.Comum ? Rarity.Raro : item.Rarity);
             ArenaGame.Instance?.Message(item.Ability.Name + "!", 0.9f);
+            bool legend = item.Rarity == Rarity.Lendario;
             ArenaInput.Haptic(1f, 0.15f);
             switch (item.Ability.Kind)
             {
@@ -111,6 +112,12 @@ namespace Arena
                     for (int i = -3; i <= 3; i++)   // arco de faíscas mostrando o alcance
                         ArenaFx.Burst(feet + Vector3.up * 1.1f + Quaternion.Euler(0, i * 22f, 0) * dir * range * 0.8f, color, 5, 2f);
                     ArenaAudio.Play(Sfx.Whoosh, w.TipPoint, 1f, 0.7f);
+                    if (legend)   // Ceifadora: 3 cortes de vento em leque
+                        for (int i = -1; i <= 1; i++)
+                        {
+                            var d = Quaternion.Euler(0, i * 25f, 0) * dir;
+                            SkillCaster.LaunchSlash(w.TipPoint, d, Vector3.Cross(Vector3.up, d), dmg * WeaponAbilities.LegendarySlashFraction, color, 1.6f, 0.7f);
+                        }
                     break;
                 }
                 case WeaponAbilityKind.FendaNoChao:
@@ -124,6 +131,7 @@ namespace Arena
                         float side = (to - dir * along).magnitude;
                         if (along < 0f || along > len || side > 0.8f + e.Radius) continue;
                         Hit(e, dmg, 2.2f, dir, 2f, item);
+                        if (legend && e && !e.Dead) e.State.ApplyStun(WeaponAbilities.LegendaryStunSeconds);   // Racha-Montanhas
                     }
                     for (float d = 0.8f; d <= len; d += 0.8f)
                         ArenaFx.Burst(feet + dir * d + Vector3.up * 0.1f, new Color(0.55f, 0.45f, 0.35f), 6, 3f);
@@ -139,7 +147,7 @@ namespace Arena
                         if (!e || e.Dead) continue;
                         var to = (e.transform.position - c).Flat();
                         if (to.magnitude > radius + e.Radius) continue;
-                        Hit(e, dmg, 3f, to, 2f, item);
+                        Hit(e, dmg, 3f, legend ? -to : to, legend ? 4f : 2f, item);   // Martelo do Trovão puxa para o centro
                         if (e && !e.Dead) e.State.ApplyStun(WeaponAbilities.StunSeconds * power);
                     }
                     ArenaFx.Ring(c + Vector3.up * 0.05f, new Color(1f, 0.85f, 0.4f), radius, 0.5f);
@@ -156,6 +164,16 @@ namespace Arena
                     vis.transform.rotation = Quaternion.LookRotation(dir);
                     p.Life = 1.2f; p.Radius = 0.35f; p.Pierce = 5;
                     p.OnHitEnemy = (e, _) => Hit(e, dmg, 1f, dir, 2.5f, item);
+                    if (legend)   // Presa da Serpente: explode no fim do voo
+                        p.OnEnd = pr =>
+                        {
+                            var at = pr.transform.position;
+                            foreach (var e in ArenaEnemy.All.ToArray())
+                                if (e && !e.Dead && (e.transform.position - at).Flat().magnitude < WeaponAbilities.LegendaryExplosionRadius + e.Radius)
+                                    Hit(e, dmg * WeaponAbilities.LegendaryExplosionFraction, 1f, (e.transform.position - at).Flat(), 3f, item);
+                            ArenaFx.Ring(new Vector3(at.x, 0.05f, at.z), color, WeaponAbilities.LegendaryExplosionRadius, 0.4f);
+                            ArenaAudio.Play(Sfx.Explosion, at, 0.8f, 1.2f);
+                        };
                     ArenaAudio.Play(Sfx.Ice, start, 0.8f, 0.6f);
                     break;
                 }
@@ -173,7 +191,7 @@ namespace Arena
                     ArenaFx.Burst(feet + Vector3.up, new Color(0.4f, 0.2f, 0.6f), 16, 3f);
                     player.TeleportTo(ArenaUtil.ClampToArena(back), best.transform.position);
                     S.SetInvulnerable(0.4f);
-                    S.ArmBackstab();
+                    S.ArmBackstab(legend ? WeaponAbilities.LegendaryBackstabMultiplier : WeaponAbilities.BackstabMultiplier);   // Sussurro da Noite: ×3
                     ArenaFx.Burst(back + Vector3.up, new Color(0.4f, 0.2f, 0.6f), 16, 3f);
                     ArenaAudio.Play2D(Sfx.Dash, 1f, 0.7f);
                     break;
@@ -187,6 +205,7 @@ namespace Arena
                         var to = (e.transform.position - feet).Flat();
                         if (to.magnitude > radius + e.Radius) continue;
                         Hit(e, dmg, 0.6f, to.sqrMagnitude > 0.01f ? to : dir, 7f, item);
+                        if (legend && e && !e.Dead) e.State.ApplyFreeze(WeaponAbilities.LegendaryFreezeSeconds);   // Cetro Estelar
                     }
                     ArenaFx.Ring(feet + Vector3.up * 0.8f, new Color(0.6f, 0.75f, 1f), radius, 0.4f);
                     ArenaAudio.Play(Sfx.Explosion, feet, 0.8f, 1.4f);

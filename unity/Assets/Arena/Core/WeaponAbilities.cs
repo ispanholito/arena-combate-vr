@@ -51,8 +51,32 @@ namespace Arena.Core
             _ => PulsoArcano,
         };
 
-        // Lendária = versão desperta: efeito ×1,5 e recarga −40%. (Simplificação: habilidades únicas ficam para depois.)
+        // Lendária: nome próprio, habilidade desperta (efeito ×1,5, recarga −40%) e um efeito extra único por tipo de arma.
         public static float Power(Rarity r) => r == Rarity.Lendario ? 1.5f : 1f;
+
+        public static string LegendaryName(WeaponKind k) => k switch
+        {
+            WeaponKind.Espada => "Ceifadora do Crepúsculo",
+            WeaponKind.Machado => "Racha-Montanhas",
+            WeaponKind.Maca => "Martelo do Trovão",
+            WeaponKind.Lanca => "Presa da Serpente",
+            WeaponKind.Adaga => "Sussurro da Noite",
+            _ => "Cetro Estelar",
+        };
+
+        // Efeito extra da lendária (somado à habilidade da arma).
+        public static string LegendaryEffect(WeaponKind k) => k switch
+        {
+            WeaponKind.Espada => "também lança 3 cortes de vento em leque",
+            WeaponKind.Machado => "a fenda atordoa quem atinge",
+            WeaponKind.Maca => "o terremoto puxa os inimigos para o centro",
+            WeaponKind.Lanca => "a lança explode no fim do voo",
+            WeaponKind.Adaga => "o golpe pelas costas causa ×3",
+            _ => "o pulso também congela",
+        };
+
+        public const float LegendaryBackstabMultiplier = 3f, LegendaryStunSeconds = 1.5f, LegendaryFreezeSeconds = 1.5f;
+        public const float LegendaryExplosionRadius = 2.5f, LegendaryExplosionFraction = 0.6f, LegendarySlashFraction = 0.6f;
 
         public static float CooldownFor(ItemInstance item)
         {

@@ -72,6 +72,21 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void Legendaries_HaveUniqueNames_AndEffects()
+        {
+            var names = WeaponDef.All.Select(w => new ItemInstance(w, Rarity.Lendario).DisplayName).ToList();
+            Assert.AreEqual(6, names.Distinct().Count());
+            Assert.AreEqual("Presa da Serpente", new ItemInstance(WeaponDef.Lanca, Rarity.Lendario).DisplayName);
+            Assert.AreEqual("Presa da Serpente +2", new ItemInstance(WeaponDef.Lanca, Rarity.Lendario, null, 2).DisplayName);
+            Assert.AreEqual(6, WeaponDef.All.Select(w => WeaponAbilities.LegendaryEffect(w.Kind)).Distinct().Count());
+            var ps = new PlayerState(ClassId.Lamina);
+            ps.ArmBackstab(WeaponAbilities.LegendaryBackstabMultiplier);
+            Assert.AreEqual(3f, ps.BackstabMultiplier);
+            ps.ArmBackstab();
+            Assert.AreEqual(WeaponAbilities.BackstabMultiplier, ps.BackstabMultiplier);
+        }
+
+        [Test]
         public void Backstab_ArmsOnce_AndExpires()
         {
             var ps = new PlayerState(ClassId.Lamina);
