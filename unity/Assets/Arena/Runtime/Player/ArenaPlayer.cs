@@ -101,6 +101,32 @@ namespace Arena
             if (ArenaGame.Instance) ArenaGame.Instance.Message(State.ActiveItem.DisplayName, 0.9f);
         }
 
+        // Poção: levar a mão esquerda (controle ou mão livre) à boca e segurar 0,45 s; desktop B.
+        float drinkHold;
+        const float MouthRange = 0.14f, DrinkHoldSeconds = 0.45f;
+
+        void UpdatePotion(float dt)
+        {
+            if (State == null || ArenaGame.Blocked) { drinkHold = 0f; return; }
+            bool want = Input.DesktopDrink;
+            if (IsVr && leftHand)
+            {
+                var mouth = head.position - head.up * 0.09f + head.forward * 0.05f;
+                bool atMouth = Vector3.Distance(leftHand.position, mouth) < MouthRange;
+                drinkHold = atMouth ? drinkHold + dt : Mathf.Min(0f, drinkHold + dt);
+                if (drinkHold >= DrinkHoldSeconds) { want = true; drinkHold = -1.5f; }   // não bebe de novo logo em seguida
+            }
+            if (!want) return;
+            var game = ArenaGame.Instance;
+            if (State.Potions <= 0) { if (Input.DesktopDrink) { game?.Message("Sem poções (baús e o mercador do santuário)", 1.2f); ArenaAudio.Play2D(Sfx.Deny, 0.5f); } return; }
+            if (!State.TryDrinkPotion()) return;
+            ArenaAudio.Play2D(Sfx.Slime, 0.7f, 1.5f);
+            ArenaFx.Burst(head.position - head.up * 0.25f + head.forward * 0.3f, new Color(1f, 0.25f, 0.3f), 14, 1.5f);
+            ArenaInput.Haptic(0.4f, 0.15f);
+            game?.Message("Poção: +" + Mathf.RoundToInt(State.Hp.Max * PlayerState.PotionHeal) + " de vida (" + State.Potions + " restantes)", 1.4f);
+            game?.RequestSave();
+        }
+
         void Update()
         {
             float dt = Time.deltaTime;
@@ -119,6 +145,7 @@ namespace Arena
             else VrHeight(dt);
 
             if (Input.ToggleTree && !ArenaGame.InMenu) TreeOpen = !TreeOpen;
+            UpdatePotion(dt);
             if (!TreeOpen)
             {
                 if (Input.SwitchWeapon) SwitchWeapon();

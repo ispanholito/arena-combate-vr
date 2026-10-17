@@ -97,6 +97,7 @@ namespace Arena
             if (mimic && game) { Reveal(game); return; }
             var (gold, item) = game ? game.Loot.RollChest(floor, game.CurrentTier) : (10, null);
             player.State.AddGold(gold);
+            bool potion = game && game.Loot.RollChestPotion() && player.State.AddPotion();
             var top = transform.position + Vector3.up * 0.8f;
             ArenaFx.FloatText("+" + gold + " ouro", top + Vector3.up * 0.3f, new Color(1f, 0.85f, 0.3f), 1f);
             ArenaFx.Burst(top, new Color(1f, 0.85f, 0.3f), 24, 3f);
@@ -107,7 +108,8 @@ namespace Arena
                 WeaponPickup.Spawn(item, top, transform.forward * 1.2f + Vector3.up * 3f);
                 game?.Message("Baú: " + item.DisplayName + " (" + ItemInstance.RarityName(item.Rarity) + ")", 1.8f);
             }
-            else game?.Message("Baú: " + gold + " de ouro", 1.2f);
+            else game?.Message("Baú: " + gold + " de ouro" + (potion ? " e uma poção" : ""), 1.2f);
+            if (potion) ArenaFx.FloatText("+1 poção", top + Vector3.up * 0.6f, new Color(1f, 0.35f, 0.4f), 1f);
             game?.RequestSave();
         }
     }

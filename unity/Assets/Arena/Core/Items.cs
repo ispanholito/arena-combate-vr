@@ -129,12 +129,53 @@ namespace Arena.Core
     // só uma parte do que custou.
     public static class Merchant
     {
+        // Preço de VENDA ao mercador (o que ele paga): 25% do preço da loja, como no Blade & Sorcery.
         public static int Price(ItemInstance item)
         {
             int r = (int)item.Rarity + 1;
             int spent = 0;
             for (int u = 0; u < item.Upgrade; u++) spent += Smithy.Cost(item.Rarity, u);
             return 10 * r * r + item.Affixes.Count * 5 + spent / 3;
+        }
+
+        public const float BuyBackFraction = 0.25f;
+        // Preço de COMPRA na loja: 4× o que ele paga (ele compra a 25%).
+        public static int ShopPrice(ItemInstance item) => (int)Math.Round(Price(item) / BuyBackFraction);
+        public const int PotionPrice = 30;
+    }
+
+    // Banca do mercador no santuário: 3 armas e algumas poções. O estoque renova toda vez que você volta ao santuário.
+    public sealed class Shop
+    {
+        public const int StockSize = 3, PotionStock = 3;
+        public readonly List<ItemInstance> Stock = new List<ItemInstance>();
+        public int PotionsLeft { get; private set; }
+
+        public void Restock(LootTable loot, int tier = 1)
+        {
+            Stock.Clear();
+            for (int i = 0; i < StockSize; i++) Stock.Add(loot.RollItem(Rarity.Comum, tier));
+            PotionsLeft = PotionStock;
+        }
+
+        // Compra a arma do estoque (o runtime coloca na mão / 2ª vaga). Falha sem ouro ou se já foi vendida.
+        public bool TryBuy(ItemInstance item, PlayerState ps)
+        {
+            if (item == null || !Stock.Contains(item)) return false;
+            int price = Merchant.ShopPrice(item);
+            if (ps.Gold < price) return false;
+            ps.SpendGold(price);
+            Stock.Remove(item);
+            return true;
+        }
+
+        public bool TryBuyPotion(PlayerState ps)
+        {
+            if (PotionsLeft <= 0 || ps.Potions >= PlayerState.MaxPotions || ps.Gold < Merchant.PotionPrice) return false;
+            ps.SpendGold(Merchant.PotionPrice);
+            ps.AddPotion();
+            PotionsLeft--;
+            return true;
         }
     }
 
@@ -271,6 +312,9 @@ namespace Arena.Core
             var item = rng.NextDouble() < 0.6 ? RollItem(Rarity.Incomum, tier) : null;
             return (gold, item);
         }
+
+        public const double ChestPotionChance = 0.35;
+        public bool RollChestPotion() => rng.NextDouble() < ChestPotionChance;
 
         // Rola o loot de um inimigo morto. Retorna null se não caiu arma.
         public ItemInstance RollDrop(EnemyKind k, int tier = 1)

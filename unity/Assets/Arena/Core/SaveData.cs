@@ -15,6 +15,7 @@ namespace Arena.Core
         public int level = 1;
         public int xp;
         public int gold;
+        public int potions = 1;
         public int activeSlot;
         public int deepestFloor;               // andar mais fundo alcançado na dungeon
         public int bossesDefeated;
@@ -33,6 +34,7 @@ namespace Arena.Core
                 level = ps.Progression.Level,
                 xp = ps.Progression.Xp,
                 gold = ps.Gold,
+                potions = ps.Potions,
                 dungeonTier = ps.DungeonTier,
                 arenaTier = ps.ArenaTier,
                 activeSlot = ps.ActiveSlot,
@@ -51,6 +53,7 @@ namespace Arena.Core
             var ps = new PlayerState(cls, maxLevel);
             ps.RestoreProgress(level, xp, skills ?? new List<string>());
             ps.SetGold(gold);
+            ps.SetPotions(potions);
             ps.DungeonTier = ArcadeRules.Clamp(dungeonTier);
             ps.ArenaTier = ArcadeRules.Clamp(arenaTier);
             if (items != null)

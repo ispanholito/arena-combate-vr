@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Arena
 {
-    public enum RackKind { Nenhuma, Permanente, Temporaria }
+    public enum RackKind { Nenhuma, Permanente, Temporaria, Loja }
 
     // Arma caída no chão (loot ou a arma trocada). Gira devagar com um feixe de luz na cor da raridade; perto dela
     // aparece o nome e os atributos. Grip (VR, com a mão perto) ou E (desktop) pega: troca pela arma da mão,
@@ -115,6 +115,13 @@ namespace Arena
 
         void OnDestroy() => All.Remove(this);
 
+        // À venda na banca do mercador: o rótulo mostra o preço.
+        public WeaponPickup SetPriceTag(int price)
+        {
+            label.text = Describe(Item) + "\n<color=#ffd34d>" + price + " ouro</color> <size=40>(grip / E compra)</size>";
+            return this;
+        }
+
         // Some com o loot do chão. As armas do próprio jogador vão para os "esquecidos" (voltam no santuário).
         public static void ClearAll(PlayerState keeper = null)
         {
@@ -155,18 +162,29 @@ namespace Arena
             }
             if (!best || !player.Weapon.Held) return false;
             var item = best.Item;
+            if (best.Rack == RackKind.Loja)
+            {
+                var shop = ArenaGame.Instance && ArenaGame.Instance.Sanctuary ? ArenaGame.Instance.Sanctuary.Shop : null;
+                if (shop == null || !shop.TryBuy(item, player.State))
+                {
+                    ArenaGame.Instance?.Message("Custa " + Merchant.ShopPrice(item) + " de ouro (você tem " + player.State.Gold + ")", 1.4f);
+                    ArenaAudio.Play2D(Sfx.Deny, 0.6f);
+                    return true;
+                }
+                ArenaAudio.Play2D(Sfx.Level, 0.6f, 1.3f);
+            }
             var pos = best.transform.position;
             All.Remove(best);
             Destroy(best.gameObject);
             if (best.Rack == RackKind.Permanente) player.State.Stash.Remove(item);
-            else player.State.LostItems.Remove(item);   // era uma arma esquecida: achou
+            else if (best.Rack != RackKind.Loja) player.State.LostItems.Remove(item);   // era uma arma esquecida: achou
             var old = player.State.TakeItem(item, out bool toSecond);
             if (!toSecond) player.EquipActive();
             if (old != null)
             {
                 var dropped = Spawn(old, pos + Vector3.up * 0.05f);
                 dropped.Owned = true;
-                if (best.OnRack)   // troca na estante: a sua fica pendurada no mesmo gancho
+                if (best.OnRack && best.Rack != RackKind.Loja)   // troca na estante: a sua fica pendurada no mesmo gancho
                 {
                     dropped.PlaceOnRack(best.RackPos, best.RackRot, best.Rack);
                     if (best.Rack == RackKind.Permanente) player.State.AddToStash(old); else player.State.AddLostItem(old);

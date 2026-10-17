@@ -141,6 +141,7 @@ namespace Arena
             var rc = WeaponModels.RarityColor(player.Weapon.Rarity);
             sb.Append("\n<color=#").Append(ColorUtility.ToHtmlStringRGB(rc)).Append('>').Append(player.Weapon.Def?.Name).Append("</color>");
             sb.Append("  <color=#ffd34d>").Append(s.Gold).Append(" ouro</color>");
+            sb.Append("  <color=#ff6b7a>").Append(s.Potions).Append(s.Potions == 1 ? " poção" : " poções").Append("</color>");
             var gm = ArenaGame.Instance;
             if (gm && (gm.Mode == ArenaGame.GameMode.Dungeon || gm.Mode == ArenaGame.GameMode.Arena))
                 sb.Append("  <color=#c8a0ff>prof. ").Append(gm.CurrentTier).Append("</color>");

@@ -246,6 +246,62 @@ namespace Arena
             if (ps.LostItems.Count > 0)
                 game.Message(ps.LostItems.Count + " arma(s) na estante temporária (oeste): pegue ou venda antes de sair", 3f);
             BuildMerchant();
+            BuildShop();
+        }
+
+        // Banca: 3 armas e poções. O estoque renova a cada volta ao santuário.
+        public Shop Shop { get; } = new Shop();
+        Transform potionStand;
+        TextMesh potionText;
+        static readonly Vector3[] ShopSlots = { new Vector3(-5.4f, 0f, 2.9f), new Vector3(-4.6f, 0f, 2.9f), new Vector3(-3.8f, 0f, 2.9f) };
+        static readonly Vector3 PotionStandPos = new Vector3(-3.0f, 0f, 2.9f);
+
+        void BuildShop()
+        {
+            Shop.Restock(game.Loot, game.CurrentTier);
+            var wood = ArenaUtil.Lit(new Color(0.4f, 0.27f, 0.14f));
+            ArenaUtil.Prim(PrimitiveType.Cube, root, new Vector3(-4.6f, 0.08f, 3.15f), new Vector3(2.4f, 0.16f, 0.4f), wood);
+            for (int i = 0; i < Shop.Stock.Count && i < ShopSlots.Length; i++)
+                WeaponPickup.Spawn(Shop.Stock[i], ShopSlots[i]).PlaceOnRack(ShopSlots[i], Quaternion.LookRotation(Vector3.back), RackKind.Loja)
+                    .SetPriceTag(Merchant.ShopPrice(Shop.Stock[i]));
+            var sign = ArenaFx.MakeText(root, "LOJA\n<size=40>renova toda vez que você volta</size>", 0.006f, new Color(1f, 0.85f, 0.4f));
+            sign.transform.position = new Vector3(-4.6f, 2.6f, 3.2f);
+            sign.transform.rotation = Quaternion.LookRotation(Vector3.forward);
+
+            potionStand = new GameObject("Pocoes").transform;
+            potionStand.SetParent(root, false);
+            potionStand.position = PotionStandPos;
+            ArenaUtil.Prim(PrimitiveType.Cube, potionStand, new Vector3(0, 0.45f, 0), new Vector3(0.5f, 0.9f, 0.4f), wood, keepCollider: true);
+            var red = ArenaUtil.Lit(new Color(0.9f, 0.15f, 0.2f), new Color(0.5f, 0.05f, 0.08f));
+            for (int i = 0; i < 3; i++)
+                ArenaUtil.Prim(PrimitiveType.Capsule, potionStand, new Vector3(-0.14f + i * 0.14f, 1.0f, 0), new Vector3(0.09f, 0.1f, 0.09f), red);
+            potionText = ArenaFx.MakeText(potionStand, "", 0.006f, new Color(1f, 0.5f, 0.55f));
+            potionText.transform.localPosition = new Vector3(0, 1.5f, 0);
+            potionText.transform.rotation = Quaternion.LookRotation(Vector3.forward);
+            UpdatePotionText();
+        }
+
+        void UpdatePotionText()
+        {
+            if (potionText) potionText.text = "POÇÃO DE CURA  " + Merchant.PotionPrice + " ouro\n<size=40>cura " + Mathf.RoundToInt(PlayerState.PotionHeal * 100f)
+                + "% · máx. " + PlayerState.MaxPotions + " · restam " + Shop.PotionsLeft + "\nbeber: mão esquerda na boca · B</size>";
+        }
+
+        bool TryBuyPotion(ArenaPlayer player)
+        {
+            if (!potionStand || !Near(player, potionStand.position, 0.9f, 1.4f)) return false;
+            var s = player.State;
+            if (!Shop.TryBuyPotion(s))
+            {
+                string why = Shop.PotionsLeft <= 0 ? "Acabaram as poções (volte depois)" : s.Potions >= PlayerState.MaxPotions ? "Você já carrega " + PlayerState.MaxPotions + " poções"
+                    : "Custa " + Merchant.PotionPrice + " de ouro (você tem " + s.Gold + ")";
+                game.Message(why, 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true;
+            }
+            ArenaAudio.Play(Sfx.Pickup, potionStand.position + Vector3.up, 1f, 1.1f);
+            game.Message("Comprou uma poção (" + s.Potions + "/" + PlayerState.MaxPotions + ")", 1.2f);
+            UpdatePotionText();
+            game.RequestSave();
+            return true;
         }
 
         void Hang(ItemInstance item, RackKind k, int i) =>
@@ -275,7 +331,7 @@ namespace Arena
             ArenaUtil.Prim(PrimitiveType.Cube, merchant, new Vector3(0, 0.3f, 0), new Vector3(0.9f, 0.6f, 0.6f), wood, keepCollider: true);
             for (int i = 0; i < 7; i++)
                 ArenaUtil.Prim(PrimitiveType.Cylinder, merchant, new Vector3(-0.3f + (i % 4) * 0.2f, 0.62f + (i / 4) * 0.03f, -0.1f + (i % 3) * 0.1f), new Vector3(0.12f, 0.012f, 0.12f), gold);
-            var t = ArenaFx.MakeText(merchant, "MERCADOR\n<size=40>grip / E: vende a sua 2ª arma</size>", 0.006f, new Color(1f, 0.85f, 0.4f));
+            var t = ArenaFx.MakeText(merchant, "MERCADOR\n<size=40>grip / E: vende a sua 2ª arma (paga 25% do preço da loja)</size>", 0.006f, new Color(1f, 0.85f, 0.4f));
             t.transform.localPosition = new Vector3(0, 1.4f, 0);
             t.transform.rotation = Quaternion.LookRotation(Vector3.left);
         }
@@ -332,7 +388,7 @@ namespace Arena
         public bool TryInteract(ArenaPlayer player)
         {
             if (!root || !anvil) return false;
-            if (TryResetStone(player) || TryStore(player) || TrySell(player)) return true;
+            if (TryResetStone(player) || TryStore(player) || TryBuyPotion(player) || TrySell(player)) return true;
             float d = player.IsVr
                 ? Mathf.Min(Vector3.Distance(player.RightHand.position, anvil.position + Vector3.up * 0.75f), (player.FeetPosition - anvil.position).Flat().magnitude)
                 : (player.FeetPosition - anvil.position).Flat().magnitude;

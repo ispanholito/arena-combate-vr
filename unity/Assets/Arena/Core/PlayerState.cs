@@ -240,6 +240,23 @@ namespace Arena.Core
             return true;
         }
 
+        // Poção de cura: até 3; cura 45% da vida na hora (1 s entre goles). Começa com 1.
+        public const int MaxPotions = 3;
+        public const float PotionHeal = 0.45f, PotionCooldown = 1f;
+        public int Potions { get; private set; } = 1;
+        float potionCd;
+        public bool AddPotion() { if (Potions >= MaxPotions) return false; Potions++; return true; }
+        public void SetPotions(int n) => Potions = Math.Clamp(n, 0, MaxPotions);
+        public bool TryDrinkPotion()
+        {
+            if (Potions <= 0 || potionCd > 0f || Hp.Current >= Hp.Max) return false;
+            Potions--;
+            potionCd = PotionCooldown;
+            Hp.Restore(Hp.Max * PotionHeal);
+            return true;
+        }
+        public void TickPotion(float dt) => potionCd = Math.Max(0f, potionCd - dt);
+
         public DeathPenalty Penalty { get; set; } = DeathPenalty.Xp;
         public int LastGoldLost { get; private set; }
 
@@ -335,6 +352,7 @@ namespace Arena.Core
 
         public void Tick(float dt)
         {
+            TickPotion(dt);
             Invulnerable = Math.Max(0f, Invulnerable - dt);
             HurtCooldown = Math.Max(0f, HurtCooldown - dt);
             CounterStance = Math.Max(0f, CounterStance - dt);

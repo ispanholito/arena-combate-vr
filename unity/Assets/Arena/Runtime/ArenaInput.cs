@@ -22,7 +22,7 @@ namespace Arena
         public bool APressed, BPressed, BHeld, BReleased;
         public bool TriggerPressed, TriggerHeld, TriggerReleased, GripPressed, PickupPressed;   // pegar loot: grip (VR) ou E (desktop)
         public bool DesktopSwing, DesktopParry, DesktopThrust, DesktopThrustHeld, DesktopTwoHand;    // desktop: golpe animado / pose de aparo
-        public bool DesktopLaser, DesktopSlam, DesktopPalm;
+        public bool DesktopLaser, DesktopSlam, DesktopPalm, DesktopDrink;
         public bool WeaponAbility;   // desktop: H solta a habilidade da arma (no VR é o gesto de erguer a arma)
         public bool MenuUp, MenuDown, MenuConfirm, MenuRespec;
         public Vector2 MousePointer;
@@ -43,7 +43,7 @@ namespace Arena
             Dash = ToggleTree = SwitchWeapon = ShieldToggle = PausePressed = false; SnapTurn = 0; TurnAxis = 0f;
             APressed = BPressed = BHeld = BReleased = false;
             TriggerPressed = TriggerHeld = TriggerReleased = GripPressed = PickupPressed = false;
-            DesktopSwing = DesktopParry = DesktopThrust = DesktopThrustHeld = DesktopTwoHand = DesktopLaser = DesktopSlam = DesktopPalm = WeaponAbility = false;
+            DesktopSwing = DesktopParry = DesktopThrust = DesktopThrustHeld = DesktopTwoHand = DesktopLaser = DesktopSlam = DesktopPalm = DesktopDrink = WeaponAbility = false;
             MenuUp = MenuDown = MenuConfirm = MenuRespec = false;
         }
 
@@ -160,6 +160,7 @@ namespace Arena
             DesktopLaser = kb.zKey.isPressed;
             DesktopSlam = kb.xKey.wasPressedThisFrame;
             DesktopPalm = kb.cKey.wasPressedThisFrame;
+            DesktopDrink = kb.bKey.wasPressedThisFrame;   // bebe a poção
             MenuUp = kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame;
             MenuDown = kb.downArrowKey.wasPressedThisFrame || kb.sKey.wasPressedThisFrame;
             MenuConfirm = kb.enterKey.wasPressedThisFrame || kb.eKey.wasPressedThisFrame;
