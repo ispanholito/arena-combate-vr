@@ -9,6 +9,16 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000. NOVO — 9ª leva (prioridade A do estudo do B&S)
+- [ ] **Força do golpe por arma**: maça/machado rápidos batem bem mais forte que lentos; estocada rápida ganha muito; espada quase constante. **Arremessar a adaga** causa ×3 (lança ×1,5).
+- [ ] **Ataques variados**: goblin/esqueleto/orc atacam de cima, da direita, da esquerda; esqueleto também estoca e dá passo à frente (de mais longe). O braço erguido mostra de onde vem — dá para ler a tempo e aparar do lado certo? (No fácil só de cima e dos lados.)
+- [ ] **Reação ao golpe**: bater em quem está no meio do ataque derruba mais ("DERRUBADO!"); em guarda ele aguenta; cabeça/pernas derrubam mais; orc aguenta mais; chefe só com a postura quebrada.
+- [ ] **Queimando**: ~3 Bolas de Fogo acendem o inimigo (enraizado acende na hora): fica laranja piscando, perde ~24 de vida em 4 s. Lança de Gelo apaga.
+- [ ] **Eletrocutado**: 3 raios do Freeza seguidos travam o inimigo (azul piscando, quase parado, não ataca) por 1,2 s; o **orc** (armadura) fica 2,4 s. Depois tem 2,5 s sem poder travar de novo. Chefe resiste. Forte demais?
+- [ ] **Penalidade de morte** (pausa → Morte): nenhuma / XP do nível (padrão) / XP + metade do ouro / **uma vida** (morrer apaga o personagem e volta ao menu inicial — teste com um personagem descartável!).
+- [ ] **Poção**: começa com 1, máx. 3, cura 45%. **Beber: levar a mão esquerda (controle ou mão livre) à boca e segurar ~0,5 s** (desktop B). HUD mostra quantas. Baús têm 35% de chance de poção. O gesto dispara sem querer (escudo perto do rosto ao bloquear)?
+- [ ] **Loja no santuário** (mesa ao norte do mercador, perto dos portais): 3 armas em pé com preço (grip compra; a da mão vai para a 2ª vaga ou cai no chão) e banca de poções (30 de ouro, 3 por visita). Estoque renova toda vez que você volta. O mercador paga 25% do preço da loja pela 2ª arma.
+
 ## 000. NOVO — dano por tipo e material (estudo do B&S)
 - [ ] **Escolher a arma certa**: espada no esqueleto aparece "RESISTE (osso)", maça aparece "FRACO!" e mata rápido; no **orc** (armadura) a espada quase não entra e o **machado** resolve; estocada acha as frestas da armadura.
 - [ ] **Golpe de chapa** (lâmina de lado) com espada vira pancada fraca. Fica claro quando o golpe é bom?

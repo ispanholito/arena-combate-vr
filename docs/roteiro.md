@@ -83,3 +83,5 @@ Problema relatado: **chegar colado no Rei Goblin e ficar spamando golpes mata o 
 
 ## Já feito (resumo)
 Projeto Unity no Quest; arena jogável; Lâmina e Elementalista com árvore; poderes da mão livre; Slime, Goblin, Rei Goblin; menu (continuar/novo; Arena/Dungeon/Treino) com boneco de DPS; pausa; escudo; espada física (fases 1–4); espetar/cravar; ponto fraco; som sintetizado; Esqueleto que desmembra; 6 armas com raridades, atributos, ouro e ferreiro; salvar; dungeon de 2 andares com o Rei Goblin, portas e baús; habilidades das armas; santuário; opções de conforto; armas esquecidas; espinhos, mímico, Goblin Arqueiro, goblins que cercam; HUD no pulso; dificuldade; medidor de FPS; goblins que bloqueiam; lendárias únicas; minimapa; Orc; música e passos; suporte de armas; 149 testes automáticos.
+
+**9ª leva (2026-10-17, prioridade A do estudo do B&S):** dano por velocidade por tipo de arma e arremesso; repertório de ataques dos inimigos; tabela de reações a golpes; status (queimando, eletrocutado); penalidade de morte opcional; poção de cura e loja no santuário. Falta: mão atingida solta a arma.

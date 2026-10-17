@@ -182,7 +182,7 @@ Pisão no chão, **pisão de fogo**, **lança-chamas** (dano a cada 0,3 s, empur
 ---
 
 ## 14. Backlog completo do que dá para usar (prioridade sugerida)
-**A — alto impacto, cabe agora**
+**A — alto impacto, cabe agora** — ✅ feitos os 6 em 2026-10-17 (9ª leva; falta só "mão atingida solta a arma" do item 3)
 1. Curva de dano por arma (pesadas ×3–5, estocada ×10 com a velocidade) + **dano ao arremessar** (adaga ×3).
 2. **Repertório de ataques** do goblin/esqueleto/orc (lados, de cima, estocada, passo à frente) com direção de aparo.
 3. **Tabela de reações** (impacto × estado × parte): derrubar quem é atingido no meio do ataque; mão atingida solta a arma.
