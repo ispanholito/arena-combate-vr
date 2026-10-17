@@ -9,6 +9,11 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000000. NOVO — 12ª leva (ajustes)
+- [ ] **Recarga por mão**: soque com a esquerda e logo em seguida com a direita — as duas saem (cada mão tem a sua recarga).
+- [ ] **Lança/espada no balanço mais rápido possível**: a arma não pode mais se afastar da mão. Ainda para na parede quando encosta?
+- [ ] **Agarrar a cabeça**: sua mão fica por fora, encostada na cabeça/corpo, não dentro.
+
 ## 0000000. NOVO — 11ª leva (estilo Blade & Sorcery)
 - [ ] **Arma no grip**: a espada fica na mão enquanto você segura o grip. Balance o mais forte que conseguir: ela NÃO pode sair. Solte o grip devagar: cai no chão. Solte com a mão rápida: arremessa. Mão vazia + grip: ela volta voando (soltar no caminho faz cair).
 - [ ] **Agarrar**: com a mão livre, feche a mão encostando num goblin/slime/esqueleto: ele fica preso na mão, sem atacar. Abra a mão jogando o braço: ele voa e bate. Com controle: escudo nas costas + grip esquerdo perto do inimigo. Orc e chefe: "pesado demais".
