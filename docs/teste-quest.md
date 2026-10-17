@@ -9,6 +9,14 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000. NOVO — 11ª leva (estilo Blade & Sorcery)
+- [ ] **Arma no grip**: a espada fica na mão enquanto você segura o grip. Balance o mais forte que conseguir: ela NÃO pode sair. Solte o grip devagar: cai no chão. Solte com a mão rápida: arremessa. Mão vazia + grip: ela volta voando (soltar no caminho faz cair).
+- [ ] **Agarrar**: com a mão livre, feche a mão encostando num goblin/slime/esqueleto: ele fica preso na mão, sem atacar. Abra a mão jogando o braço: ele voa e bate. Com controle: escudo nas costas + grip esquerdo perto do inimigo. Orc e chefe: "pesado demais".
+- [ ] **Mão direita**: largue o controle direito — a espada cai e a mão direita ganha os mesmos poderes (raio apontando, soco, corte da palma, agarrar).
+- [ ] **Raio**: atira 2x mais rápido e cada tiro tira metade. O ritmo ficou bom? Eletrocutar precisa de 5 seguidos.
+- [ ] **Perfurar**: estocada leve já entra; forte entra fundo ("FUNDO!") e pode atravessar ("ATRAVESSOU!"). Encostar a ponta e empurrar devagar também fura. Estocada na cabeça do goblin mata. **O goblin morto fica pendurado na espada** e escorrega ao longo da lâmina; sacudir forte ou apontar para baixo até ele sair pela ponta solta. Parece o B&S?
+- [ ] **Decapitar**: corte forte com o fio na cabeça do goblin/arqueiro arranca a cabeça (rola no chão). No orc só com machado.
+
 ## 000000. NOVO — mãos rastreadas visíveis
 - [ ] Solte o controle esquerdo: a mão aparece (bolinhas nas articulações e ossos dos dedos) e acompanha os dedos. Faça punho, aponte, abra a mão.
 - [ ] Solte o controle direito: a mão direita aparece também. Pegue de volta: some e a arma volta com a luva.
