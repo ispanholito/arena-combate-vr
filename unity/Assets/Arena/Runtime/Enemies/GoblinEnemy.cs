@@ -178,6 +178,9 @@ namespace Arena
 
         protected override void OnDestroy() { ReleaseToken(); base.OnDestroy(); }
 
+        protected override EnemyActivity Activity => State.Stun > 0f ? EnemyActivity.Cambaleando
+            : state == AiState.Windup || state == AiState.Strike || state == AiState.Slam ? EnemyActivity.Atacando : EnemyActivity.Guarda;
+
         // Override para o chefe; retorna true se assumiu o controle neste frame.
         protected virtual bool ExtraAI(float dt, float d) => false;
 

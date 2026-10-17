@@ -102,7 +102,7 @@ namespace Arena
 
         // ---------- Fase 2: reação física ao impacto da arma ----------
         // impulse: impulso da colisão (N·s); dir: direção em que a arma empurrou.
-        public void PhysicalImpact(float impulse, Vector3 dir)
+        public void PhysicalImpact(float impulse, Vector3 dir, float heightFraction = 0.5f)
         {
             if (Dead || impulse <= 0f || impactCd > 0f) return;   // a lâmina deslizando gera vários eventos seguidos
             impactCd = 0.15f;
@@ -116,16 +116,28 @@ namespace Arena
             float kick = ImpactReaction.LeanKick(impulse, mass) * 12f;
             leanVel += new Vector2(local.z, -local.x) * kick;
             lastHitDir = flat; lastHitSpeed = Mathf.Max(lastHitSpeed, ImpactReaction.ImpactSpeed(impulse, mass));
-            if (staggerCd <= 0f && ImpactReaction.Staggers(impulse, mass) && State.Posture.Enabled
-                && ComboBreaker.CanBeStaggered(Def.Kind, State.Posture.IsBroken))
+            // Reação pela tabela (HitReactions): força × o que ele está fazendo × parte do corpo.
+            bool headOrLegs = WeakPoints.IsHead(Def.Kind, heightFraction) || WeakPoints.IsLegs(Def.Kind, heightFraction);
+            var reaction = HitReactions.Resolve(Def.Kind, HitReactions.Level(ImpactReaction.ImpactSpeed(impulse, mass)), Activity, headOrLegs, State.Posture.IsBroken);
+            if (staggerCd <= 0f && reaction != HitReaction.Nenhuma)
             {
-                staggerCd = ImpactReaction.StaggerCooldown;
-                State.ApplyStun(ImpactReaction.StaggerSeconds);
+                staggerCd = HitReactions.Cooldown;
+                State.ApplyStun(HitReactions.StunSeconds(reaction));
+                if (reaction == HitReaction.Derrubado)
+                {
+                    knock = Vector3.ClampMagnitude(knock + flat * 2.5f, ImpactReaction.MaxKnockSpeed);
+                    leanVel += new Vector2(local.z, -local.x) * 25f;
+                    ArenaFx.FloatText("DERRUBADO!", Center + Vector3.up * (0.7f + bodyTop * 0.3f), new Color(1f, 0.75f, 0.4f), 1.1f);
+                    ArenaAudio.Play(Sfx.Impact, Center, 0.8f, 0.8f);
+                }
                 OnStagger();
             }
         }
 
         protected virtual void OnStagger() { }
+
+        // O que o inimigo está fazendo (para a tabela de reações). Goblin e mímico dizem quando estão atacando.
+        protected virtual EnemyActivity Activity => State.Stun > 0f ? EnemyActivity.Cambaleando : EnemyActivity.Guarda;
 
         // Onde o golpe acertou (o esqueleto usa para desmembrar).
         public virtual void OnMeleeHitAt(Vector3 point, float speed, float edge, Vector3 velocity, WeaponDef weapon) { }

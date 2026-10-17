@@ -442,7 +442,7 @@ namespace Arena
             {
                 var dir = TipVelocity.sqrMagnitude > 0.25f ? TipVelocity
                         : enemy.transform.position - (c.contactCount > 0 ? c.GetContact(0).point : visual.position);
-                enemy.PhysicalImpact(c.impulse.magnitude, dir);
+                enemy.PhysicalImpact(c.impulse.magnitude, dir, c.contactCount > 0 ? enemy.HeightFraction(c.GetContact(0).point) : 0.5f);
             }
             // Arma batendo em parede/chão: som metálico proporcional ao impacto.
             if (!enemy && mode != Mode.Recalling && soundCd <= 0f && c.contactCount > 0)

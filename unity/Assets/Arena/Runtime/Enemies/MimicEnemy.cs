@@ -159,6 +159,9 @@ namespace Arena
 
         protected override void OnDestroy() { ArenaGame.Tokens.Release(GetInstanceID()); base.OnDestroy(); }
 
+        protected override EnemyActivity Activity => State.Stun > 0f ? EnemyActivity.Cambaleando
+            : ai == Ai.Windup || ai == Ai.Lunge ? EnemyActivity.Atacando : EnemyActivity.Guarda;
+
         // Golpes seguidos sem quebrar a postura: fecha a tampa e pula para trás.
         protected override void ComboBreak()
         {
