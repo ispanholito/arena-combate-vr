@@ -240,9 +240,14 @@ namespace Arena.Core
             return true;
         }
 
+        public DeathPenalty Penalty { get; set; } = DeathPenalty.Xp;
+        public int LastGoldLost { get; private set; }
+
         public void Die()
         {
-            int lost = Progression.OnDeath();
+            int lost = DeathRules.LosesXp(Penalty) ? Progression.OnDeath() : 0;
+            LastGoldLost = DeathRules.GoldLost(Penalty, Gold);
+            Gold -= LastGoldLost;
             Hp.Fill(); Stamina.Fill(); Mana.Fill();
             CounterStance = 0f; WindCharges = 0; Kills = 0;
             cooldowns.Clear();

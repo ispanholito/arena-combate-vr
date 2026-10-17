@@ -4,6 +4,23 @@ namespace Arena.Core
 {
     public enum TurnMode { Rapido30, Rapido45, Suave }
     public enum Difficulty { Facil, Normal, Dificil }
+    public enum DeathPenalty { Nenhuma, Xp, Ouro, UmaVida }
+
+    // Penalidade de morte (opção, ideia do Blade & Sorcery): nenhuma; só o XP do nível (padrão, pilar do jogo);
+    // XP + metade do ouro; ou uma vida só (o personagem é apagado ao morrer fora do santuário/treino).
+    public static class DeathRules
+    {
+        public static bool LosesXp(DeathPenalty p) => p != DeathPenalty.Nenhuma;
+        public static int GoldLost(DeathPenalty p, int gold) => p == DeathPenalty.Ouro ? Math.Max(0, gold) / 2 : 0;
+        public static bool Permadeath(DeathPenalty p) => p == DeathPenalty.UmaVida;
+        public static string Label(DeathPenalty p) => p switch
+        {
+            DeathPenalty.Nenhuma => "Nenhuma",
+            DeathPenalty.Ouro => "XP do nível + metade do ouro",
+            DeathPenalty.UmaVida => "UMA VIDA (morreu, apaga o personagem)",
+            _ => "XP do nível atual",
+        };
+    }
 
     // Dificuldade: escala o dano que o jogador toma e a vida dos inimigos (o XP e o loot não mudam).
     public static class DifficultyRules
@@ -27,6 +44,10 @@ namespace Arena.Core
         public bool showFps = false;         // mostra quadros por segundo e nº de inimigos (medir desempenho no Quest)
         public int difficulty = (int)Difficulty.Normal;
         public bool music = true;            // trilha ambiente sintetizada
+        public int deathPenalty = (int)DeathPenalty.Xp;
+
+        public DeathPenalty DeathPenalty => Enum.IsDefined(typeof(DeathPenalty), deathPenalty) ? (DeathPenalty)deathPenalty : DeathPenalty.Xp;
+        public void CycleDeathPenalty() => deathPenalty = ((int)DeathPenalty + 1) % 4;
 
         public Difficulty Difficulty => Enum.IsDefined(typeof(Difficulty), difficulty) ? (Difficulty)difficulty : Difficulty.Normal;
         public void CycleDifficulty() => difficulty = ((int)Difficulty + 1) % 3;
@@ -53,6 +74,7 @@ namespace Arena.Core
             volume = Math.Clamp(float.IsNaN(volume) ? 0.8f : volume, 0f, 1f);
             turn = (int)Turn;
             difficulty = (int)Difficulty;
+            deathPenalty = (int)DeathPenalty;
             return this;
         }
     }

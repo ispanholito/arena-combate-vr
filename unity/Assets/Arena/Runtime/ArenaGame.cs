@@ -147,6 +147,7 @@ namespace Arena
                 return;
             }
             player.UseCharacter(character);
+            character.Penalty = SaveSystem.Options.DeathPenalty;
             SaveNow();
             if (mode == GameMode.Santuario)
             {
@@ -356,13 +357,26 @@ namespace Arena
 
         public void OnPlayerDied(int lostXp)
         {
+            var st = player.State;
+            string lossText = (lostXp > 0 ? $"perdeu {lostXp} XP" : "não perdeu XP") + (st.LastGoldLost > 0 ? $" e {st.LastGoldLost} de ouro" : "");
+            // Uma vida: o personagem acaba. Apaga o salvo e volta ao menu inicial (sem salvar de novo).
+            if (DeathRules.Permadeath(st.Penalty) && Persistent && Mode != GameMode.Santuario)
+            {
+                ClearEnemies();
+                LeaveDungeon();
+                Mode = GameMode.Menu;
+                SaveSystem.Delete();
+                ReturnToMenu();
+                Message($"FIM DA JORNADA: {st.Class.Name} nível {st.Progression.Level} morreu (uma vida). Crie um novo personagem.", 6f);
+                return;
+            }
             // Modo arcade: morrer volta à profundidade 1. Na dungeon a descida acaba e você volta ao santuário.
             if (Mode == GameMode.Dungeon)
             {
                 player.State.DungeonTier = 1;
                 if (!player.Weapon.Held) player.Weapon.Recall();
                 GoToSanctuary();
-                Message($"Você morreu: perdeu {lostXp} XP e a dungeon recomeça da profundidade 1", 3.5f);
+                Message($"Você morreu: {lossText} e a dungeon recomeça da profundidade 1", 3.5f);
                 return;
             }
             if (Mode == GameMode.Arena) player.State.ArenaTier = 1;
@@ -373,7 +387,7 @@ namespace Arena
             if (Mode == GameMode.Dungeon) dungeon.OnPlayerDied();
             if (!player.Weapon.Held) player.Weapon.Recall();
             player.TeleportTo(BonfireStandPoint, Vector3.zero);
-            Message($"Você morreu: perdeu {lostXp} XP do nível atual", 2.6f);
+            Message($"Você morreu: {lossText}", 2.6f);
             RequestSave();
         }
 
