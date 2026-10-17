@@ -73,7 +73,7 @@ namespace Arena
                 * (head ? WeakPoints.HeadMultiplier : 1f) * mat * Combat.ExecuteMultiplier(weapon, State.HpFraction), 0.9f * weapon.PostureBonus, dir, 0f);
             ps.OnDealtDamage(ev.Amount, weapon);
         }
-        float hitCooldown, hitFlash;
+        float hitCooldown, hitFlash, statusFx;
         Renderer[] renderers;
         readonly List<Color> baseColors = new List<Color>();
 
@@ -82,6 +82,8 @@ namespace Arena
             State = new EnemyState(def);
             comboBreaker = new ComboBreaker(def.Kind);
             State.Damaged += OnDamaged;
+            State.Status.Ignited += () => { ArenaFx.FloatText("QUEIMANDO!", Center + Vector3.up * 0.6f, new Color(1f, 0.5f, 0.15f), 0.9f); ArenaAudio.Play(Sfx.FireCast, Center, 0.6f, 0.8f); };
+            State.Status.Shocked += () => { ArenaFx.FloatText("ELETROCUTADO!", Center + Vector3.up * 0.6f, new Color(0.7f, 0.85f, 1f), 0.9f); ArenaFx.Burst(Center, new Color(0.75f, 0.85f, 1f), 16, 3f); };
             BuildModel();
             BuildVisualPivot();
             AddBodyCollider();
@@ -284,7 +286,7 @@ namespace Arena
 
         void OnDamaged(DamageEvent ev)
         {
-            hitFlash = 0.08f;
+            if (!ev.Dot) hitFlash = 0.08f;
             if (ev.PostureBroke) ArenaFx.FloatText("POSTURA QUEBRADA", Center + Vector3.up * (0.5f + bodyTop * 0.3f), Color.white, 1.1f);
             if (ev.PostureBroke) ArenaAudio.Play(Sfx.Broken, Center);
             if (Def.Kind == EnemyKind.Slime) ArenaAudio.Play(Sfx.Slime, Center, 0.7f, 1f / Mathf.Max(0.4f, Def.Size));
@@ -401,7 +403,18 @@ namespace Arena
         void UpdateFlash(float dt)
         {
             hitFlash -= dt;
-            Color tint = hitFlash > 0f ? Color.white : State.Frozen > 0f ? new Color(0.6f, 0.85f, 1f) : State.Rooted > 0f ? new Color(0.55f, 0.75f, 0.35f) : Color.clear;
+            statusFx -= dt;
+            if (statusFx <= 0f && (State.Status.Burning > 0f || State.Status.Electrocuted > 0f))
+            {
+                statusFx = 0.2f;
+                if (State.Status.Burning > 0f) ArenaFx.Burst(Center + Vector3.up * 0.2f, new Color(1f, 0.45f, 0.1f), 3, 1.2f);
+                if (State.Status.Electrocuted > 0f) ArenaFx.Burst(Center, new Color(0.75f, 0.85f, 1f), 3, 2.5f);
+            }
+            bool flicker = Mathf.Repeat(Time.time * 12f, 1f) < 0.5f;
+            Color tint = hitFlash > 0f ? Color.white
+                : State.Status.Electrocuted > 0f ? (flicker ? new Color(0.85f, 0.95f, 1f) : new Color(0.3f, 0.4f, 0.9f))
+                : State.Status.Burning > 0f ? (flicker ? new Color(1f, 0.4f, 0.05f) : new Color(1f, 0.7f, 0.2f))
+                : State.Frozen > 0f ? new Color(0.6f, 0.85f, 1f) : State.Rooted > 0f ? new Color(0.55f, 0.75f, 0.35f) : Color.clear;
             for (int i = 0; i < renderers.Length; i++)
             {
                 if (renderers[i] == null || renderers[i].transform.IsChildOf(barRoot)) continue;

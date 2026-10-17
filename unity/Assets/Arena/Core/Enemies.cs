@@ -79,6 +79,7 @@ namespace Arena.Core
         public float Slow { get; private set; }
         public float Frozen { get; private set; }
         public float Rooted { get; private set; }
+        public StatusEffects Status { get; }
 
         public event Action<DamageEvent> Damaged;
         public event Action Died;
@@ -88,16 +89,17 @@ namespace Arena.Core
             Def = def;
             Hp = def.MaxHp;
             Posture = new Posture(def.MaxPosture);
+            Status = new StatusEffects(DamageTypes.MaterialOf(def.Kind), def.Kind == EnemyKind.ReiGoblin);
             Posture.Broke += () => Stun = Math.Max(Stun, Posture.BrokenSeconds);
         }
 
         public float HpFraction => Def.MaxHp <= 0 ? 0 : Math.Max(0f, Hp / Def.MaxHp);
-        public bool CanAct => !Dead && Stun <= 0f && Frozen <= 0f && Rooted <= 0f;
+        public bool CanAct => !Dead && Stun <= 0f && Frozen <= 0f && Rooted <= 0f && Status.Electrocuted <= 0f;
         public bool CanMove => !Dead && Stun <= 0f && Frozen <= 0f && Rooted <= 0f;
-        public float SpeedMultiplier => Slow > 0f ? 0.45f : 1f;
+        public float SpeedMultiplier => Status.Electrocuted > 0f ? StatusRules.ElectrocuteSpeed : Slow > 0f ? 0.45f : 1f;
 
         // postureFactor: fração do dano que vira postura (0,7 padrão). Retorna o dano aplicado.
-        public DamageEvent TakeDamage(float amount, float postureFactor = 0.7f, bool canCrit = true, bool burn = false)
+        public DamageEvent TakeDamage(float amount, float postureFactor = 0.7f, bool canCrit = true, bool burn = false, bool dot = false)
         {
             if (Dead) return default;
             bool crit = canCrit && Posture.IsBroken;
@@ -106,7 +108,7 @@ namespace Arena.Core
             float dmg = (float)Math.Max(1, Math.Round(amount));
             Hp -= dmg;
             bool broke = Posture.Add(dmg * postureFactor);
-            var ev = new DamageEvent(dmg, crit, broke, burn, Dead);
+            var ev = new DamageEvent(dmg, crit, broke, burn, Dead, dot);
             Damaged?.Invoke(ev);
             if (Dead) Died?.Invoke();
             return ev;
@@ -115,7 +117,7 @@ namespace Arena.Core
         public bool AddPosture(float amount) => Posture.Add(amount);
         public void ApplyStun(float s) => Stun = Math.Max(Stun, s);
         public void ApplySlow(float s) => Slow = Math.Max(Slow, s);
-        public void ApplyFreeze(float s) => Frozen = Math.Max(Frozen, s);
+        public void ApplyFreeze(float s) { Frozen = Math.Max(Frozen, s); Status.Extinguish(); }
         public void ApplyRoot(float s) => Rooted = Math.Max(Rooted, s);
         public void HealFull() => Hp = Def.MaxHp;
 
@@ -126,16 +128,18 @@ namespace Arena.Core
             Slow = Math.Max(0f, Slow - dt);
             Frozen = Math.Max(0f, Frozen - dt);
             Rooted = Math.Max(0f, Rooted - dt);
+            float burn = Status.Tick(dt);
+            if (burn > 0f && !Dead) TakeDamage(burn, postureFactor: 0f, canCrit: false, dot: true);
         }
     }
 
     public readonly struct DamageEvent
     {
         public readonly float Amount;
-        public readonly bool Crit, PostureBroke, Burn, Killed;
-        public DamageEvent(float amount, bool crit, bool postureBroke, bool burn, bool killed)
+        public readonly bool Crit, PostureBroke, Burn, Killed, Dot;   // Dot = dano de status (queimadura)
+        public DamageEvent(float amount, bool crit, bool postureBroke, bool burn, bool killed, bool dot = false)
         {
-            Amount = amount; Crit = crit; PostureBroke = postureBroke; Burn = burn; Killed = killed;
+            Amount = amount; Crit = crit; PostureBroke = postureBroke; Burn = burn; Killed = killed; Dot = dot;
         }
     }
 }

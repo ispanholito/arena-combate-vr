@@ -199,6 +199,9 @@ namespace Arena
                 bool rooted = e.State.Rooted > 0f;
                 e.ApplyDamage(dmg * Combat.ExplosionFalloff(d, radius), 0.5f, e.transform.position - pos, rooted ? 0f : 4f,
                               rooted ? new Color(1f, 0.35f, 0.13f) : new Color(1f, 0.69f, 0.38f), burn: true);
+                if (e.Dead) continue;
+                if (rooted) e.State.Status.Ignite();   // QUEIMA: enraizado pega fogo na hora
+                else e.State.Status.AddHeat(StatusRules.FireballHeat * Combat.ExplosionFalloff(d, radius));
             }
         }
 
@@ -218,6 +221,7 @@ namespace Arena
             {
                 e.ApplyDamage(Combat.IceDamage, Combat.IcePosture, dir, 1f, new Color(0.75f, 0.92f, 1f));
                 if (deep) e.State.ApplyFreeze(Combat.IceFreezeSeconds); else e.State.ApplySlow(Combat.IceSlowSeconds);
+                e.State.Status.Extinguish();   // gelo apaga o fogo
                 ArenaFx.Burst(e.Center, new Color(0.75f, 0.92f, 1f), 10, 2f);
             };
             ArenaInput.Haptic(0.5f, 0.06f);

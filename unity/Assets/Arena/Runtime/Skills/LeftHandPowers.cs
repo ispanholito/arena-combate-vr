@@ -158,6 +158,7 @@ namespace Arena
             for (int i = 0; i < hits.Count && i < HandPowers.BeamPierce; i++)
             {
                 hits[i].e.ApplyDamage(HandPowers.BeamDamage, HandPowers.BeamPosture, dir, 0.6f, new Color(1f, 0.55f, 1f));
+                if (!hits[i].e.Dead) hits[i].e.State.Status.AddCharge(StatusRules.BeamCharge);
                 ArenaFx.Burst(hits[i].e.Center, new Color(1f, 0.6f, 1f), 6, 2f);
                 if (i == HandPowers.BeamPierce - 1) end = origin + dir * Mathf.Max(0.3f, hits[i].d);
             }
