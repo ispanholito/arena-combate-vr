@@ -84,6 +84,7 @@ namespace Arena
         protected void SetState(AiState s)
         {
             state = s; stateT = 0f; hitDone = false; clubPrevValid = false;
+            if (s != AiState.Windup && s != AiState.Strike) { ReleaseToken(); if (s != AiState.Windup) riposting = false; }
             bool glow = s == AiState.Windup || s == AiState.Slam;
             if (s == AiState.Windup || s == AiState.Slam) ArenaAudio.Play(Sfx.Windup, transform.position + Vector3.up, 0.7f, 1f / k);
             clubMat.color = glow ? new Color(0.9f, 0.15f, 0.05f) : clubColor;
@@ -91,8 +92,13 @@ namespace Arena
 
         protected override void OnHit(DamageEvent ev)
         {
-            // Goblin comum às vezes se assusta e cancela o ataque ao levar um golpe.
-            if (state == AiState.Windup && !State.Posture.IsBroken && Def.Kind == EnemyKind.Goblin && Random.value < 0.3f) SetState(AiState.Recover);
+            lastDamagedT = Time.time;   // janela de combo: logo depois de apanhar não bloqueia
+            // Golpe forte (fração da vida, pela dificuldade) cancela o ataque anunciado.
+            if (state == AiState.Windup && !ev.Killed && !(this is GoblinKing) && CombatAI.Interrupts(ev.Amount, Def.MaxHp, SaveSystem.Options.Difficulty))
+            {
+                SetState(AiState.Recover);
+                ArenaFx.FloatText("INTERROMPIDO", Center + Vector3.up * 0.8f, new Color(1f, 0.9f, 0.5f), 0.9f);
+            }
             // Muito ferido: às vezes recua um pouco (uma vez) antes de voltar.
             if (!ev.Killed && state != AiState.Strike && GoblinTactics.ShouldRetreat(Def.Kind, State.HpFraction, retreated, Random.value))
             {
@@ -108,6 +114,7 @@ namespace Arena
         {
             if (this is GoblinKing || this is ArcherEnemy) return 1f;
             bool canBlock = blockCd <= 0f && State.CanAct && !State.Posture.IsBroken && (state == AiState.Approach || state == AiState.Recover)
+                            && CombatAI.CanBlockAfterHit(Time.time - lastDamagedT)
                             && (this is not SkeletonEnemy || CanAttackNow);   // esqueleto sem o braço da espada não bloqueia
             var from = (Player.FeetPosition - transform.position).Flat();
             float facing = from.sqrMagnitude > 1e-4f ? Vector3.Dot(transform.forward, from.normalized) : 0f;
@@ -123,6 +130,9 @@ namespace Arena
             if (r == GoblinTactics.BlockOutcome.Blocked)
             {
                 ArenaFx.FloatText("BLOQUEOU", at + Vector3.up * 0.2f, new Color(0.85f, 0.85f, 0.85f), 0.9f);
+                // Revide: depois de bloquear, contra-ataca rápido (chance e espera pela dificuldade).
+                var diff = SaveSystem.Options.Difficulty;
+                if (Random.value < CombatAI.RiposteChance(diff)) riposteT = CombatAI.Pick(CombatAI.RiposteDelay(diff), Random.value);
                 return 0f;
             }
             ArenaFx.FloatText("ATRAVESSOU A DEFESA", at + Vector3.up * 0.2f, new Color(1f, 0.7f, 0.4f), 0.9f);
@@ -134,6 +144,17 @@ namespace Arena
             blockCd -= Time.deltaTime;
             base.Update();
         }
+
+        // ---------- Fichas de ataque, revide ----------
+        float lastDamagedT = -10f, riposteT;
+        bool riposting;
+        bool UsesTokens => !(this is GoblinKing) && !(this is ArcherEnemy);
+        bool HasToken => !UsesTokens || ArenaGame.Tokens.Has(GetInstanceID());
+        bool TokensFull => UsesTokens && !HasToken && ArenaGame.Tokens.InUse >= ArenaGame.Tokens.Capacity;
+        bool TryTakeToken() => !UsesTokens || ArenaGame.Tokens.TryTake(GetInstanceID());
+        void ReleaseToken() { if (UsesTokens) ArenaGame.Tokens.Release(GetInstanceID()); }
+
+        protected override void OnDestroy() { ReleaseToken(); base.OnDestroy(); }
 
         // Override para o chefe; retorna true se assumiu o controle neste frame.
         protected virtual bool ExtraAI(float dt, float d) => false;
@@ -153,6 +174,18 @@ namespace Arena
             stateT += dt;
             if (ExtraAI(dt, d)) return;
             var dir = d > 1e-3f ? toPlayer / d : transform.forward;
+            if (riposteT > 0f)
+            {
+                riposteT -= dt;
+                if (riposteT <= 0f && (state == AiState.Approach || state == AiState.Recover) && State.CanAct && CanAttackNow && d < 1.8f * k)
+                {
+                    TryTakeToken();   // o revide não espera ficha
+                    riposting = true;
+                    SetState(AiState.Windup);
+                    ArenaFx.FloatText("REVIDE!", Center + Vector3.up * 0.9f, new Color(1f, 0.5f, 0.4f), 1f);
+                    return;
+                }
+            }
 
             switch (state)
             {
@@ -170,18 +203,20 @@ namespace Arena
                         if (d < 0.9f * k) want -= dir;
                     }
                     else if (d < 2.2f * k) want += side;
+                    // Sem ficha de ataque: fica rondando a ~2 m, esperando a vez.
+                    if (TokensFull && d < 2f * k) want = -dir * Def.MoveSpeed * 0.5f + side;
                     Move(want, dt);
                     LerpArm(-35f, 5f, dt);
-                    if (d < 1.45f * k && stateT > (k > 1f ? 0.6f : 1.0f) + nextAttackDelay && State.CanAct && CanAttackNow)
+                    if (d < 1.45f * k && stateT > (k > 1f ? 0.6f : 1.0f) + nextAttackDelay && State.CanAct && CanAttackNow && TryTakeToken())
                     {
-                        nextAttackDelay = Random.Range(0f, 0.8f);
+                        nextAttackDelay = CombatAI.Pick(CombatAI.AttackDelay(SaveSystem.Options.Difficulty), Random.value);
                         SetState(AiState.Windup);
                     }
                     break;
                 }
                 case AiState.Windup:
                     LerpArm(-150f, 8f, dt);
-                    if (stateT > WindupTime) SetState(AiState.Strike);
+                    if (stateT > WindupTime * (riposting ? CombatAI.RiposteWindupMultiplier : 1f)) SetState(AiState.Strike);
                     break;
                 case AiState.Strike:
                 {

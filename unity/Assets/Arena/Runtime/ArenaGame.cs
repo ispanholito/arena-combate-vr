@@ -18,6 +18,8 @@ namespace Arena
         public ArenaPlayer Player => player;
         public WaveDirector Director { get; } = new WaveDirector();
         public LootTable Loot { get; } = new LootTable();
+        // Fichas de ataque: quantos inimigos corpo a corpo atacam ao mesmo tempo (pela dificuldade; ver CombatAI).
+        public static readonly AttackTokenPool Tokens = new AttackTokenPool();
         public GoblinKing Boss { get; private set; }
         public string CurrentMessage { get; private set; } = "";
         public float MessageTime { get; private set; }
@@ -182,6 +184,7 @@ namespace Arena
         void ClearEnemies()
         {
             WeaponPickup.ClearAll(Mode == GameMode.Treino || Mode == GameMode.Menu ? null : player.State);
+            Tokens.Clear();
             foreach (var e in ArenaEnemy.All.ToArray()) if (e) Destroy(e.gameObject);
             ArenaEnemy.All.Clear();
             Boss = null;
@@ -226,6 +229,7 @@ namespace Arena
         {
             float dt = Time.deltaTime;
             MessageTime -= dt;
+            Tokens.Capacity = CombatAI.AttackTokens(SaveSystem.Options.Difficulty);
             SyncPhysicsRate();
             if (Mode == GameMode.Treino)
             {

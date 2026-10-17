@@ -52,6 +52,7 @@ namespace Arena
         void SetAi(Ai s)
         {
             ai = s; t = 0f; bit = false;
+            if (s != Ai.Windup && s != Ai.Lunge) ArenaGame.Tokens.Release(GetInstanceID());   // devolve a ficha de ataque
             lidMat.color = s == Ai.Windup ? new Color(0.9f, 0.2f, 0.08f) : Wood;
             if (s == Ai.Windup) ArenaAudio.Play(Sfx.Windup, Center, 0.8f, 0.7f);
             if (s == Ai.Lunge) mouthPrev = Mouth;
@@ -82,7 +83,7 @@ namespace Arena
                     float hop = Mathf.Max(0f, Mathf.Sin(Time.time * 7f));
                     model.localPosition = new Vector3(0, hop * 0.12f, 0);
                     if (d > 1.1f) Move(dir * Def.MoveSpeed * (0.4f + hop), dt);
-                    if (d < MimicRules.BiteRange && t > 0.8f && State.CanAct) SetAi(Ai.Windup);
+                    if (d < MimicRules.BiteRange && t > 0.8f && State.CanAct && ArenaGame.Tokens.TryTake(GetInstanceID())) SetAi(Ai.Windup);
                     break;
                 }
                 case Ai.Windup:
@@ -155,6 +156,8 @@ namespace Arena
             }
             mouthPrev = mouth;
         }
+
+        protected override void OnDestroy() { ArenaGame.Tokens.Release(GetInstanceID()); base.OnDestroy(); }
 
         // Golpes seguidos sem quebrar a postura: fecha a tampa e pula para trás.
         protected override void ComboBreak()
