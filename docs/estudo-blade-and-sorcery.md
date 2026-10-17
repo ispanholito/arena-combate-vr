@@ -115,3 +115,88 @@ Itens 1 e 2 FEITOS (7ª leva, `CombatAI`); itens 3 e 4 FEITOS (8ª leva, `Damage
 4. **Material/armadura** nos inimigos + tabela tipo × material (corte/perfuração/contusão), com nocaute da maça.
 5. **Zonas de dano** na arma (lâmina, ponta, pomo).
 6. Depois: meia-espada, mão deslizando na lança, penetração com resistência.
+
+---
+
+# Parte 2 — estudo a fundo (2026-10-17)
+
+Categorias lidas além da parte 1: Statuss, Spells, Skills (89), Stances (repertório de ataques), HitReaction (tabela de reações), EnemyConfigs e LootConfigs por tier, Waves, AreaCollectionDungeons, GameModes, Shops, Liquids (poções) e todos os Damagers de arma. Ferramenta: `E:\UnityCache\temp\bas_tools\dump.js` (Node), porque alguns JSONs têm chaves repetidas que o PowerShell não lê.
+
+## 6. Dano: o que faltou na parte 1
+| Arma (dano) | Ganho com velocidade (2 → 20 m/s) | Base | Arremessada | Empurrão |
+|---|---|---|---|---|
+| Espada corte | ×1 → ×2 | 0,5–1,1 por tier | ×1 | 0 |
+| Machado corte | ×1 → **×3** | 0,5–1,3 | ×1 | 50–100 |
+| Maça | ×1 → **×5** | **1,5–3** | ×1 | 105–200 |
+| Estocada espada | ×1 → **×10** | 1 | ×1,5 | 0 |
+| Adaga/rapieira estocada | ×1 → ×5 | 1 | **×3** | 0 |
+| Picareta de guerra | ×1 → ×10 | 1,25 | ×1,5 | 0 (desmembra fácil) |
+| Escudo (pancada) | ×1 → ×2 | 0,5–0,85 | — | 100 |
+| Chute | ×1 → ×5 | 1 | — | **400** |
+
+**O que isso ensina**: cada arma ganha com a velocidade de um jeito — pesadas e estocadas premiam muito o golpe rápido, a espada é constante. **Adaga arremessada ×3** (arremesso vira estilo de jogo). Maça e chute **empurram** muito (derrubam). **Escudo é arma** (golpe de escudo).
+**Nós**: mesma fórmula linear para todas, sem dano ao arremessar, sem golpe de escudo.
+
+## 7. Reações a golpes (HitReaction) — tabela
+Nível do impacto (0–4) × **o que o inimigo está fazendo** (parado, em guarda, cambaleando, atacando, pulando) × **parte do corpo** → reação: nada / cambaleio leve / médio / total / **derrubado**.
+- Golpe **durante o ataque dele** derruba mais (contra-golpe).
+- Inimigo **em guarda** resiste (cambaleia menos).
+- **Cabeça e pernas** derrubam mais que o tronco; mão atingida solta a arma.
+- Magia na cabeça/pescoço quase sempre derruba.
+
+**Nós**: cambaleio só pelo impulso (`ImpactReaction`), sem considerar estado nem parte. → Ideia: tabela simples igual (3 níveis × 3 estados × 2 partes).
+
+## 8. Repertório de ataques dos inimigos (Stances)
+Cada estilo (uma mão, duas armas, escudo) tem listas: **ataques de abertura** (horizontal dos dois lados, de cima, estocada, ataque com **passo à frente** de 2–2,5 m), **ataques em sequência** (combo), **revides** (rápidos: o golpe chega a ~0,1–0,2 do tempo da animação) e **empurrão com escudo** (perto/médio/longe). Cada ataque tem **dificuldade** (estocadas só aparecem para IA difícil) e peso de sorteio.
+
+**Nós**: goblin tem 1 ataque (de cima). → Ideia: 4–5 ataques por inimigo (lado esquerdo, direito, de cima, estocada, passo à frente) com direção de aparo diferente; estocada e passo só no normal/difícil; inimigo com escudo que empurra.
+
+## 9. Magias (Spells, Skills, Status)
+- **Encantar a arma** (segurar a magia sobre a lâmina): a arma ganha o elemento; cada golpe aplica o efeito e gasta a carga do encanto. Fogo passa **calor**; raio **eletrocuta** (dobro do tempo em quem usa **metal**); gravidade deixa sem peso.
+- **Calor acumulado**: fogo soma calor até 100 → **queimando** (2 de dano a cada 0,5 s); o calor cai com o tempo.
+- **Eletrocutado**: mais lento (jogador a 60%), não consegue agir direito; **raio em cadeia** pula entre inimigos (5 m).
+- **Lança-chamas** (segurar carregado = jato), **bola de fogo**, **meteoro** (juntar as duas mãos = magia combinada), **bater o cajado no chão** (raio: atordoa 5 s num raio de 10 m), **cajado como mosquete** (atira).
+- **Telecinese**: puxar/empurrar objetos e inimigos, girar, estrangular. **Tempo lento** (foco) como recurso.
+
+**Nós**: bola de fogo, lança de gelo, raízes, raio da mão. → Ideias fortes: **encantar arma** (Elementalista + Lâmina = a futura Lâmina Arcana), **calor/queimando** e **eletrocutar** como status, **magia de duas mãos juntas**, **bater o cajado no chão**.
+
+## 10. Habilidades (89 em 5 árvores, tiers 0–2) — nomes que viram ideia
+Corpo: investida aérea, chute forte, segundo fôlego (cura ao quase morrer), intimidação, Juggernaut, furtivo (dano em quem não te viu), arremesso bumerangue (a arma volta). Fogo: ricochete, detonação remota, **soco foguete**, supernova, raio de plasma. Gravidade: amortecer queda, **martelo de gravidade**, pulo impulsionado, soco de força. Raio: **aparo elétrico** (o aparo eletrocuta), **roubo de arma** (o raio faz soltar a arma), arame elétrico. Mente: **foco em combate** (tempo lento), **revide temporal** (aparo deixa o tempo lento), estrangular, marionete.
+Habilidades marcadas como "podem aparecer como recompensa" e um modo **roleta** (arena que sorteia habilidades) → combina com o nosso arcade.
+
+## 11. Chefe Golem (só pelos nomes dos efeitos)
+Pisão no chão, **pisão de fogo**, **lança-chamas** (dano a cada 0,3 s, empurra), explosão de gravidade, arame elétrico, **cristais brilhando no corpo** e no **chão da arena**, **tiro na cabeça**. Padrão: quebrar os cristais expõe o ponto fraco; a arena participa.
+→ Ideia para um 2º chefe (ou fase do Rei Goblin): pontos fracos que brilham e precisam ser quebrados.
+
+## 12. Progressão, loja, morte
+- Presets de dificuldade: **penalidade de morte** = nenhuma / **perde o ouro** / **uma vida** (morte permanente); multiplicadores do dano que você toma e do dano que você causa.
+- Campanha: **mapa com 3–5 dungeons novas por dia**, tiers de inimigo e de loot por local; **escolha do kit inicial**; **notas de história** escondidas; loja com **lojista**, estoque que **renova a cada 2 dias** e melhora conforme você avança, compra seus itens por **25%** do valor; **poção de cura** (+20 de 50 de vida).
+- Loot separado por origem: **sala lateral**, **tesouro**, **inimigo**, **recompensa** do fim.
+- Armadura do jogador (capacete, peito…) como loot.
+
+## 13. Dungeon e ondas
+- Dungeon = caminho de blocos: início → transição → sala grande → transição → fim (chefe), com % de inimigos e de loot por bloco e **alerta compartilhado** (a sala inteira acorda junto).
+- Inimigos **patrulhando** até serem alertados (há habilidade de furtividade).
+- Ondas: grupos com **pré-requisito** (o grupo B entra quando o A tem ≤ N vivos), **máximo vivo** (4), multiplicador de vida por grupo, temas (corpo a corpo, à distância, misto).
+
+---
+
+## 14. Backlog completo do que dá para usar (prioridade sugerida)
+**A — alto impacto, cabe agora**
+1. Curva de dano por arma (pesadas ×3–5, estocada ×10 com a velocidade) + **dano ao arremessar** (adaga ×3).
+2. **Repertório de ataques** do goblin/esqueleto/orc (lados, de cima, estocada, passo à frente) com direção de aparo.
+3. **Tabela de reações** (impacto × estado × parte): derrubar quem é atingido no meio do ataque; mão atingida solta a arma.
+4. **Status**: calor → queimando, eletrocutado (mais forte em armadura), lento — base para as magias novas.
+5. **Penalidade de morte** como opção: nenhuma / perde ouro / uma vida (combina com o arcade).
+6. **Poção de cura** (loot/loja) e **lojista** no santuário (compra por 25%, vende armas e poções, estoque renova).
+
+**B — próximas**
+7. Encantar a arma (fogo/gelo/raio) — semente da Lâmina Arcana.
+8. Magia de duas mãos juntas (meteoro / raio contínuo) e bater o cajado no chão.
+9. Golpe de escudo (empurra, quebra postura) e inimigo com escudo.
+10. Patrulha + alerta da sala + bônus de ataque furtivo.
+11. Ondas com grupos e pré-requisito na arena; recompensa de habilidade (roleta) no arcade.
+12. Chefe com pontos fracos que brilham (cristais).
+
+**C — depois**
+13. Armadura do jogador como loot. 14. Mapa com dungeons do dia. 15. Notas de história. 16. Telecinese/tempo lento. 17. Meia-espada e mão deslizando na lança.
