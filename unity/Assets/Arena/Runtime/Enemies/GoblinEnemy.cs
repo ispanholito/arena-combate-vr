@@ -33,7 +33,9 @@ namespace Arena
             model.SetParent(transform, false);
             model.localScale = Vector3.one * k;
             BuildVisual();
+            armBase = arm.localPosition;
             SetArm(-35f);
+            nextAttack = EnemyAttacks.Pick(Def.Kind, SaveSystem.Options.Difficulty, Random.value);
             strafe = Random.value < 0.5f ? -1 : 1;
             nextAttackDelay = Random.Range(0f, 0.8f);
         }
@@ -70,10 +72,28 @@ namespace Arena
 
         // Ângulo do braço em graus no eixo X local (negativo = para trás/cima, positivo = golpe para baixo/frente).
         // Inclinação de -18° em Y: a clava sai do ombro direito e desce no centro (no jogador), não ao lado.
-        protected void SetArm(float deg) { armAngle = deg; arm.localRotation = Quaternion.Euler(deg, -18f, 0); }
-        float armAngle;
+        protected void SetArm(float deg) => SetPose(deg, -18f, 0f);
+        float armAngle, armYaw = -18f, armFwd;
+        Vector3 armBase;
         float ArmAngle => armAngle;
-        protected void LerpArm(float deg, float speed, float dt) => SetArm(Mathf.Lerp(ArmAngle, deg, Mathf.Min(1f, dt * speed)));
+        protected void LerpArm(float deg, float speed, float dt) => LerpPose(new ArmPose(deg, -18f), speed, dt);
+
+        // Pose do braço da arma (pitch/yaw do ombro + avanço para a estocada). Braço arrancado (esqueleto) não é mexido.
+        protected void SetPose(float pitch, float yaw, float forward)
+        {
+            armAngle = pitch; armYaw = yaw; armFwd = forward;
+            if (arm == null || arm.parent != model) return;
+            arm.localRotation = Quaternion.Euler(pitch, yaw, 0);
+            arm.localPosition = armBase + Vector3.forward * forward;
+        }
+        void LerpPose(ArmPose p, float speed, float dt)
+        {
+            float t = Mathf.Min(1f, dt * speed);
+            SetPose(Mathf.Lerp(armAngle, p.Pitch, t), Mathf.LerpAngle(armYaw, p.Yaw, t), Mathf.Lerp(armFwd, p.Forward, t));
+        }
+
+        // Repertório de ataques (EnemyAttacks): o próximo é sorteado ao fim de cada ataque.
+        protected EnemyAttack attack = EnemyAttack.Cima, nextAttack = EnemyAttack.Cima;
 
         public void ClubSegment(out Vector3 a, out Vector3 b)
         {
@@ -85,6 +105,8 @@ namespace Arena
         {
             state = s; stateT = 0f; hitDone = false; clubPrevValid = false;
             if (s != AiState.Windup && s != AiState.Strike) { ReleaseToken(); if (s != AiState.Windup) riposting = false; }
+            if (s == AiState.Windup) attack = nextAttack;
+            if (s == AiState.Recover) nextAttack = EnemyAttacks.Pick(Def.Kind, SaveSystem.Options.Difficulty, Random.value);
             bool glow = s == AiState.Windup || s == AiState.Slam;
             if (s == AiState.Windup || s == AiState.Slam) ArenaAudio.Play(Sfx.Windup, transform.position + Vector3.up, 0.7f, 1f / k);
             clubMat.color = glow ? new Color(0.9f, 0.15f, 0.05f) : clubColor;
@@ -207,7 +229,7 @@ namespace Arena
                     if (TokensFull && d < 2f * k) want = -dir * Def.MoveSpeed * 0.5f + side;
                     Move(want, dt);
                     LerpArm(-35f, 5f, dt);
-                    if (d < 1.45f * k && stateT > (k > 1f ? 0.6f : 1.0f) + nextAttackDelay && State.CanAct && CanAttackNow && TryTakeToken())
+                    if (d < EnemyAttacks.Range(nextAttack) * k && stateT > (k > 1f ? 0.6f : 1.0f) + nextAttackDelay && State.CanAct && CanAttackNow && TryTakeToken())
                     {
                         nextAttackDelay = CombatAI.Pick(CombatAI.AttackDelay(SaveSystem.Options.Difficulty), Random.value);
                         SetState(AiState.Windup);
@@ -215,14 +237,18 @@ namespace Arena
                     break;
                 }
                 case AiState.Windup:
-                    LerpArm(-150f, 8f, dt);
+                    LerpPose(EnemyAttacks.Poses(attack).windup, 8f, dt);
+                    if (attack == EnemyAttack.Passo && d > 1.2f * k) Move(dir * 0.8f, dt);   // vem chegando
                     if (stateT > WindupTime * (riposting ? CombatAI.RiposteWindupMultiplier : 1f)) SetState(AiState.Strike);
                     break;
                 case AiState.Strike:
                 {
                     float kk = Mathf.Min(1f, stateT / 0.28f);
-                    SetArm(Mathf.Lerp(-150f, 75f, kk * kk));
-                    Move(dir * 1.2f, dt);
+                    var (w0, w1) = EnemyAttacks.Poses(attack);
+                    float e = kk * kk;
+                    SetPose(Mathf.Lerp(w0.Pitch, w1.Pitch, e), Mathf.Lerp(w0.Yaw, w1.Yaw, e), Mathf.Lerp(w0.Forward, w1.Forward, e));
+                    float lunge = attack == EnemyAttack.Passo ? EnemyAttacks.StepSpeed : attack == EnemyAttack.Estocada ? EnemyAttacks.ThrustLunge : 1.2f;
+                    if (d > 0.8f * k) Move(dir * lunge, dt);
                     if (!hitDone) CheckClubContact(kk, d);
                     if (stateT > 0.4f) SetState(AiState.Recover);
                     break;
