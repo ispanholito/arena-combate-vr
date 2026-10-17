@@ -9,6 +9,15 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000000. NOVO — passo A1: goblin com CORPO FÍSICO (Treino)
+No Treino, ao lado do boneco, nasce um goblin novo (corpo de 11 peças). Quando ele morre, outro nasce em 3 s.
+- [ ] **Bater**: os membros reagem de verdade ao golpe (braço vai para trás, cabeça balança). Golpe forte no tronco/cabeça derruba ("CAIU!") e ele se levanta sozinho.
+- [ ] **Aparar**: ele ergue a clava ~1 s e desce; bata/encoste a espada na clava = "APARADO".
+- [ ] **Perfurar**: estocada no tronco: a lâmina entra e fica presa; ele perde a firmeza e você consegue arrastá-lo pela espada; puxe para trás para soltar. Na cabeça mata. Morto, o corpo fica pendurado na lâmina. **Parece o B&S?** (o corpo é pesado: a espada desce — use as duas mãos)
+- [ ] **Agarrar**: feche a mão (ou grip) em qualquer parte dele (braço, cabeça, perna): sua mão fica na superfície e a parte vem junto; puxe forte para derrubá-lo; solte jogando para arremessar.
+- [ ] **Arrancar**: corte rápido com o fio no braço, perna ou pescoço arranca a parte (sem o braço da clava ele não ataca; sem perna fica no chão).
+- [ ] **FPS** com ele na tela (pausa → Mostrar FPS): precisa ficar em 72.
+
 ## 00000000. NOVO — 12ª leva (ajustes)
 - [ ] **Recarga por mão**: soque com a esquerda e logo em seguida com a direita — as duas saem (cada mão tem a sua recarga).
 - [ ] **Lança/espada no balanço mais rápido possível**: a arma não pode mais se afastar da mão. Ainda para na parede quando encosta?
