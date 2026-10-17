@@ -9,6 +9,12 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000. NOVO — correções do seu teste de 2026-10-17
+- [ ] **Controle não vira mão**: segurando os controles, a arma/escudo nunca mais pulam para a pose da mão rastreada. Teste girando a mão, fechando os dedos e tirando o controle da vista das câmeras (atrás das costas, acima da cabeça): a arma fica parada no lugar em vez de saltar.
+- [ ] **Mão presa na arma**: agora há uma luva no cabo. Encoste a espada na parede e empurre a mão para dentro: a luva/espada ficam do lado de cá; o controle real aparece como a mão fantasma azul. A espada só volta sozinha se ficar a mais de 1,2 m por 1 s **sem parede no meio**.
+- [ ] **Estocada**: a lâmina entra aos poucos conforme você empurra (vibra enquanto desliza), o goblin fica preso, sangrando e pesando. Ele só sai se você puxar a espada até a ponta sair ou sacudir forte para o lado (arremessa). O recuo natural do braço depois da estocada NÃO deve soltar. Dá a sensação de entrar?
+- [ ] **Raio do Freeza**: aponte o indicador da mão livre — um ponto vermelho carrega na ponta do dedo e sai um raio fino vermelho. Continuando a apontar, dispara a cada 0,4 s. A palma aberta parada não dispara mais.
+
 ## 0000. NOVO — 9ª leva (prioridade A do estudo do B&S)
 - [ ] **Força do golpe por arma**: maça/machado rápidos batem bem mais forte que lentos; estocada rápida ganha muito; espada quase constante. **Arremessar a adaga** causa ×3 (lança ×1,5).
 - [ ] **Ataques variados**: goblin/esqueleto/orc atacam de cima, da direita, da esquerda; esqueleto também estoca e dá passo à frente (de mais longe). O braço erguido mostra de onde vem — dá para ler a tempo e aparar do lado certo? (No fácil só de cima e dos lados.)
