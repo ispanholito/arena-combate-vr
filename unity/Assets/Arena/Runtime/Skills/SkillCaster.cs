@@ -34,7 +34,35 @@ namespace Arena
             if (player.TreeOpen) { CancelAims(); return; }
             // Grip perto de uma arma no chão: pega (em vez de arremessar a da mão).
             if (I.PickupPressed && ((ArenaGame.Instance && ArenaGame.Instance.Sanctuary && ArenaGame.Instance.Sanctuary.TryInteract(player)) || TreasureChest.TryOpen(player) || WeaponPickup.TryPickup(player))) { CancelAims(); return; }
+            if (player.IsVr) GripHold();
             if (S.Class.Id == ClassId.Lamina) Lamina(); else Elementalista(dt);
+        }
+
+        // Arma como no Blade & Sorcery: fica na mão ENQUANTO o grip estiver apertado (balançar forte não solta mais).
+        // Soltar o grip larga a arma (com a mão rápida, arremessa). Com a mão vazia, apertar o grip agarra um inimigo
+        // perto ou chama a arma de volta; soltar no meio do caminho deixa ela cair.
+        // Ao equipar/entrar num modo a arma já vem na mão e só passa a depender do grip depois do primeiro aperto.
+        bool gripEngaged;
+
+        void GripHold()
+        {
+            var w = player.Weapon;
+            // Largou o controle direito (mão livre): a arma cai.
+            if (I.RightHandFree) { if (w.Held) { gripEngaged = false; w.Throw(Vector3.zero, drop: true); } return; }
+            if (w.Held && I.GripHeld) gripEngaged = true;
+            if (w.Held && gripEngaged && !I.GripHeld)
+            {
+                gripEngaged = false;
+                w.Throw(handVel, drop: true);
+                ArenaInput.Haptic(0.3f, 0.04f);
+                return;
+            }
+            if (w.Recalling && !I.GripHeld) { w.CancelRecall(); return; }
+            if (!w.Held && !w.Recalling && I.GripPressed)
+            {
+                if (EnemyGrabber.Instance && EnemyGrabber.Instance.TryGrabWithController(right: true)) return;
+                w.Recall();
+            }
         }
 
         void Hint(string msg)
@@ -79,7 +107,7 @@ namespace Arena
                 ArenaAudio.Play2D(Sfx.Skill, 0.6f);
                 ArenaInput.Haptic(0.6f, 0.1f);
             }
-            if (I.GripPressed && w.Held) w.Throw(player.IsVr ? handVel : Vector3.zero);
+            if (!player.IsVr && I.GripPressed && w.Held) w.Throw(Vector3.zero);   // desktop: G arremessa (no VR é soltar o grip)
             if (!player.IsVr && I.TriggerPressed && !w.Held) w.Recall();
 
             // Cortes de vento saem nos golpes rápidos enquanto houver carga

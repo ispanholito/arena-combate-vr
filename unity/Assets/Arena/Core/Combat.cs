@@ -68,7 +68,8 @@ namespace Arena.Core
         public const string Slam = "mao_chao", Palm = "mao_palma", Punch = "mao_soco";
         // Raio do Freeza (substituiu a metralhadora, que dava 1,2 de dano por mana e "não compensava"): raio fino e
         // instantâneo da ponta dos dedos, atravessa 2 inimigos. 16 de dano por 6 de mana = 2,7 por mana (por alvo).
-        public const float BeamManaPerShot = 6f, BeamDamage = 16f, BeamInterval = 0.4f, BeamRange = 25f, BeamPosture = 0.8f;
+        // 2026-10-17 (Pablo): 2x mais rápido, metade da mana e do dano por tiro.
+        public const float BeamManaPerShot = 3f, BeamDamage = 8f, BeamInterval = 0.2f, BeamRange = 25f, BeamPosture = 0.8f;
         public const int BeamPierce = 2;
         // Soco (substituiu o golpe no chão): punho fechado indo rápido para frente acerta UM inimigo um pouco além do
         // alcance do braço. Forte e de recarga baixa.

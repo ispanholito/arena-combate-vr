@@ -15,7 +15,25 @@ namespace Arena
         readonly List<Transform> parts = new List<Transform>();
         readonly List<Vector3> scales = new List<Vector3>();
 
-        public static void Create(Transform model, Vector3 hitDir, float hitSpeed)
+        // Preso na espada: não some enquanto estiver pendurado.
+        public bool Pinned;
+        readonly List<Rigidbody> bodies = new List<Rigidbody>();
+        public float TotalMass { get { float m = 0f; foreach (var b in bodies) if (b) m += b.mass; return m; } }
+        public void ScaleMass(float k) { foreach (var b in bodies) if (b) b.mass *= k; }
+        public Rigidbody NearestBody(Vector3 p)
+        {
+            Rigidbody best = null; float bd = float.MaxValue;
+            foreach (var b in bodies)
+            {
+                if (!b) continue;
+                var col = b.GetComponent<Collider>();
+                float d = col ? Vector3.Distance(col.ClosestPoint(p), p) : Vector3.Distance(b.position, p);
+                if (d < bd) { bd = d; best = b; }
+            }
+            return best;
+        }
+
+        public static RagdollCorpse Create(Transform model, Vector3 hitDir, float hitSpeed, bool impulse = true)
         {
             // Limite de corpos para o Quest: o mais antigo some.
             while (alive.Count >= ImpactReaction.MaxCorpses)
@@ -24,11 +42,12 @@ namespace Arena
                 if (old) Destroy(old.gameObject);
             }
             var corpse = model.gameObject.AddComponent<RagdollCorpse>();
-            corpse.Build(hitDir, hitSpeed);
+            corpse.Build(hitDir, hitSpeed, impulse);
             alive.Enqueue(corpse);
+            return corpse;
         }
 
-        void Build(Vector3 hitDir, float hitSpeed)
+        void Build(Vector3 hitDir, float hitSpeed, bool impulse)
         {
             // Textos (TextMesh) não viram partes.
             foreach (var tm in GetComponentsInChildren<TextMesh>()) Destroy(tm.gameObject);
@@ -58,6 +77,7 @@ namespace Arena
                 rb.interpolation = RigidbodyInterpolation.Interpolate;
                 rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
                 bodies[pt] = rb;
+                this.bodies.Add(rb);
                 parts.Add(pt); scales.Add(pt.localScale);
             }
             // Cada parte (menos a maior) se liga à parte maior mais próxima.
@@ -81,6 +101,7 @@ namespace Arena
                 Physics.IgnoreCollision(me.GetComponent<Collider>(), best.GetComponent<Collider>());
             }
             // Impulso do golpe final: na direção do golpe e um pouco para cima.
+            if (!impulse) return;
             var v = hitDir.normalized * (ImpactReaction.DeathImpulseBase + hitSpeed) + Vector3.up * ImpactReaction.DeathImpulseUp;
             foreach (var rb in bodies.Values)
             {
@@ -91,7 +112,7 @@ namespace Arena
 
         void Update()
         {
-            t += Time.deltaTime;
+            if (!Pinned) t += Time.deltaTime;
             float fadeStart = ImpactReaction.CorpseSeconds - ImpactReaction.CorpseFadeSeconds;
             if (t > fadeStart)
             {

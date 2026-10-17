@@ -184,6 +184,36 @@ namespace Arena
 
         protected virtual void OnDestroy() { ReleaseWeapon(); All.Remove(this); }
 
+        // Partes da cabeça (cabeça, orelhas, olhos...). Quem não tem cabeça separável devolve null.
+        protected virtual List<Transform> HeadParts => null;
+
+        bool Decapitate(Vector3 dir, float speed, PlayerState ps, WeaponDef weapon)
+        {
+            var parts = HeadParts;
+            if (Dead || parts == null || parts.Count == 0 || !parts[0]) return false;
+            var head = new GameObject("Cabeca").transform;
+            head.position = parts[0].position;
+            foreach (var p in parts) if (p) p.SetParent(head, true);
+            var rb = head.gameObject.AddComponent<Rigidbody>();
+            rb.mass = 3f;
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
+            head.gameObject.AddComponent<SphereCollider>().radius = 0.2f * Def.Size;
+            var d = dir.sqrMagnitude > 1e-4f ? dir.normalized : transform.forward;
+            rb.linearVelocity = d * Mathf.Min(speed, 9f) * 0.6f + Vector3.up * 2.5f;
+            rb.angularVelocity = Random.insideUnitSphere * 10f;
+            Destroy(head.gameObject, ImpactReaction.CorpseSeconds);
+            var neck = head.position - Vector3.up * 0.15f * Def.Size;
+            ArenaFx.Burst(neck, bloodColor, 30, 4f, 1.6f);
+            ArenaFx.FloatText("DECAPITOU!", neck + Vector3.up * 0.6f, new Color(1f, 0.25f, 0.25f), 1.4f);
+            ArenaAudio.Play(Sfx.Rip, neck, 1f);
+            ArenaInput.Haptic(1f, 0.15f);
+            hitCooldown = Combat.HitCooldown;
+            lastHitDir = d; lastHitSpeed = speed;
+            var kill = ApplyDamage(State.Hp + 1f, 0f, dir, 0f, new Color(1f, 0.3f, 0.3f), canCrit: false);
+            ps.OnDealtDamage(kill.Amount, weapon);
+            return true;
+        }
+
         void ReleaseWeapon()
         {
             var pl = Player;
@@ -214,6 +244,8 @@ namespace Arena
             bool flat = DamageTypes.IsFlatHit(weapon.Kind, type);
             if (flat) dmg *= DamageTypes.FlatHitMultiplier;   // de chapa
             dmg *= DamageTypes.SpeedScaling(type, tipSpeed, flat);   // maça, machado e estocada premiam o golpe rápido
+            // Corte forte com o fio no pescoço: arranca a cabeça (como no B&S).
+            if (DismemberRules.Decapitates(Def.Kind, type, head, tipSpeed, edge) && Decapitate(dir, tipSpeed, ps, weapon)) return true;
             if (head) HeadText();
             if (comboBreaker.RegisterHit(State.Posture.IsBroken)) { ComboBreak(); return true; }
             if (dmg <= 0f) return false;
@@ -307,11 +339,16 @@ namespace Arena
             ArenaAudio.Play(Def.Kind == EnemyKind.Slime ? Sfx.Slime : Sfx.Death, Center, 0.8f, Def.Kind == EnemyKind.Slime ? 0.6f : 1f / Mathf.Max(1f, Def.Size));
             ArenaFx.Burst(Center, bloodColor, 20, 4f, 1.4f);
             if (ArenaGame.Instance) ArenaGame.Instance.OnEnemyKilled(this);
+            // Morreu espetado na espada: o corpo fica pendurado nela (Blade & Sorcery).
+            var w = Player ? Player.Weapon : null;
+            bool pin = w && w.IsSkewering(this);
+            var pinPoint = pin ? w.SkewerWorldPoint : Vector3.zero;
             ReleaseWeapon();   // solta a espada cravada antes de o corpo sumir
             if (LeavesCorpse && visualPivot)
             {
                 visualPivot.SetParent(null, true);
-                RagdollCorpse.Create(visualPivot, lastHitDir, lastHitSpeed);
+                var corpse = RagdollCorpse.Create(visualPivot, lastHitDir, lastHitSpeed, impulse: !pin);
+                if (pin && corpse) w.PinCorpse(corpse, pinPoint);
             }
             Destroy(gameObject);
         }

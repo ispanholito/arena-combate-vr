@@ -13,8 +13,8 @@ namespace Arena.Core
     public static class StabRules
     {
         // Tolerante: no VR a lâmina fica ~40° inclinada em relação ao controle, e uma estocada natural segue o controle.
-        public const float MinSpeed = 1.8f;            // m/s na ponta
-        public const float MinAlignment = 0.6f;        // cos do ângulo entre a lâmina e o movimento (~53°)
+        public const float MinSpeed = 1.3f;            // m/s na ponta (era 1,8: o Pablo achava difícil furar)
+        public const float MinAlignment = 0.5f;        // cos do ângulo entre a lâmina e o movimento (~60°)
         public const float TipZone = 0.35f;            // o contato precisa ser até 35 cm da ponta
         public const float DamageMultiplier = 1.2f;
         public const float BleedDps = 4f;
@@ -22,6 +22,8 @@ namespace Arena.Core
 
         public static StabStyle StyleFor(EnemyKind kind) =>
             kind == EnemyKind.ReiGoblin || kind == EnemyKind.Boneco || kind == EnemyKind.Mimico || kind == EnemyKind.Orc ? StabStyle.Embed : StabStyle.Skewer;
+
+        public static bool CanPierce(WeaponKind kind) => kind == WeaponKind.Espada || kind == WeaponKind.Lanca || kind == WeaponKind.Adaga;
 
         public static bool CanStab(WeaponKind kind, float tipSpeed, float alignment, float contactDistanceFromTip) =>
             (kind == WeaponKind.Espada || kind == WeaponKind.Lanca || kind == WeaponKind.Adaga) && tipSpeed >= MinSpeed && alignment >= MinAlignment && contactDistanceFromTip <= TipZone;
@@ -46,6 +48,32 @@ namespace Arena.Core
         public const float SlideFollow = 0.6f, SlideFollowOut = 0.35f;
         public const float SlideDrag = 9f;              // freio (1/s) no movimento da arma ao longo da lâmina enquanto atravessa
         public const float GuardGap = 0.15f;            // o inimigo para antes da guarda
+
+        // ---------- Penetração estilo Blade & Sorcery ----------
+        // A velocidade do impacto continua empurrando a lâmina para dentro e um amortecedor freia (golpe forte entra fundo).
+        public const float InitialVelocityMultiplier = 0.6f;
+        public const float PenetrationDamper = 9f;      // 1/s
+        // Pressão: ponta encostada empurrando devagar e alinhada também entra.
+        public const float PressureMinAxialSpeed = 0.25f, PressureMinAlignment = 0.75f, PressureHoldSeconds = 0.2f;
+        // Passar a ponta do centro do corpo = perfuração funda (dano extra uma vez); passar do outro lado = atravessou.
+        public const float DeepDamageMultiplier = 0.6f;
+        // Corpo morto pendurado na lâmina: mais leve que o ragdoll normal (senão a espada vai ao chão), freio ao deslizar e
+        // a junta quebra numa sacudida de ~PinnedBreakG vezes o peso.
+        public const float PinnedCorpseMassScale = 0.35f, PinnedSlideDamper = 25f, PinnedBreakG = 6f;
+
+        public static float ClampZ(float z, float enemyRadius, float bladeLength) =>
+            Math.Max(GuardGap + enemyRadius * 0.6f, Math.Min(z, bladeLength + enemyRadius));
+
+        // Avança a penetração por um passo: devolve o novo z e a nova velocidade de penetração.
+        public static (float z, float vp) Penetrate(float z, float vp, float dt, float enemyRadius, float bladeLength)
+        {
+            z = ClampZ(z - vp * dt, enemyRadius, bladeLength);
+            vp *= (float)Math.Exp(-PenetrationDamper * dt);
+            return (z, vp);
+        }
+
+        public static bool IsDeep(float z, float bladeLength) => z <= bladeLength;                       // a ponta passou do centro
+        public static bool IsThrough(float z, float enemyRadius, float bladeLength) => z <= bladeLength - enemyRadius;   // saiu do outro lado
 
         // Nova posição (ao longo da lâmina, a partir da mão) do centro do inimigo espetado.
         // zPrev = onde estava; zFree = onde estaria se não se mexesse no mundo (a lâmina andou por baixo dele).

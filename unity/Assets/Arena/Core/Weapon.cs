@@ -70,6 +70,7 @@ namespace Arena.Core
         public const float MaxAcceleration = 600f;     // m/s²: limite da mola (evita explodir contra paredes)
         public const float SnapDistance = 1.2f;        // presa longe da mão por muito tempo (e sem parede no meio) = volta para a mão
         public const float SnapSeconds = 1f;
+        public const float ThrowMinHandSpeed = 2f;     // soltar o grip com a mão mais rápida que isso arremessa; mais devagar, só larga
         public const float GhostHandDistance = 0.08f;  // a partir daqui mostra a mão fantasma
 
         // Massa em kg (peso real aproximado; o "Weight" do WeaponDef é a escala de jogo usada no FollowRate).

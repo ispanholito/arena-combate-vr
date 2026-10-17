@@ -21,7 +21,7 @@ namespace Arena.Core
 
         // Quanto calor/carga cada fonte põe.
         public const float FireballHeat = 45f;       // ~3 bolas de fogo para acender; enraizado acende na hora
-        public const float BeamCharge = 40f;         // 3 raios seguidos eletrocutam
+        public const float BeamCharge = 20f;         // 5 raios seguidos eletrocutam (o raio atira 2x mais rápido desde 2026-10-17)
 
         public static float ElectrocuteDuration(EnemyMaterial m) => m switch
         {

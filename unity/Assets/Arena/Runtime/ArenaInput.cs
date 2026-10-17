@@ -14,6 +14,9 @@ namespace Arena
         // Controle esquerdo SEGURO na mão (não só conectado: largado na mesa conta como mão livre).
         public bool LeftControllerConnected { get; private set; }
         public bool LeftHandFree => Vr && !LeftControllerConnected;
+        // Controle direito na mão (mesma regra do esquerdo). Largou o controle = mão direita livre para os poderes.
+        public bool RightControllerHeld { get; private set; } = true;
+        public bool RightHandFree => Vr && !RightControllerHeld;
 
         public Vector2 Move, Look;
         public bool Dash, ToggleTree, SwitchWeapon, ShieldToggle, PausePressed;
@@ -21,13 +24,15 @@ namespace Arena
         public float TurnAxis;                     // giro suave (analógico direito com dois controles)
         public bool APressed, BPressed, BHeld, BReleased;
         public bool TriggerPressed, TriggerHeld, TriggerReleased, GripPressed, PickupPressed;   // pegar loot: grip (VR) ou E (desktop)
+        // Grip segurado (com folga: aperta acima de 55%, solta abaixo de 30%) — a arma fica na mão enquanto estiver apertado.
+        public bool GripHeld, LeftGripHeld, LeftGripPressed;
         public bool DesktopSwing, DesktopParry, DesktopThrust, DesktopThrustHeld, DesktopTwoHand;    // desktop: golpe animado / pose de aparo
         public bool DesktopLaser, DesktopSlam, DesktopPalm, DesktopDrink;
         public bool WeaponAbility;   // desktop: H solta a habilidade da arma (no VR é o gesto de erguer a arma)
         public bool MenuUp, MenuDown, MenuConfirm, MenuRespec;
         public Vector2 MousePointer;
 
-        bool trigWasHeld, snapReady = true, menuReady = true;
+        bool trigWasHeld, snapReady = true, menuReady = true, gripLatch, leftGripLatch;
         float stickHoldT; bool stickHoldFired;
 
         public void Update(bool xrActive, float dt)
@@ -51,6 +56,7 @@ namespace Arena
         {
             const OVRInput.Controller R = OVRInput.Controller.RTouch, L = OVRInput.Controller.LTouch;
             UpdateLeftInHand(dt);
+            UpdateRightInHand(dt);
             var rStick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, R);
 
             if (LeftControllerConnected)
@@ -90,6 +96,14 @@ namespace Arena
             TriggerPressed = TriggerHeld && !trigWasHeld; TriggerReleased = !TriggerHeld && trigWasHeld; trigWasHeld = TriggerHeld;
             GripPressed = OVRInput.GetDown(OVRInput.Button.PrimaryHandTrigger, R);
             PickupPressed = GripPressed;
+            float g = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, R);
+            if (g > 0.55f) gripLatch = true; else if (g < 0.3f) gripLatch = false;
+            GripHeld = gripLatch;
+            float lg = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, L);
+            bool lWas = leftGripLatch;
+            if (lg > 0.55f) leftGripLatch = true; else if (lg < 0.3f) leftGripLatch = false;
+            LeftGripHeld = leftGripLatch && LeftControllerConnected;
+            LeftGripPressed = LeftGripHeld && !lWas;
 
             // Menu da árvore: analógico direito para cima/baixo, A confirma, B respec
             MenuUp = rStick.y > 0.7f && menuReady; MenuDown = rStick.y < -0.7f && menuReady;
@@ -98,7 +112,25 @@ namespace Arena
         }
 
         // Usa o sensor da Meta que diz se o controle está na mão; o estado só muda depois de 0,2 s estável (evita piscar).
-        float inHandStableT;
+        float inHandStableT, rightInHandStableT;
+
+        void UpdateRightInHand(float dt)
+        {
+            bool raw = ControllerHeld(OVRInput.Hand.HandRight, OVRInput.Controller.RTouch, OVRInput.Controller.RHand);
+            if (raw == RightControllerHeld) { rightInHandStableT = 0f; return; }
+            rightInHandStableT += dt;
+            if (rightInHandStableT >= (raw ? 0.2f : 0.5f)) { RightControllerHeld = raw; rightInHandStableT = 0f; }
+        }
+
+        static bool ControllerHeld(OVRInput.Hand hand, OVRInput.Controller touch, OVRInput.Controller trackedHand)
+        {
+            var st = OVRInput.GetControllerIsInHandState(hand);
+            bool raw = st == OVRInput.ControllerInHandState.ControllerInHand
+                       || (st == OVRInput.ControllerInHandState.NoHand && OVRInput.GetControllerPositionTracked(touch));
+            if (!raw && OVRInput.IsControllerConnected(touch) && OVRInput.GetControllerPositionTracked(trackedHand))
+                raw = Vector3.Distance(OVRInput.GetLocalControllerPosition(trackedHand), OVRInput.GetLocalControllerPosition(touch)) < HeldHandDistance;
+            return raw;
+        }
         const float HeldHandDistance = 0.15f;
         void UpdateLeftInHand(float dt)
         {

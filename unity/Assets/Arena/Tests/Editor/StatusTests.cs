@@ -40,15 +40,15 @@ namespace Arena.Core.Tests
         public void Electrocute_StopsActing_LongerOnMetal_AndHasCooldown()
         {
             var g = new EnemyState(EnemyDef.Goblin);
-            for (int i = 0; i < 3; i++) g.Status.AddCharge(StatusRules.BeamCharge);
+            for (int i = 0; i < 5; i++) g.Status.AddCharge(StatusRules.BeamCharge);
             Assert.IsFalse(g.CanAct);
             Assert.Less(g.SpeedMultiplier, 0.3f);
             var orc = new EnemyState(EnemyDef.Orc);
-            for (int i = 0; i < 3; i++) orc.Status.AddCharge(StatusRules.BeamCharge);
+            for (int i = 0; i < 5; i++) orc.Status.AddCharge(StatusRules.BeamCharge);
             Assert.Greater(orc.Status.Electrocuted, g.Status.Electrocuted);
             Run(g, StatusRules.ElectrocuteSeconds + 0.1f);
             Assert.IsTrue(g.CanAct);
-            for (int i = 0; i < 3; i++) g.Status.AddCharge(StatusRules.BeamCharge);
+            for (int i = 0; i < 5; i++) g.Status.AddCharge(StatusRules.BeamCharge);
             Assert.AreEqual(0f, g.Status.Electrocuted);                // recarga: não trava para sempre
         }
 
@@ -56,7 +56,7 @@ namespace Arena.Core.Tests
         public void Boss_ResistsStatuses()
         {
             var k = new EnemyState(EnemyDef.ReiGoblin());
-            for (int i = 0; i < 3; i++) k.Status.AddCharge(StatusRules.BeamCharge);
+            for (int i = 0; i < 5; i++) k.Status.AddCharge(StatusRules.BeamCharge);
             Assert.AreEqual(0f, k.Status.Electrocuted);
         }
     }

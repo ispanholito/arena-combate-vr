@@ -5,7 +5,7 @@ using UnityEngine.XR.Hands;
 namespace Arena
 {
     // Mostra as mãos rastreadas (XR Hands) no jogo: uma esfera por articulação e um "osso" (cilindro) entre elas.
-    // Esquerda: aparece quando está livre (sem controle). Direita: só quando o controle direito foi largado.
+    // Cada mão aparece quando está livre (sem o controle nela).
     // Com o controle na mão a mão rastreada some (a arma tem a luva e o escudo fica na mão do controle).
     // Simples de propósito (primitivas); trocar por um modelo de mão com pele depois.
     [RequireComponent(typeof(ArenaPlayer))]
@@ -93,8 +93,7 @@ namespace Arena
                 foreach (var s in buffer) if (s.running) { hands = s; break; }
             }
             bool showLeft = hands != null && hands.leftHand.isTracked && player.Input.LeftHandFree;
-            bool showRight = hands != null && hands.rightHand.isTracked
-                             && OVRInput.GetControllerIsInHandState(OVRInput.Hand.HandRight) == OVRInput.ControllerInHandState.ControllerNotInHand;
+            bool showRight = hands != null && hands.rightHand.isTracked && player.Input.RightHandFree;
             Pose(left, showLeft ? hands.leftHand : default, showLeft);
             Pose(right, showRight ? hands.rightHand : default, showRight);
         }

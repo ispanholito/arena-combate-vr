@@ -67,7 +67,7 @@ namespace Arena
         {
             if (!anchorRight) return;
             bool vr = XRSettings.isDeviceActive;
-            SyncHand(rightHand, anchorRight, OVRInput.Controller.RTouch, vr && OVRInput.IsControllerConnected(OVRInput.Controller.RTouch));
+            SyncHand(rightHand, anchorRight, OVRInput.Controller.RTouch, vr && Input.RightControllerHeld && OVRInput.IsControllerConnected(OVRInput.Controller.RTouch));
             SyncHand(leftHand, anchorLeft, OVRInput.Controller.LTouch, vr && Input.LeftControllerConnected);
         }
 
@@ -96,6 +96,7 @@ namespace Arena
             if (!pauseMenu) pauseMenu = gameObject.AddComponent<PauseMenu>();
             if (!GetComponent<DungeonMap>()) gameObject.AddComponent<DungeonMap>();
             if (!GetComponent<HandVisual>()) gameObject.AddComponent<HandVisual>();   // mãos rastreadas visíveis
+            if (!GetComponent<EnemyGrabber>()) gameObject.AddComponent<EnemyGrabber>();   // agarrar inimigos com a mão vazia
             ResetCharacter(startClass);
             yaw = rigRoot.eulerAngles.y;
         }

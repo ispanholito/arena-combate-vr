@@ -5,28 +5,44 @@ using UnityEngine.XR.Hands;
 
 namespace Arena
 {
-    // Poderes da mão esquerda LIVRE (só com a mão rastreada, nunca com o controle na mão), qualquer classe:
+    // Poderes da mão LIVRE (só com a mão rastreada, nunca com o controle na mão), qualquer classe, nas DUAS mãos
+    // (desde 2026-10-17 a direita espelha a esquerda quando você larga o controle direito):
     //   apontar o indicador = raio do Freeza (como o Death Beam do anime: ponto vermelho carrega na ponta do dedo,
     //   raio fino e instantâneo na direção do dedo, atravessa 2; repete enquanto apontar),
     //   punho indo rápido para frente = soco (um inimigo um pouco além do braço, forte, recarga de 1 s),
-    //   palma aberta em movimento rápido = corte da palma. Palma aberta parada ficou livre para um poder futuro.
+    //   palma aberta em movimento rápido = corte da palma,
+    //   fechar a mão perto de um inimigo = AGARRAR (EnemyGrabber); abrir a mão solta/arremessa.
+    // Palma aberta parada ficou livre para um poder futuro.
     // O golpe no chão (atordoar em área) está guardado em GroundSlam() para uma habilidade futura.
-    // Sinais de mão (HandSignArming, no Core) existem mas não são usados aqui: ficam para habilidades futuras.
     // Desktop (sem mãos): Z raio (segurar), X soco, C palma — só com o escudo nas costas (F).
+    // (O nome da classe ficou "LeftHandPowers" para não quebrar as cenas.)
     [RequireComponent(typeof(ArenaPlayer))]
     public sealed class LeftHandPowers : MonoBehaviour
     {
-        public HandShape CurrentShape { get; private set; }
-        public bool HandTracked { get; private set; }
-        HandShape lastShape;
-        float shapeT;
+        // Mão esquerda (compatibilidade com HUD e duas mãos).
+        public HandShape CurrentShape => left.Shape;
+        public bool HandTracked => left.Tracked;
+        public HandShape RightShape => right.Shape;
+        public bool RightTracked => right.Tracked;
 
+        sealed class Hand
+        {
+            public bool IsRight;
+            public bool Tracked;
+            public HandShape Shape, LastShape;
+            public float ShapeT;
+            public Vector3 WristPrev, WristVel, WristLocalPrev;
+            public bool HadWrist;
+            public float BeamCharge, GunCooldown;
+            public Transform ChargeDot;
+            public bool WasFist;
+            public float OpenT;
+        }
+
+        readonly Hand left = new Hand(), right = new Hand { IsRight = true };
         ArenaPlayer player;
         XRHandSubsystem hands;
         static readonly List<XRHandSubsystem> buffer = new List<XRHandSubsystem>();
-        float gunCooldown;
-        Vector3 wristPrev, wristVel, wristLocalPrev;
-        bool hadWrist;
         Material bulletMat;
 
         void Awake()
@@ -39,11 +55,29 @@ namespace Arena
         {
             if (ArenaGame.Blocked) return;
             float dt = Time.deltaTime;
-            gunCooldown -= dt;
-            if (player.IsVr) TrackHand(dt); else HandTracked = false;
+            left.GunCooldown -= dt; right.GunCooldown -= dt;
+            if (player.IsVr)
+            {
+                if (hands == null || !hands.running)
+                {
+                    SubsystemManager.GetSubsystems(buffer);
+                    hands = null;
+                    foreach (var s in buffer) if (s.running) { hands = s; break; }
+                }
+                Track(left, dt); Track(right, dt);
+            }
+            else { left.Tracked = right.Tracked = false; }
             if (player.TreeOpen) return;
-            if (player.IsVr) VrPowers(); else Desktop();
+            if (player.IsVr)
+            {
+                bool leftFree = player.Input.LeftHandFree && !(player.Weapon && player.Weapon.TwoHanded);
+                Powers(left, leftFree, dt);
+                Powers(right, player.Input.RightHandFree, dt);
+            }
+            else Desktop();
         }
+
+        XRHand Get(Hand h) => h.IsRight ? hands.rightHand : hands.leftHand;
 
         bool ShieldInHand => player.Shield && player.Shield.Equipped;
 
@@ -56,79 +90,95 @@ namespace Arena
                 return;
             }
             var cam = player.Head;
-            if (player.Input.DesktopLaser) Fire(cam.position + cam.right * -0.2f + cam.up * -0.25f, cam.forward);
-            if (player.Input.DesktopSlam) Punch(cam.position + cam.right * -0.2f + cam.up * -0.2f + player.HeadForward * 0.3f, player.HeadForward);
+            if (player.Input.DesktopLaser) Fire(left, cam.position + cam.right * -0.2f + cam.up * -0.25f, cam.forward);
+            if (player.Input.DesktopSlam) Punch(cam.position + cam.right * -0.2f + cam.up * -0.2f + player.HeadForward * 0.3f, player.HeadForward, false);
             if (player.Input.DesktopPalm) Palm(cam.position + player.HeadForward * 0.4f, cam.right * -4f);
         }
 
-        void TrackHand(float dt)
+        void Track(Hand h, float dt)
         {
-            if (hands == null || !hands.running)
+            h.Tracked = hands != null && Get(h).isTracked;
+            var shape = HandShape.Nenhuma;
+            if (h.Tracked)
             {
-                SubsystemManager.GetSubsystems(buffer);
-                hands = null;
-                foreach (var s in buffer) if (s.running) { hands = s; break; }
-            }
-            HandTracked = hands != null && hands.leftHand.isTracked;
-            CurrentShape = HandShape.Nenhuma;
-            if (HandTracked)
-            {
-                var h = hands.leftHand;
-                CurrentShape = Detect(h);
-                if (World(h, XRHandJointID.Wrist, out var wrist))
+                var xh = Get(h);
+                shape = Detect(xh);
+                if (World(xh, XRHandJointID.Wrist, out var wrist))
                 {
                     // Velocidade relativa ao corpo: andar, esquivar ou girar não conta como mover a mão.
                     var local = player.trackingSpace.InverseTransformPoint(wrist);
-                    if (hadWrist && dt > 0f) wristVel = player.trackingSpace.TransformDirection((local - wristLocalPrev) / dt);
-                    wristLocalPrev = local; wristPrev = wrist; hadWrist = true;
+                    if (h.HadWrist && dt > 0f) h.WristVel = player.trackingSpace.TransformDirection((local - h.WristLocalPrev) / dt);
+                    h.WristLocalPrev = local; h.WristPrev = wrist; h.HadWrist = true;
                 }
             }
-            else hadWrist = false;
-            if (CurrentShape == lastShape) shapeT += dt; else { lastShape = CurrentShape; shapeT = 0f; }
+            else h.HadWrist = false;
+            h.Shape = shape;
+            if (h.Shape == h.LastShape) h.ShapeT += dt; else { h.LastShape = h.Shape; h.ShapeT = 0f; }
         }
 
-        void VrPowers()
+        void Powers(Hand h, bool free, float dt)
         {
-            if (player.Weapon && player.Weapon.TwoHanded) return;   // mão ocupada segurando a arma
-            if (!HandTracked || !player.Input.LeftHandFree) return;
-            var hand = hands.leftHand;
-            // Soco: punho fechado indo rápido para frente (na direção em que você olha, no plano do chão).
-            var flatVel = wristVel.Flat();
-            if (CurrentShape == HandShape.Punho && flatVel.magnitude > HandPowers.PunchMinSpeed
-                && Vector3.Dot(flatVel.normalized, player.HeadForward) > 0.5f)
+            var grabber = EnemyGrabber.Instance;
+            int side = h.IsRight ? 1 : 0;
+            if (!free || !h.Tracked)
             {
-                Punch(wristPrev, wristVel.normalized);
+                h.BeamCharge = 0f; ChargeDot(h, Vector3.zero, -1f);
+                if (grabber && grabber.HoldingWithTrackedHand(side)) grabber.Release(side, Vector3.zero);
+                h.WasFist = false;
+                return;
             }
-            // Palma aberta rápida = corte.
-            float handSpeed = wristVel.magnitude;
-            if (CurrentShape == HandShape.Aberta && shapeT > 0.1f && handSpeed > HandPowers.PalmMinSpeed) Palm(wristPrev, wristVel);
-            // Apontar o indicador = raio do Freeza: carrega um ponto vermelho na ponta do dedo e dispara.
-            if (CurrentShape == HandShape.Apontar && IndexAim(hand, out var origin, out var dir))
-            {
-                beamCharge += Time.deltaTime;
-                ChargeDot(origin, Mathf.Clamp01(beamCharge / HandPowers.BeamChargeSeconds));
-                if (beamCharge >= HandPowers.BeamChargeSeconds && gunCooldown <= 0f) Fire(origin, dir);
-            }
-            else { beamCharge = 0f; ChargeDot(Vector3.zero, -1f); }
-        }
+            var xh = Get(h);
+            bool fist = h.Shape == HandShape.Punho;
+            bool hasPalm = World(xh, XRHandJointID.Palm, out var palm);
 
-        float beamCharge;
-        Transform chargeDot;
+            // Agarrar: fechou a mão perto de um inimigo. Enquanto fechada segura; abriu (0,12 s) solta com a velocidade da mão.
+            if (grabber && hasPalm)
+            {
+                if (grabber.Holding(side))
+                {
+                    if (fist) { h.OpenT = 0f; grabber.Hold(side, palm); }
+                    else
+                    {
+                        h.OpenT += dt;
+                        if (h.OpenT > 0.12f) grabber.Release(side, h.WristVel);
+                    }
+                    h.WasFist = fist;
+                    return;   // segurando alguém: sem outros poderes nesta mão
+                }
+                if (fist && !h.WasFist && grabber.TryGrab(side, palm, tracked: true)) { h.WasFist = true; h.OpenT = 0f; return; }
+            }
+            h.WasFist = fist;
+
+            // Soco: punho fechado indo rápido para frente (na direção em que você olha, no plano do chão).
+            var flatVel = h.WristVel.Flat();
+            if (fist && flatVel.magnitude > HandPowers.PunchMinSpeed && Vector3.Dot(flatVel.normalized, player.HeadForward) > 0.5f)
+                Punch(h.WristPrev, h.WristVel.normalized, h.IsRight);
+            // Palma aberta rápida = corte.
+            if (h.Shape == HandShape.Aberta && h.ShapeT > 0.1f && h.WristVel.magnitude > HandPowers.PalmMinSpeed) Palm(h.WristPrev, h.WristVel);
+            // Apontar o indicador = raio do Freeza: carrega um ponto vermelho na ponta do dedo e dispara.
+            if (h.Shape == HandShape.Apontar && IndexAim(xh, out var origin, out var dir))
+            {
+                h.BeamCharge += dt;
+                ChargeDot(h, origin, Mathf.Clamp01(h.BeamCharge / HandPowers.BeamChargeSeconds));
+                if (h.BeamCharge >= HandPowers.BeamChargeSeconds && h.GunCooldown <= 0f) Fire(h, origin, dir);
+            }
+            else { h.BeamCharge = 0f; ChargeDot(h, Vector3.zero, -1f); }
+        }
 
         // Ponto que carrega na ponta do dedo (k 0..1; negativo esconde).
-        void ChargeDot(Vector3 at, float k)
+        void ChargeDot(Hand h, Vector3 at, float k)
         {
-            if (k < 0f) { if (chargeDot) chargeDot.gameObject.SetActive(false); return; }
-            if (!chargeDot)
+            if (k < 0f) { if (h.ChargeDot) h.ChargeDot.gameObject.SetActive(false); return; }
+            if (!h.ChargeDot)
             {
-                chargeDot = ArenaUtil.Prim(PrimitiveType.Sphere, null, at, Vector3.one * 0.02f, ArenaUtil.Unlit(new Color(1f, 0.85f, 0.8f))).transform;
-                ArenaUtil.Prim(PrimitiveType.Sphere, chargeDot, Vector3.zero, Vector3.one * 2.2f, ArenaUtil.Unlit(new Color(1f, 0.08f, 0.12f, 0.45f)));
-                foreach (var c in chargeDot.GetComponentsInChildren<Collider>()) Destroy(c);
+                h.ChargeDot = ArenaUtil.Prim(PrimitiveType.Sphere, null, at, Vector3.one * 0.02f, ArenaUtil.Unlit(new Color(1f, 0.85f, 0.8f))).transform;
+                ArenaUtil.Prim(PrimitiveType.Sphere, h.ChargeDot, Vector3.zero, Vector3.one * 2.2f, ArenaUtil.Unlit(new Color(1f, 0.08f, 0.12f, 0.45f)));
+                foreach (var c in h.ChargeDot.GetComponentsInChildren<Collider>()) Destroy(c);
             }
-            chargeDot.gameObject.SetActive(true);
-            chargeDot.position = at;
+            h.ChargeDot.gameObject.SetActive(true);
+            h.ChargeDot.position = at;
             float pulse = 1f + 0.15f * Mathf.Sin(Time.time * 60f);
-            chargeDot.localScale = Vector3.one * Mathf.Lerp(0.006f, 0.022f, k) * pulse;
+            h.ChargeDot.localScale = Vector3.one * Mathf.Lerp(0.006f, 0.022f, k) * pulse;
         }
 
         // Mira pelo indicador (da base até a ponta), saindo da ponta do dedo.
@@ -143,25 +193,13 @@ namespace Arena
             return true;
         }
 
-        // Mira reta na direção dos dedos (do pulso para a ponta do dedo médio), saindo da ponta dos dedos.
-        bool PalmAim(XRHand hand, out Vector3 origin, out Vector3 dir)
-        {
-            origin = dir = default;
-            if (!World(hand, XRHandJointID.Wrist, out var w) || !World(hand, XRHandJointID.MiddleTip, out var tip)) return false;
-            var d = tip - w;
-            if (d.sqrMagnitude < 1e-4f) return false;
-            dir = d.normalized;
-            origin = tip;
-            return true;
-        }
-
         // ---------- Poderes ----------
         // Raio do Freeza: instantâneo, fino e brilhante; atravessa até 2 inimigos e para na parede.
-        void Fire(Vector3 origin, Vector3 dir)
+        void Fire(Hand h, Vector3 origin, Vector3 dir)
         {
-            if (gunCooldown > 0f) return;
+            if (h.GunCooldown > 0f) return;
             if (!player.State.TryBeam()) { ArenaGame.Instance?.Message("Sem mana", 0.6f); return; }
-            gunCooldown = HandPowers.BeamInterval;
+            h.GunCooldown = HandPowers.BeamInterval;
             dir.Normalize();
             // Até onde vai: parede ou chão.
             float len = 0f;
@@ -194,6 +232,8 @@ namespace Arena
             ArenaAudio.Play(Sfx.Ice, end, 0.4f, 1.6f);
         }
 
+        void Fire(Vector3 origin, Vector3 dir) => Fire(left, origin, dir);
+
         void BeamVisual(Vector3 from, Vector3 to)
         {
             var len = Vector3.Distance(from, to);
@@ -212,7 +252,7 @@ namespace Arena
         }
 
         // Soco: um inimigo à frente do punho, até um pouco além do braço. Forte e de recarga baixa.
-        bool Punch(Vector3 hand, Vector3 dir)
+        bool Punch(Vector3 hand, Vector3 dir, bool rightHand)
         {
             ArenaEnemy target = null; float best = float.MaxValue;
             foreach (var e in ArenaEnemy.All)
@@ -229,7 +269,7 @@ namespace Arena
             ArenaFx.Burst(at, new Color(1f, 0.82f, 0.56f), 16, 3.5f, 1.2f);
             ArenaFx.Ring(at, new Color(1f, 0.85f, 0.6f), 0.5f, 0.2f);
             ArenaAudio.Play(Sfx.Impact, at, 1f, 1.2f);
-            ArenaInput.Haptic(0.9f, 0.08f, left: true);
+            ArenaInput.Haptic(0.9f, 0.08f, left: !rightHand);
             return true;
         }
 
@@ -268,7 +308,7 @@ namespace Arena
         public bool TryGetPalm(out Vector3 pos)
         {
             pos = default;
-            return HandTracked && hands != null && World(hands.leftHand, XRHandJointID.Palm, out pos);
+            return left.Tracked && hands != null && World(hands.leftHand, XRHandJointID.Palm, out pos);
         }
 
         bool World(XRHand hand, XRHandJointID id, out Vector3 world)

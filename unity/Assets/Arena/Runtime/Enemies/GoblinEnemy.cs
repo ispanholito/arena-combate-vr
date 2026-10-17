@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Arena.Core;
 using UnityEngine;
 
@@ -48,22 +49,28 @@ namespace Arena
             var cloth = ArenaUtil.Lit(king ? new Color(0.35f, 0.12f, 0.12f) : new Color(0.35f, 0.25f, 0.16f));
             ArenaUtil.Prim(PrimitiveType.Cylinder, model, new Vector3(0, 0.55f, 0), new Vector3(0.5f, 0.35f, 0.5f), cloth);
             var head = ArenaUtil.Prim(PrimitiveType.Sphere, model, new Vector3(0, 1.02f, 0), Vector3.one * 0.4f, skinMat).transform;
+            headParts.Clear();
+            headParts.Add(head);
             var eye = ArenaUtil.Lit(new Color(1f, 0.88f, 0.29f), new Color(0.6f, 0.5f, 0.1f));
             foreach (int s in new[] { -1, 1 })
             {
                 var ear = ArenaUtil.Prim(PrimitiveType.Capsule, model, new Vector3(s * 0.24f, 1.08f, 0), new Vector3(0.07f, 0.14f, 0.07f), skinMat).transform;
                 ear.localRotation = Quaternion.Euler(0, 0, -s * 65f);
-                ArenaUtil.Prim(PrimitiveType.Sphere, model, new Vector3(s * 0.08f, 1.06f, 0.17f), Vector3.one * 0.07f, eye);
+                headParts.Add(ear);
+                headParts.Add(ArenaUtil.Prim(PrimitiveType.Sphere, model, new Vector3(s * 0.08f, 1.06f, 0.17f), Vector3.one * 0.07f, eye).transform);
             }
             if (king)
-                ArenaUtil.Prim(PrimitiveType.Cylinder, model, new Vector3(0, 1.2f, 0), new Vector3(0.3f, 0.05f, 0.3f),
-                               ArenaUtil.Lit(new Color(0.88f, 0.69f, 0.19f), new Color(0.23f, 0.16f, 0f)));
+                headParts.Add(ArenaUtil.Prim(PrimitiveType.Cylinder, model, new Vector3(0, 1.2f, 0), new Vector3(0.3f, 0.05f, 0.3f),
+                               ArenaUtil.Lit(new Color(0.88f, 0.69f, 0.19f), new Color(0.23f, 0.16f, 0f))).transform);
             arm = new GameObject("Braco").transform;
             arm.SetParent(model, false);
             arm.localPosition = new Vector3(0.28f, 0.85f, 0f);
             clubMat = ArenaUtil.Lit(clubColor);
             ArenaUtil.Prim(PrimitiveType.Cylinder, arm, new Vector3(0, 0.45f, 0), new Vector3(0.14f, 0.4f, 0.14f), clubMat);
         }
+
+        protected readonly List<Transform> headParts = new List<Transform>();
+        protected override List<Transform> HeadParts => headParts;
 
         // Ganchos para variações (esqueleto sem braço não ataca, sem cabeça gira devagar e demora mais).
         protected virtual bool CanAttackNow => true;

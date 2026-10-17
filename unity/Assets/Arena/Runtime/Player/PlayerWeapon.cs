@@ -85,6 +85,7 @@ namespace Arena
         // Prende a arma ao pulso: alinha os dois na pose da mão e cria a junta (a rotação-alvo da junta é relativa à pose inicial).
         void Attach()
         {
+            UnpinCorpse();
             ReleaseStab(false);
             ReleaseSecondHand();
             mode = Mode.Held;
@@ -272,16 +273,29 @@ namespace Arena
         }
 
         // ---------- Arremessar / chamar de volta ----------
-        public void Throw(Vector3 velocity)
+        public bool Recalling => mode == Mode.Recalling;
+
+        // drop = soltou o grip (VR): devagar só cai da mão; rápido arremessa na direção da mão.
+        public void Throw(Vector3 velocity, bool drop = false)
         {
             if (!Held) return;
             ReleaseStab(false);
             ReleaseSecondHand();
             mode = Mode.Thrown;
             if (joint) Destroy(joint);
-            var v = velocity.magnitude < 3f ? player.HeadForward * 9f + Vector3.up * 2f : velocity * 1.6f;
+            var v = drop ? (velocity.magnitude < WeaponPhysics.ThrowMinHandSpeed ? velocity : velocity * 1.6f)
+                  : velocity.magnitude < 3f ? player.HeadForward * 9f + Vector3.up * 2f : velocity * 1.6f;
             body.linearVelocity = v;
             body.angularVelocity = visual.right * 15f;
+        }
+
+        // Soltou o grip enquanto a arma vinha voando: ela cai onde está.
+        public void CancelRecall()
+        {
+            if (mode != Mode.Recalling) return;
+            mode = Mode.Thrown;
+            body.isKinematic = false;
+            body.linearVelocity = Vector3.zero;
         }
 
         public void Recall()
@@ -376,6 +390,7 @@ namespace Arena
             }
             lastTipSpeed = TipSpeed;
 
+            if (pinnedCorpse || pinJoint) UpdatePin();
             if (Stuck) UpdateStab(dt);
             else if (TipSpeed > Combat.MinSwingSpeed) CheckHits();
             hapticCd -= dt;
@@ -506,6 +521,86 @@ namespace Arena
         float skewerT, skewerCenterY, skewerHapticCd;
         Vector3 skewerLocal;   // centro do inimigo no espaço da arma (z = ao longo da lâmina)
         Vector3 skewerWorld;   // centro do inimigo no mundo no quadro anterior
+        float skewerVp, stabSpeed;   // velocidade de penetração (m/s, diminui com o amortecedor) e da estocada
+        bool skewerDeep, skewerThrough;
+        float pressureT;
+        ArenaEnemy pressureEnemy;
+
+        public bool IsSkewering(ArenaEnemy e) => skewered && skewered == e;
+        // Ponto da lâmina dentro do corpo onde o cadáver fica preso (na linha da lâmina, antes da ponta).
+        public Vector3 SkewerWorldPoint => visual.TransformPoint(new Vector3(0f, 0f, Mathf.Min(skewerLocal.z, Def.Length - 0.08f)));
+
+        // Pressão (B&S): ponta encostada no inimigo, empurrando devagar ao longo da lâmina, também fura.
+        public void OnContactStay(Collision c)
+        {
+            if (mode != Mode.Held || Stuck || c.contactCount == 0) { pressureT = 0f; return; }
+            var enemy = c.collider.GetComponentInParent<ArenaEnemy>();
+            if (!enemy || enemy.Dead || !enemy.Body || !StabRules.CanPierce(Def.Kind)) { pressureT = 0f; return; }
+            var contact = c.GetContact(0).point;
+            var bladeDir = visual.forward;
+            float fromTip = Vector3.Distance(contact, visual.TransformPoint(new Vector3(0, 0, Def.Length)));
+            enemy.BodyAxis(out var a, out var b);
+            var ab = b - a;
+            var closest = a + ab * Mathf.Clamp01(Vector3.Dot(contact - a, ab) / Mathf.Max(ab.sqrMagnitude, 1e-6f));
+            var into = closest - contact;
+            float align = into.sqrMagnitude > 1e-6f ? Vector3.Dot(bladeDir, into.normalized) : 1f;
+            float axial = Vector3.Dot(physTipVel, bladeDir);
+            if (fromTip <= StabRules.TipZone && axial >= StabRules.PressureMinAxialSpeed && align >= StabRules.PressureMinAlignment)
+            {
+                if (pressureEnemy != enemy) { pressureEnemy = enemy; pressureT = 0f; }
+                pressureT += Time.fixedDeltaTime;
+                if (pressureT >= StabRules.PressureHoldSeconds) { pressureT = 0f; TryStab(enemy, c, pressure: true); }
+            }
+            else pressureT = 0f;
+        }
+
+        // ---------- Corpo preso na lâmina (B&S) ----------
+        // O inimigo morto espetado vira ragdoll pendurado na espada: uma junta prende uma parte do corpo à lâmina, livre
+        // para deslizar AO LONGO dela (com freio) e girar. Sai puxando até passar da ponta ou com uma sacudida forte (a junta quebra).
+        RagdollCorpse pinnedCorpse;
+        Rigidbody pinBody;
+        ConfigurableJoint pinJoint;
+
+        public void PinCorpse(RagdollCorpse corpse, Vector3 point)
+        {
+            if (!corpse || mode != Mode.Held) return;
+            var rb = corpse.NearestBody(point);
+            if (!rb) return;
+            UnpinCorpse();
+            corpse.ScaleMass(StabRules.PinnedCorpseMassScale);
+            foreach (var wc in visual.GetComponents<Collider>())
+                foreach (var cc in corpse.GetComponentsInChildren<Collider>()) Physics.IgnoreCollision(wc, cc, true);
+            var j = rb.gameObject.AddComponent<ConfigurableJoint>();
+            j.connectedBody = body;
+            j.autoConfigureConnectedAnchor = false;
+            j.anchor = rb.transform.InverseTransformPoint(point);
+            j.connectedAnchor = visual.InverseTransformPoint(point);
+            j.axis = rb.transform.InverseTransformDirection(visual.right);
+            j.secondaryAxis = rb.transform.InverseTransformDirection(visual.up);
+            j.xMotion = j.yMotion = ConfigurableJointMotion.Locked;
+            j.zMotion = ConfigurableJointMotion.Free;   // desliza ao longo da lâmina
+            j.angularXMotion = j.angularYMotion = j.angularZMotion = ConfigurableJointMotion.Free;
+            j.zDrive = new JointDrive { positionSpring = 0f, positionDamper = corpse.TotalMass * StabRules.PinnedSlideDamper, maximumForce = float.MaxValue };
+            j.enablePreprocessing = false;
+            j.breakForce = corpse.TotalMass * 9.81f * StabRules.PinnedBreakG;
+            corpse.Pinned = true;
+            pinnedCorpse = corpse; pinBody = rb; pinJoint = j;
+        }
+
+        void UpdatePin()
+        {
+            if (!pinnedCorpse) { pinnedCorpse = null; pinJoint = null; return; }
+            if (!pinJoint || !pinBody) { UnpinCorpse(); return; }   // a junta quebrou (sacudida forte)
+            var anchorWorld = pinBody.transform.TransformPoint(pinJoint.anchor);
+            if (visual.InverseTransformPoint(anchorWorld).z > Def.Length + 0.04f) UnpinCorpse();   // escorregou pela ponta
+        }
+
+        void UnpinCorpse()
+        {
+            if (pinJoint) Destroy(pinJoint);
+            if (pinnedCorpse) { pinnedCorpse.Pinned = false; pinnedCorpse.ScaleMass(1f / StabRules.PinnedCorpseMassScale); }
+            pinnedCorpse = null; pinJoint = null; pinBody = null;
+        }
         float skewerCenterFromTip => Def.Length - skewerLocal.z;
         ArenaEnemy embeddedIn;
         Vector3 embedLocalPos;
@@ -513,7 +608,7 @@ namespace Arena
         public float PullProgress { get; private set; }   // 0..1 ao arrancar a espada cravada
         public bool Embedded => mode == Mode.Embedded;
 
-        bool TryStab(ArenaEnemy enemy, Collision c)
+        bool TryStab(ArenaEnemy enemy, Collision c, bool pressure = false)
         {
             if (mode != Mode.Held || Stuck || enemy.Dead || !enemy.Body || c.contactCount == 0) return false;
             var contact = c.GetContact(0).point;
@@ -523,7 +618,9 @@ namespace Arena
             float alignment = speed > 0.01f ? Vector3.Dot(bladeDir, physTipVel / speed) : 0f;
             float fromTip = Vector3.Distance(contact, visual.TransformPoint(new Vector3(0, 0, Def.Length)));
             if (DebugStab) Debug.Log($"[Cravar] vel={speed:0.0} alinh={alignment:0.00} distPonta={fromTip:0.00}");
-            if (!StabRules.CanStab(Def.Kind, speed, alignment, fromTip)) return false;
+            if (pressure ? !(StabRules.CanPierce(Def.Kind) && fromTip <= StabRules.TipZone)
+                         : !StabRules.CanStab(Def.Kind, speed, alignment, fromTip)) return false;
+            if (pressure) speed = Mathf.Max(speed, StabRules.MinSpeed);   // empurrão lento: dano de uma estocada fraca
 
             ReleaseSecondHand();
             foreach (var col in visual.GetComponents<Collider>()) Physics.IgnoreCollision(col, enemy.BodyCollider, true);
@@ -536,6 +633,10 @@ namespace Arena
             {
                 skewered = enemy;
                 skewerT = 0f;
+                // A velocidade do impacto continua empurrando a lâmina para dentro (pressão: entra devagar).
+                skewerVp = pressure ? 0.15f : speed * StabRules.InitialVelocityMultiplier;
+                skewerDeep = skewerThrough = false;
+                stabSpeed = speed;
                 skewerCenterY = enemy.Center.y - enemy.transform.position.y;
                 // Começa onde ele está: a lâmina vai entrando conforme você empurra (sem puxar o inimigo para a lâmina).
                 skewerLocal = visual.InverseTransformPoint(enemy.Center);
@@ -590,6 +691,22 @@ namespace Arena
             var free = visual.InverseTransformPoint(skewerWorld);
             float zPrev = skewerLocal.z;
             skewerLocal.z = StabRules.SlideZ(zPrev, free.z, e.Radius, Def.Length);
+            (skewerLocal.z, skewerVp) = StabRules.Penetrate(skewerLocal.z, skewerVp, dt, e.Radius, Def.Length);
+            if (!skewerDeep && StabRules.IsDeep(skewerLocal.z, Def.Length))
+            {
+                skewerDeep = true;
+                e.ApplyDamage(StabRules.StabDamage(stabSpeed, Def, true, true) * StabRules.DeepDamageMultiplier, 0.3f, null, 0f, new Color(0.9f, 0.15f, 0.2f), canCrit: false);
+                ArenaFx.FloatText("FUNDO!", e.Center + Vector3.up * 0.55f, new Color(1f, 0.4f, 0.4f), 0.9f);
+                ArenaInput.Haptic(0.8f, 0.08f);
+                if (!skewered) return;
+            }
+            if (!skewerThrough && StabRules.IsThrough(skewerLocal.z, e.Radius, Def.Length))
+            {
+                skewerThrough = true;
+                ArenaFx.FloatText("ATRAVESSOU!", e.Center + Vector3.up * 0.75f, new Color(1f, 0.3f, 0.3f), 1f);
+                ArenaFx.Burst(visual.TransformPoint(new Vector3(0, 0, Def.Length)), new Color(0.7f, 0.12f, 0.16f), 12, 2.5f);
+                ArenaInput.Haptic(1f, 0.1f);
+            }
             // Para os lados ele vai junto com a lâmina; o desvio do centro some devagar (a lâmina "acha" o meio).
             float decay = Mathf.Clamp01(1f - dt * 1.5f);
             skewerLocal.x *= decay; skewerLocal.y *= decay;
@@ -728,5 +845,6 @@ namespace Arena
         PlayerWeapon owner;
         public void Init(PlayerWeapon w) => owner = w;
         void OnCollisionEnter(Collision c) { if (owner) owner.OnImpact(c); }
+        void OnCollisionStay(Collision c) { if (owner) owner.OnContactStay(c); }
     }
 }
