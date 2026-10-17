@@ -38,6 +38,20 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void SpeedScaling_RewardsFastHeavyAndThrusts()
+        {
+            Assert.AreEqual(1f, DamageTypes.SpeedScaling(DamageType.Corte, 9f));               // espada constante
+            Assert.Greater(DamageTypes.SpeedScaling(DamageType.Contusao, 9f), 1.3f);          // maça rápida
+            Assert.Less(DamageTypes.SpeedScaling(DamageType.Contusao, 3f), 1f);               // maça lenta
+            Assert.Greater(DamageTypes.SpeedScaling(DamageType.Perfuracao, 9f), DamageTypes.SpeedScaling(DamageType.CorteMachado, 9f));
+            Assert.AreEqual(1f, DamageTypes.SpeedScaling(DamageType.Contusao, 9f, flatHit: true));   // de chapa não ganha
+            Assert.AreEqual(1f, DamageTypes.SpeedScaling(DamageType.Perfuracao, DamageTypes.SpeedReference), 1e-4);
+            Assert.AreEqual(3f, DamageTypes.ThrownMultiplier(WeaponKind.Adaga, DamageType.Corte));
+            Assert.AreEqual(1.5f, DamageTypes.ThrownMultiplier(WeaponKind.Lanca, DamageType.Perfuracao));
+            Assert.AreEqual(1f, DamageTypes.ThrownMultiplier(WeaponKind.Maca, DamageType.Contusao));
+        }
+
+        [Test]
         public void Knockout_And_FatalStab_Rules()
         {
             Assert.IsTrue(DamageTypes.Knocksout(EnemyKind.Goblin, DamageType.Contusao, true, 5f));

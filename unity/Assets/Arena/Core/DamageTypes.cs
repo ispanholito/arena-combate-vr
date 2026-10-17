@@ -75,6 +75,23 @@ namespace Arena.Core
             _ => 1f,
         };
 
+        // Quanto o tipo de golpe ganha com a velocidade (sobre a fórmula base, neutro a 5 m/s). Corte é constante;
+        // corte de machado, pancada de maça e estocada premiam o golpe rápido e punem o lento (como no B&S, mais suave).
+        public const float SpeedReference = 5f;
+        public static float SpeedGain(DamageType t) => t switch
+        {
+            DamageType.CorteMachado => 0.08f,
+            DamageType.Contusao => 0.12f,
+            DamageType.Perfuracao => 0.15f,
+            _ => 0f,
+        };
+        public static float SpeedScaling(DamageType t, float speed, bool flatHit = false) =>
+            flatHit ? 1f : Math.Max(0.5f, 1f + SpeedGain(t) * (Math.Clamp(speed, 2f, 9f) - SpeedReference));
+
+        // Arma arremessada: adaga voa de ponta (x3), estocada arremessada x1,5; o resto bate normal.
+        public static float ThrownMultiplier(WeaponKind k, DamageType t) =>
+            k == WeaponKind.Adaga ? 3f : t == DamageType.Perfuracao ? 1.5f : 1f;
+
         // Nocaute: pancada forte na cabeça atordoa (o chefe não; ele usa a postura).
         public const float KnockoutMinSpeed = 4.5f, KnockoutSeconds = 1.3f;
         public static bool Knocksout(EnemyKind k, DamageType t, bool head, float speed) =>

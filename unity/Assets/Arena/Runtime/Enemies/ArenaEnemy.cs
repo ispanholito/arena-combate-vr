@@ -68,7 +68,7 @@ namespace Arena
                 ps.OnDealtDamage(kill.Amount, weapon);
                 return;
             }
-            float mat = MaterialFactor(DamageType.Perfuracao);
+            float mat = MaterialFactor(DamageType.Perfuracao) * DamageTypes.SpeedScaling(DamageType.Perfuracao, tipSpeed);
             var ev = ApplyDamage(StabRules.StabDamage(tipSpeed, weapon, Combat.SharpEdge(ps.Has(SkillIds.FioAfiado), weapon), hasSta)
                 * (head ? WeakPoints.HeadMultiplier : 1f) * mat * Combat.ExecuteMultiplier(weapon, State.HpFraction), 0.9f * weapon.PostureBonus, dir, 0f);
             ps.OnDealtDamage(ev.Amount, weapon);
@@ -197,7 +197,9 @@ namespace Arena
             var type = DamageTypes.Classify(weapon.Kind, edge, thrust);
             bool head = WeakPoints.IsHead(Def.Kind, heightFraction);
             dmg *= WeakPoints.Multiplier(Def.Kind, heightFraction) * MaterialFactor(type);
-            if (DamageTypes.IsFlatHit(weapon.Kind, type)) dmg *= DamageTypes.FlatHitMultiplier;   // de chapa
+            bool flat = DamageTypes.IsFlatHit(weapon.Kind, type);
+            if (flat) dmg *= DamageTypes.FlatHitMultiplier;   // de chapa
+            dmg *= DamageTypes.SpeedScaling(type, tipSpeed, flat);   // maça, machado e estocada premiam o golpe rápido
             if (head) HeadText();
             if (comboBreaker.RegisterHit(State.Posture.IsBroken)) { ComboBreak(); return true; }
             if (dmg <= 0f) return false;

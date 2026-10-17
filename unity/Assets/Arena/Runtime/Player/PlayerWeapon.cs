@@ -649,7 +649,9 @@ namespace Arena
                 float height = Geometry.ClosestParamOnSecond(strikeA.ToN(), strikeB.ToN(), a.ToN(), b.ToN());
                 // Estocada: a ponta vai na direção da lâmina (vira perfuração).
                 float thrust = TipSpeed > 0.01f ? Vector3.Dot(BladeDir, TipVelocity / TipSpeed) : 0f;
-                if (e.TakeMeleeHit(speed, edge, strikeVel, Def, player.State, TwoHandRules.DamageMultiplier(Def, TwoHanded), height, thrust))
+                float mult = TwoHandRules.DamageMultiplier(Def, TwoHanded);
+                if (Thrown) mult *= DamageTypes.ThrownMultiplier(Def.Kind, DamageTypes.Classify(Def.Kind, edge, thrust));   // adaga arremessada x3
+                if (e.TakeMeleeHit(speed, edge, strikeVel, Def, player.State, mult, height, thrust))
                 {
                     // Ponto do acerto na lâmina (para o esqueleto saber qual parte foi cortada).
                     float s = Geometry.ClosestParamOnSecond(a.ToN(), b.ToN(), strikeA.ToN(), strikeB.ToN());
