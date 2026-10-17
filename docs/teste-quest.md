@@ -9,6 +9,13 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000. NOVO — dano por tipo e material (estudo do B&S)
+- [ ] **Escolher a arma certa**: espada no esqueleto aparece "RESISTE (osso)", maça aparece "FRACO!" e mata rápido; no **orc** (armadura) a espada quase não entra e o **machado** resolve; estocada acha as frestas da armadura.
+- [ ] **Golpe de chapa** (lâmina de lado) com espada vira pancada fraca. Fica claro quando o golpe é bom?
+- [ ] **Partes do corpo**: cabeça ×2, pernas ×0,6.
+- [ ] **Nocaute**: maça (ou pancada forte) na cabeça atordoa ("NOCAUTE!").
+- [ ] **Golpe fatal**: estocada rápida na cabeça de goblin ou arqueiro mata na hora ("GOLPE FATAL").
+
 ## 00. NOVO — IA inspirada no estudo do Blade & Sorcery
 - [ ] **Fichas de ataque**: com vários goblins, só 2 atacam ao mesmo tempo no normal (1 no fácil, 3 no difícil); os outros rondam a ~2 m esperando a vez. O cerco ficou justo?
 - [ ] **Interromper**: golpe forte durante o aviso (clava vermelha) cancela o ataque ("INTERROMPIDO"). Golpe fraco não.
