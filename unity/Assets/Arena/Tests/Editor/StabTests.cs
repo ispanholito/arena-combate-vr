@@ -51,6 +51,22 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void Skewer_SlidesGradually_AndOnlyLeavesWhenPulledOut()
+        {
+            float r = EnemyDef.Goblin.Radius, L = WeaponDef.EspadaLonga.Length;
+            float z = StabRules.StartZ(L + r, r, L);
+            Assert.IsFalse(StabRules.PulledOut(z, r, L));                  // acabou de espetar: preso
+            float pushed = StabRules.SlideZ(z, z - 0.2f, r, L);              // empurrou 20 cm
+            Assert.AreEqual(z - 0.12f, pushed, 1e-4);                        // entrou 12 cm (o resto arrastou o inimigo)
+            float back = StabRules.SlideZ(pushed, pushed + 0.1f, r, L);      // recuo natural de 10 cm depois da estocada
+            Assert.IsFalse(StabRules.PulledOut(back, r, L));                 // não solta
+            float z2 = pushed;
+            for (int i = 0; i < 20; i++) z2 = StabRules.SlideZ(z2, z2 + 0.1f, r, L);   // puxar de verdade
+            Assert.IsTrue(StabRules.PulledOut(z2, r, L));
+            Assert.GreaterOrEqual(StabRules.SlideZ(0.3f, -1f, r, L), StabRules.GuardGap);   // para antes da guarda
+        }
+
+        [Test]
         public void ImpactDamage_GrowsWithSpeed_SlowLandingIsFree()
         {
             Assert.AreEqual(0f, StabRules.ImpactDamage(1f));

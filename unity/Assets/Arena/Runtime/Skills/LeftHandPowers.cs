@@ -6,9 +6,10 @@ using UnityEngine.XR.Hands;
 namespace Arena
 {
     // Poderes da mão esquerda LIVRE (só com a mão rastreada, nunca com o controle na mão), qualquer classe:
-    //   palma aberta parada = raio do Freeza (fino, instantâneo, na direção dos dedos, atravessa 2),
+    //   apontar o indicador = raio do Freeza (como o Death Beam do anime: ponto vermelho carrega na ponta do dedo,
+    //   raio fino e instantâneo na direção do dedo, atravessa 2; repete enquanto apontar),
     //   punho indo rápido para frente = soco (um inimigo um pouco além do braço, forte, recarga de 1 s),
-    //   palma aberta em movimento rápido = corte da palma. Apontar o indicador está livre para um poder futuro.
+    //   palma aberta em movimento rápido = corte da palma. Palma aberta parada ficou livre para um poder futuro.
     // O golpe no chão (atordoar em área) está guardado em GroundSlam() para uma habilidade futura.
     // Sinais de mão (HandSignArming, no Core) existem mas não são usados aqui: ficam para habilidades futuras.
     // Desktop (sem mãos): Z raio (segurar), X soco, C palma — só com o escudo nas costas (F).
@@ -31,7 +32,7 @@ namespace Arena
         void Awake()
         {
             player = GetComponent<ArenaPlayer>();
-            bulletMat = ArenaUtil.Unlit(new Color(1f, 0.85f, 1f));   // núcleo quase branco, brilho rosa-violeta em volta
+            bulletMat = ArenaUtil.Unlit(new Color(1f, 0.82f, 0.78f));   // núcleo quase branco, brilho vermelho em volta
         }
 
         void Update()
@@ -98,23 +99,49 @@ namespace Arena
             {
                 Punch(wristPrev, wristVel.normalized);
             }
-            // Palma aberta: rápida = corte; parada por 0,3 s = raio (nunca no meio de um corte).
+            // Palma aberta rápida = corte.
             float handSpeed = wristVel.magnitude;
-            if (handSpeed > HandPowers.BeamPalmMaxSpeed) stillT = 0f; else stillT += Time.deltaTime;
-            palmLockout -= Time.deltaTime;
-            if (CurrentShape == HandShape.Aberta && shapeT > 0.1f && handSpeed > HandPowers.PalmMinSpeed)
+            if (CurrentShape == HandShape.Aberta && shapeT > 0.1f && handSpeed > HandPowers.PalmMinSpeed) Palm(wristPrev, wristVel);
+            // Apontar o indicador = raio do Freeza: carrega um ponto vermelho na ponta do dedo e dispara.
+            if (CurrentShape == HandShape.Apontar && IndexAim(hand, out var origin, out var dir))
             {
-                if (Palm(wristPrev, wristVel)) palmLockout = HandPowers.BeamLockoutAfterPalm;
+                beamCharge += Time.deltaTime;
+                ChargeDot(origin, Mathf.Clamp01(beamCharge / HandPowers.BeamChargeSeconds));
+                if (beamCharge >= HandPowers.BeamChargeSeconds && gunCooldown <= 0f) Fire(origin, dir);
             }
-            else if (CurrentShape == HandShape.Aberta && shapeT > HandPowers.BeamPalmHoldSeconds
-                     && stillT > HandPowers.BeamPalmHoldSeconds && palmLockout <= 0f
-                     && PalmAim(hand, out var origin, out var dir))
-            {
-                Fire(origin, dir);
-            }
+            else { beamCharge = 0f; ChargeDot(Vector3.zero, -1f); }
         }
 
-        float stillT, palmLockout;
+        float beamCharge;
+        Transform chargeDot;
+
+        // Ponto que carrega na ponta do dedo (k 0..1; negativo esconde).
+        void ChargeDot(Vector3 at, float k)
+        {
+            if (k < 0f) { if (chargeDot) chargeDot.gameObject.SetActive(false); return; }
+            if (!chargeDot)
+            {
+                chargeDot = ArenaUtil.Prim(PrimitiveType.Sphere, null, at, Vector3.one * 0.02f, ArenaUtil.Unlit(new Color(1f, 0.85f, 0.8f))).transform;
+                ArenaUtil.Prim(PrimitiveType.Sphere, chargeDot, Vector3.zero, Vector3.one * 2.2f, ArenaUtil.Unlit(new Color(1f, 0.08f, 0.12f, 0.45f)));
+                foreach (var c in chargeDot.GetComponentsInChildren<Collider>()) Destroy(c);
+            }
+            chargeDot.gameObject.SetActive(true);
+            chargeDot.position = at;
+            float pulse = 1f + 0.15f * Mathf.Sin(Time.time * 60f);
+            chargeDot.localScale = Vector3.one * Mathf.Lerp(0.006f, 0.022f, k) * pulse;
+        }
+
+        // Mira pelo indicador (da base até a ponta), saindo da ponta do dedo.
+        bool IndexAim(XRHand hand, out Vector3 origin, out Vector3 dir)
+        {
+            origin = dir = default;
+            if (!World(hand, XRHandJointID.IndexProximal, out var b) || !World(hand, XRHandJointID.IndexTip, out var tip)) return false;
+            var d = tip - b;
+            if (d.sqrMagnitude < 1e-4f) return false;
+            dir = d.normalized;
+            origin = tip;
+            return true;
+        }
 
         // Mira reta na direção dos dedos (do pulso para a ponta do dedo médio), saindo da ponta dos dedos.
         bool PalmAim(XRHand hand, out Vector3 origin, out Vector3 dir)
@@ -157,9 +184,9 @@ namespace Arena
             hits.Sort((x, y) => x.d.CompareTo(y.d));
             for (int i = 0; i < hits.Count && i < HandPowers.BeamPierce; i++)
             {
-                hits[i].e.ApplyDamage(HandPowers.BeamDamage, HandPowers.BeamPosture, dir, 0.6f, new Color(1f, 0.55f, 1f));
+                hits[i].e.ApplyDamage(HandPowers.BeamDamage, HandPowers.BeamPosture, dir, 0.6f, new Color(1f, 0.25f, 0.25f));
                 if (!hits[i].e.Dead) hits[i].e.State.Status.AddCharge(StatusRules.BeamCharge);
-                ArenaFx.Burst(hits[i].e.Center, new Color(1f, 0.6f, 1f), 6, 2f);
+                ArenaFx.Burst(hits[i].e.Center, new Color(1f, 0.2f, 0.15f), 8, 2.5f);
                 if (i == HandPowers.BeamPierce - 1) end = origin + dir * Mathf.Max(0.3f, hits[i].d);
             }
             BeamVisual(origin, end);
@@ -173,9 +200,15 @@ namespace Arena
             if (len < 0.05f) return;
             var core = ArenaUtil.Prim(PrimitiveType.Cylinder, null, (from + to) * 0.5f, new Vector3(0.018f, len * 0.5f, 0.018f), bulletMat);
             core.transform.rotation = Quaternion.FromToRotation(Vector3.up, to - from);
-            var glow = ArenaUtil.Prim(PrimitiveType.Cylinder, core.transform, Vector3.zero, new Vector3(3f, 1f, 3f), ArenaUtil.Unlit(new Color(0.9f, 0.4f, 1f, 0.3f)));
-            ArenaFx.Burst(from, new Color(1f, 0.7f, 1f), 4, 1.5f, 0.6f);
-            Destroy(core, 0.09f);
+            // Fino como no anime: núcleo branco-quente, halo vermelho e um brilho fraco por fora.
+            core.transform.localScale = new Vector3(0.012f, len * 0.5f, 0.012f);
+            ArenaUtil.Prim(PrimitiveType.Cylinder, core.transform, Vector3.zero, new Vector3(3.2f, 1f, 3.2f), ArenaUtil.Unlit(new Color(1f, 0.06f, 0.08f, 0.55f)));
+            ArenaUtil.Prim(PrimitiveType.Cylinder, core.transform, Vector3.zero, new Vector3(8f, 1f, 8f), ArenaUtil.Unlit(new Color(1f, 0.1f, 0.1f, 0.14f)));
+            foreach (var c in core.GetComponentsInChildren<Collider>()) Destroy(c);
+            ArenaFx.Burst(from, new Color(1f, 0.3f, 0.25f), 5, 1.2f, 0.5f);
+            ArenaFx.Burst(to, new Color(1f, 0.15f, 0.1f), 10, 2.5f, 0.8f);
+            ArenaFx.Ring(to, new Color(1f, 0.2f, 0.15f), 0.25f, 0.15f);
+            Destroy(core, 0.12f);
         }
 
         // Soco: um inimigo à frente do punho, até um pouco além do braço. Forte e de recarga baixa.

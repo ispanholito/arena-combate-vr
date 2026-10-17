@@ -45,8 +45,49 @@ namespace Arena
 
         public float VignetteLevel => vignette;
 
+        // ---------- Mãos do jogo ----------
+        // O OVRCameraRig troca sozinho a âncora da mão para o rastreamento de mão quando o sensor da Meta acha que o
+        // controle foi largado — e isso falha com o controle NA mão. Por isso o jogo usa as próprias "mãos": com o
+        // controle na mão, a pose vem SEMPRE do controle (OVRInput); sem controle, da âncora (mão rastreada).
+        // Controle fora da vista das câmeras (posição não rastreada): a posição fica parada, só a rotação atualiza —
+        // evita a arma dar saltos.
+        Transform anchorRight, anchorLeft;
+
+        void CreateGameHands()
+        {
+            anchorRight = rightHand; anchorLeft = leftHand;
+            rightHand = new GameObject("MaoDireitaJogo").transform;
+            rightHand.SetParent(trackingSpace, false);
+            leftHand = new GameObject("MaoEsquerdaJogo").transform;
+            leftHand.SetParent(trackingSpace, false);
+            SyncGameHands();
+        }
+
+        void SyncGameHands()
+        {
+            if (!anchorRight) return;
+            bool vr = XRSettings.isDeviceActive;
+            SyncHand(rightHand, anchorRight, OVRInput.Controller.RTouch, vr && OVRInput.IsControllerConnected(OVRInput.Controller.RTouch));
+            SyncHand(leftHand, anchorLeft, OVRInput.Controller.LTouch, vr && Input.LeftControllerConnected);
+        }
+
+        static void SyncHand(Transform hand, Transform anchor, OVRInput.Controller c, bool useController)
+        {
+            if (!useController)
+            {
+                hand.SetLocalPositionAndRotation(anchor.localPosition, anchor.localRotation);
+                return;
+            }
+            var rot = OVRInput.GetLocalControllerRotation(c);
+            var pos = OVRInput.GetControllerPositionTracked(c) ? OVRInput.GetLocalControllerPosition(c) : hand.localPosition;
+            hand.SetLocalPositionAndRotation(pos, rot);
+        }
+
+        void FixedUpdate() => SyncGameHands();
+
         void Awake()
         {
+            CreateGameHands();
             Weapon = new GameObject("ArmaDoJogador").AddComponent<PlayerWeapon>();
             Weapon.Init(this);
             Shield = GetComponent<PlayerShield>();
@@ -132,6 +173,7 @@ namespace Arena
             float dt = Time.deltaTime;
             IsVr = XRSettings.isDeviceActive;
             Input.Update(IsVr, Time.unscaledDeltaTime);   // entrada e altura funcionam também pausado
+            SyncGameHands();
             var game = ArenaGame.Instance;
             if (Input.PausePressed && game && !ArenaGame.InMenu) game.SetPaused(!ArenaGame.Paused);
             if (ArenaGame.Paused)

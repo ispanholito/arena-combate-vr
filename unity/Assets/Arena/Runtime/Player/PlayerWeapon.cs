@@ -76,6 +76,7 @@ namespace Arena
             Def = def; Rarity = rarity;
             if (visual) Destroy(visual.gameObject);
             visual = BuildVisual(def, rarity).transform;
+            BuildGlove();
             if (!hasTarget) { targetPos = player.RightHand.position; targetRot = player.RightHand.rotation; }
             Attach();
             hasPrev = false;
@@ -146,6 +147,26 @@ namespace Arena
             foreach (var b in WeaponModels.Colliders(def)) AddBox(root, b.Center, b.Size);
             Setup(root, WeaponPhysics.Mass(def), WeaponModels.CenterOfMass(def));
             return root;
+        }
+
+        // Mão que segura a arma (VR): fica no cabo, junto com a arma. Se a arma para numa parede, a mão para junto;
+        // o controle de verdade aparece como a mão fantasma translúcida.
+        Transform glove;
+        static Material gloveMat;
+
+        void BuildGlove()
+        {
+            if (gloveMat == null) gloveMat = ArenaUtil.Lit(new Color(0.24f, 0.16f, 0.1f));
+            glove = new GameObject("Luva").transform;
+            glove.SetParent(visual, false);
+            glove.localPosition = new Vector3(0f, 0f, 0.02f);
+            ArenaUtil.Prim(PrimitiveType.Cube, glove, new Vector3(0f, -0.012f, 0f), new Vector3(0.085f, 0.06f, 0.095f), gloveMat);       // palma e dedos fechados no cabo
+            ArenaUtil.Prim(PrimitiveType.Cube, glove, new Vector3(0f, 0.03f, 0.005f), new Vector3(0.08f, 0.03f, 0.085f), gloveMat);      // costas da mão
+            ArenaUtil.Prim(PrimitiveType.Capsule, glove, new Vector3(-0.045f, 0.01f, -0.01f), new Vector3(0.026f, 0.03f, 0.026f), gloveMat); // polegar
+            ArenaUtil.Prim(PrimitiveType.Cylinder, glove, new Vector3(0f, -0.005f, -0.075f), new Vector3(0.07f, 0.03f, 0.07f), gloveMat)
+                .transform.localRotation = Quaternion.Euler(90f, 0f, 0f);                                                                  // punho
+            foreach (var col in glove.GetComponentsInChildren<Collider>()) Destroy(col);
+            glove.gameObject.SetActive(false);
         }
 
         static PhysicsMaterial weaponMat;
@@ -334,6 +355,7 @@ namespace Arena
 
             UpdateSecondHandStretch(dt);
             Separation = mode == Mode.Held ? Vector3.Distance(visual.position, targetPos) : 0f;
+            if (glove) glove.gameObject.SetActive(vr && mode == Mode.Held);
             UpdateGhost();
 
             basePrev = BasePoint; tipPrev = TipPoint;
@@ -405,19 +427,37 @@ namespace Arena
             if (TwoHanded && wrist2) wrist2.MovePosition(target2Pos);
             if (mode != Mode.Held) return;
             ApplyDrives();   // a Força muda ao subir de nível
-            // Inimigo espetado pesa na ponta da espada.
+            // Inimigo espetado pesa na lâmina e freia o movimento ao longo dela (sensação da lâmina entrando).
             if (skewered)
             {
                 var at = visual.TransformPoint(new Vector3(0f, 0f, Def.Length - skewerCenterFromTip));
                 body.AddForceAtPosition(Vector3.down * skewered.Def.Mass * StabRules.SkewerWeightKgPerMass * 9.81f, at);
+                var axis = visual.forward;
+                body.AddForce(-axis * Vector3.Dot(body.linearVelocity - rigVel, axis) * StabRules.SlideDrag, ForceMode.Acceleration);
             }
-            // Presa longe da mão por muito tempo (atrás de uma parede, por exemplo): volta para a mão.
-            if (Vector3.Distance(body.position, targetPos) > WeaponPhysics.SnapDistance)
+            // Presa longe da mão por muito tempo: volta para a mão — mas NUNCA atravessando parede ou chão (a mão fica
+            // travada na arma do outro lado; ao voltar a mão, a mola traz a arma). Controle sem rastreamento também não conta.
+            bool tracked = !player.IsVr || OVRInput.GetControllerPositionTracked(OVRInput.Controller.RTouch);
+            if (tracked && Vector3.Distance(body.position, targetPos) > WeaponPhysics.SnapDistance && !WallBetween(targetPos, body.position))
             {
                 farTime += Time.fixedDeltaTime;
                 if (farTime > WeaponPhysics.SnapSeconds) Attach();
             }
             else farTime = 0f;
+        }
+
+        static readonly RaycastHit[] wallHits = new RaycastHit[8];
+        bool WallBetween(Vector3 a, Vector3 b)
+        {
+            var d = b - a;
+            int n = Physics.RaycastNonAlloc(a, d.normalized, wallHits, d.magnitude, ~0, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < n; i++)
+            {
+                var c = wallHits[i].collider;
+                if (c.attachedRigidbody == body || c.GetComponentInParent<ArenaEnemy>()) continue;
+                return true;
+            }
+            return false;
         }
 
         // Mão fantasma: um contorno translúcido no lugar do controle quando a arma está presa longe dele.
@@ -463,8 +503,10 @@ namespace Arena
         //    arremessa (bate e leva dano pela velocidade); apontar a espada para baixo faz ele escorregar e cair.
         //  - Chefe/boneco (Embed): a espada fica CRAVADA no monstro e sai da mão; segurar o gatilho para arrancar.
         ArenaEnemy skewered;
-        float skewerT, skewerCenterFromTip, skewerCenterY;
-        Vector3 skewerStartPos;
+        float skewerT, skewerCenterY, skewerHapticCd;
+        Vector3 skewerLocal;   // centro do inimigo no espaço da arma (z = ao longo da lâmina)
+        Vector3 skewerWorld;   // centro do inimigo no mundo no quadro anterior
+        float skewerCenterFromTip => Def.Length - skewerLocal.z;
         ArenaEnemy embeddedIn;
         Vector3 embedLocalPos;
         Quaternion embedLocalRot;
@@ -494,9 +536,11 @@ namespace Arena
             {
                 skewered = enemy;
                 skewerT = 0f;
-                skewerStartPos = enemy.transform.position;
-                skewerCenterFromTip = StabRules.SkewerCenterFromTip(Def, enemy.Radius);
                 skewerCenterY = enemy.Center.y - enemy.transform.position.y;
+                // Começa onde ele está: a lâmina vai entrando conforme você empurra (sem puxar o inimigo para a lâmina).
+                skewerLocal = visual.InverseTransformPoint(enemy.Center);
+                skewerLocal.z = StabRules.StartZ(skewerLocal.z, enemy.Radius, Def.Length);
+                skewerWorld = visual.TransformPoint(skewerLocal);
                 enemy.SetImpaled(true);
                 if (DebugStab) Debug.Log("[Cravar] ESPETOU " + enemy.Def.Name);
             }
@@ -507,8 +551,8 @@ namespace Arena
                 mode = Mode.Embedded;
                 if (joint) Destroy(joint);
                 body.isKinematic = true;
-                // Afunda um pouco a lâmina para ficar visivelmente cravada.
-                var deeper = visual.position + bladeDir * Mathf.Min(0.25f, StabRules.MaxDepth(Def) * 0.3f);
+                // Afunda só um pouco (antes pulava 25 cm de uma vez).
+                var deeper = visual.position + bladeDir * 0.05f;
                 visual.position = deeper; body.position = deeper;
                 embedLocalPos = enemy.transform.InverseTransformPoint(visual.position);
                 embedLocalRot = Quaternion.Inverse(enemy.transform.rotation) * visual.rotation;
@@ -541,25 +585,34 @@ namespace Arena
             var e = skewered;
             if (!e || e.Dead) { ReleaseSkewer(Vector3.zero); return; }
             skewerT += dt;
-            // O centro do inimigo fica num ponto da lâmina: a ponta sai do outro lado. Desliza até lá em ~0,12 s.
-            var center = visual.TransformPoint(new Vector3(0f, 0f, Def.Length - skewerCenterFromTip));
-            var goal = center - Vector3.up * skewerCenterY;
-            float k = Mathf.Clamp01(skewerT / StabRules.SkewerSlideSeconds);
-            e.transform.position = Vector3.Lerp(skewerStartPos, goal, k * k);
+            // Onde o inimigo estaria se ficasse parado no mundo: a lâmina andou por baixo dele.
+            // (usa a posição que a própria espada deu a ele no quadro anterior: IA, gravidade ou empurrões não contam)
+            var free = visual.InverseTransformPoint(skewerWorld);
+            float zPrev = skewerLocal.z;
+            skewerLocal.z = StabRules.SlideZ(zPrev, free.z, e.Radius, Def.Length);
+            // Para os lados ele vai junto com a lâmina; o desvio do centro some devagar (a lâmina "acha" o meio).
+            float decay = Mathf.Clamp01(1f - dt * 1.5f);
+            skewerLocal.x *= decay; skewerLocal.y *= decay;
+            var feet = visual.TransformPoint(skewerLocal) - Vector3.up * skewerCenterY;
+            if (feet.y < 0f) feet.y = 0f;
+            e.transform.position = feet;
+            skewerWorld = feet + Vector3.up * skewerCenterY;
+            // Lâmina deslizando dentro do corpo: vibração proporcional à velocidade do deslize.
+            float slide = Mathf.Abs(skewerLocal.z - zPrev) / Mathf.Max(dt, 1e-4f);
+            skewerHapticCd -= dt;
+            if (slide > 0.2f && skewerHapticCd <= 0f) { skewerHapticCd = 0.05f; ArenaInput.Haptic(Mathf.Clamp01(0.25f + slide * 0.35f), 0.05f); }
             Bleed(e, dt);
             if (!skewered) return;
-            if (skewerT < 0.25f) return;
-            // Puxar a espada para TRÁS ao longo da lâmina: o inimigo só escorrega e cai (não é arremesso).
-            if (TipSpeed > 1.5f && Vector3.Dot(TipVelocity / TipSpeed, BladeDir) < -0.75f) { ReleaseSkewer(Vector3.down * 0.5f); return; }
-            // Golpe rápido para o lado ou para frente: arremessa o inimigo na direção do golpe.
-            if (TipSpeed > StabRules.FlingMinSpeed)
+            // Puxou a espada até a ponta sair do corpo: solta no lugar.
+            if (StabRules.PulledOut(skewerLocal.z, e.Radius, Def.Length)) { ReleaseSkewer(Vector3.zero); return; }
+            if (skewerT < StabRules.FlingMinTime) return;
+            // Sacudida forte PARA O LADO (ignora o movimento ao longo da lâmina): arremessa na direção do golpe.
+            var lateral = TipVelocity - BladeDir * Vector3.Dot(TipVelocity, BladeDir);
+            if (lateral.magnitude > StabRules.FlingMinSpeed)
             {
-                var v = (TipVelocity + rigVel) * StabRules.FlingMultiplier(e.Def.Kind);
+                var v = (lateral + rigVel) * StabRules.FlingMultiplier(e.Def.Kind);
                 ReleaseSkewer(Vector3.ClampMagnitude(v, 14f));
-                return;
             }
-            // Lâmina apontada para baixo: o inimigo escorrega e cai.
-            if (BladeDir.y < -0.7f) ReleaseSkewer(Vector3.down * 0.5f);
         }
 
         void ReleaseSkewer(Vector3 launchVelocity)

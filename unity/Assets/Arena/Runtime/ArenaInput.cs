@@ -99,14 +99,20 @@ namespace Arena
 
         // Usa o sensor da Meta que diz se o controle está na mão; o estado só muda depois de 0,2 s estável (evita piscar).
         float inHandStableT;
+        const float HeldHandDistance = 0.15f;
         void UpdateLeftInHand(float dt)
         {
             var st = OVRInput.GetControllerIsInHandState(OVRInput.Hand.HandLeft);
             bool raw = st == OVRInput.ControllerInHandState.ControllerInHand
                        || (st == OVRInput.ControllerInHandState.NoHand && OVRInput.GetControllerPositionTracked(OVRInput.Controller.LTouch));
+            // O sensor às vezes diz "largado" com o controle na mão: se a mão rastreada está colada no controle, está segurando.
+            if (!raw && OVRInput.IsControllerConnected(OVRInput.Controller.LTouch) && OVRInput.GetControllerPositionTracked(OVRInput.Controller.LHand))
+                raw = Vector3.Distance(OVRInput.GetLocalControllerPosition(OVRInput.Controller.LHand),
+                                       OVRInput.GetLocalControllerPosition(OVRInput.Controller.LTouch)) < HeldHandDistance;
             if (raw == LeftControllerConnected) { inHandStableT = 0f; return; }
             inHandStableT += dt;
-            if (inHandStableT >= 0.2f) { LeftControllerConnected = raw; inHandStableT = 0f; }
+            // Pegar o controle vale rápido; largar precisa ficar estável por mais tempo (evita trocar no meio do combate).
+            if (inHandStableT >= (raw ? 0.2f : 0.5f)) { LeftControllerConnected = raw; inHandStableT = 0f; }
         }
 
         // A + B juntos = abre/fecha a árvore. Para distinguir do toque simples, A e B sozinhos só valem depois de

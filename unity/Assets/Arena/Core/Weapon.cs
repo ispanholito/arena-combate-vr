@@ -68,8 +68,8 @@ namespace Arena.Core
         public const float DampingRatio = 0.9f;        // < 1 balança um pouco; 1 = sem passar do ponto
         public const float AngularRatio = 0.6f;        // rotação mais "mole" que a posição
         public const float MaxAcceleration = 600f;     // m/s²: limite da mola (evita explodir contra paredes)
-        public const float SnapDistance = 0.9f;        // presa longe da mão por muito tempo = volta para a mão
-        public const float SnapSeconds = 0.6f;
+        public const float SnapDistance = 1.2f;        // presa longe da mão por muito tempo (e sem parede no meio) = volta para a mão
+        public const float SnapSeconds = 1f;
         public const float GhostHandDistance = 0.08f;  // a partir daqui mostra a mão fantasma
 
         // Massa em kg (peso real aproximado; o "Weight" do WeaponDef é a escala de jogo usada no FollowRate).

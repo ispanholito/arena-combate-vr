@@ -37,7 +37,29 @@ namespace Arena.Core
         // Ponto da lâmina (distância a partir da ponta) onde fica o centro do inimigo espetado: a ponta sai do outro lado.
         public static float SkewerCenterFromTip(WeaponDef w, float enemyRadius) => Math.Min(MaxDepth(w) - enemyRadius * 0.5f, enemyRadius + 0.08f);
         public const float SkewerWeightKgPerMass = 6f;  // peso que o inimigo espetado faz na mão (kg por unidade de "Mass")
-        public const float FlingMinSpeed = 3.5f;        // golpe rápido (m/s na ponta) solta o inimigo voando
+        public const float FlingMinSpeed = 4.5f;        // sacudida rápida PARA O LADO (m/s da ponta, sem contar o eixo da lâmina) arremessa
+        public const float FlingMinTime = 0.35f;        // logo depois de espetar não arremessa (o próprio fim da estocada não conta)
+
+        // A lâmina entra e sai DESLIZANDO conforme o jogador empurra/puxa (antes o inimigo era puxado para o meio da
+        // lâmina em 0,12 s, parecia teleporte). SlideFollow = quanto do movimento ao longo da lâmina vira deslize; o resto
+        // arrasta o inimigo junto (atrito). Para os lados, o inimigo sempre vai com a lâmina.
+        public const float SlideFollow = 0.6f, SlideFollowOut = 0.35f;
+        public const float SlideDrag = 9f;              // freio (1/s) no movimento da arma ao longo da lâmina enquanto atravessa
+        public const float GuardGap = 0.15f;            // o inimigo para antes da guarda
+
+        // Nova posição (ao longo da lâmina, a partir da mão) do centro do inimigo espetado.
+        // zPrev = onde estava; zFree = onde estaria se não se mexesse no mundo (a lâmina andou por baixo dele).
+        public static float SlideZ(float zPrev, float zFree, float enemyRadius, float bladeLength)
+        {
+            // Puxar para fora desliza menos (o inimigo vem junto); empurrar entra mais fácil.
+            float z = zPrev + (zFree - zPrev) * (zFree > zPrev ? SlideFollowOut : SlideFollow);
+            return Math.Max(GuardGap + enemyRadius * 0.6f, Math.Min(z, bladeLength + enemyRadius));
+        }
+
+        // A ponta saiu do corpo: o inimigo solta no lugar (puxar a espada para trás de verdade).
+        public static bool PulledOut(float z, float enemyRadius, float bladeLength) => z >= bladeLength + enemyRadius - 0.005f;
+        // Logo ao espetar a ponta já está 6 cm dentro (senão o primeiro quadro já contaria como "saiu").
+        public static float StartZ(float zNow, float enemyRadius, float bladeLength) => Math.Min(zNow, bladeLength + enemyRadius - 0.06f);
         public const float SlideOffBack = 0.15f;        // puxar a espada para trás 15 cm solta o inimigo no lugar
 
         public static float FlingMultiplier(EnemyKind kind) => kind switch

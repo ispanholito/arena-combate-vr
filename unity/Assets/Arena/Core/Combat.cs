@@ -99,6 +99,8 @@ namespace Arena.Core
         public const float SlamMinDownSpeed = 3f, SlamMaxHandHeight = 1.05f, PalmMinSpeed = 3.2f, PoseHoldSeconds = 0.12f;
         // O raio sai da palma aberta PARADA (a mesma pose do corte, que é a palma aberta RÁPIDA).
         public const float BeamPalmMaxSpeed = 1.2f, BeamPalmHoldSeconds = 0.3f, BeamLockoutAfterPalm = 0.5f;
+        // Raio do Freeza (Death Beam do anime): apontar o indicador; um ponto vermelho carrega na ponta do dedo e o raio sai.
+        public const float BeamChargeSeconds = 0.25f;
     }
 
     public enum GuardResult { None, Parry, Block, GuardBroken, Counter, ShieldBlock }
