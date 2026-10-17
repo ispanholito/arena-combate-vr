@@ -647,8 +647,9 @@ namespace Arena
                     continue;
                 // Altura do acerto no corpo: cabeça causa mais dano.
                 float height = Geometry.ClosestParamOnSecond(strikeA.ToN(), strikeB.ToN(), a.ToN(), b.ToN());
-                bool head = WeakPoints.IsHead(e.Def.Kind, height);
-                if (e.TakeMeleeHit(speed, edge, strikeVel, Def, player.State, TwoHandRules.DamageMultiplier(Def, TwoHanded), head))
+                // Estocada: a ponta vai na direção da lâmina (vira perfuração).
+                float thrust = TipSpeed > 0.01f ? Vector3.Dot(BladeDir, TipVelocity / TipSpeed) : 0f;
+                if (e.TakeMeleeHit(speed, edge, strikeVel, Def, player.State, TwoHandRules.DamageMultiplier(Def, TwoHanded), height, thrust))
                 {
                     // Ponto do acerto na lâmina (para o esqueleto saber qual parte foi cortada).
                     float s = Geometry.ClosestParamOnSecond(a.ToN(), b.ToN(), strikeA.ToN(), strikeB.ToN());

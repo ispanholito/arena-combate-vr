@@ -59,8 +59,18 @@ namespace Arena
             hitCooldown = Combat.HitCooldown;
             if (comboBreaker.RegisterHit(State.Posture.IsBroken)) { ComboBreak(); return; }
             if (head) HeadText();
+            // Golpe fatal: estocada rápida na cabeça de goblin/arqueiro mata na hora.
+            if (DamageTypes.IsFatalStab(Def.Kind, head, tipSpeed))
+            {
+                ArenaFx.FloatText("GOLPE FATAL", Center + Vector3.up * (0.9f + bodyTop * 0.3f), new Color(1f, 0.3f, 0.3f), 1.4f);
+                ArenaInput.Haptic(1f, 0.15f);
+                var kill = ApplyDamage(State.Hp + 1f, 0f, dir, 0f, new Color(1f, 0.3f, 0.3f), canCrit: false);
+                ps.OnDealtDamage(kill.Amount, weapon);
+                return;
+            }
+            float mat = MaterialFactor(DamageType.Perfuracao);
             var ev = ApplyDamage(StabRules.StabDamage(tipSpeed, weapon, Combat.SharpEdge(ps.Has(SkillIds.FioAfiado), weapon), hasSta)
-                * (head ? WeakPoints.HeadMultiplier : 1f) * Combat.ExecuteMultiplier(weapon, State.HpFraction), 0.9f * weapon.PostureBonus, dir, 0f);
+                * (head ? WeakPoints.HeadMultiplier : 1f) * mat * Combat.ExecuteMultiplier(weapon, State.HpFraction), 0.9f * weapon.PostureBonus, dir, 0f);
             ps.OnDealtDamage(ev.Amount, weapon);
         }
         float hitCooldown, hitFlash;
@@ -176,13 +186,19 @@ namespace Arena
 
         // ---------- Dano recebido ----------
         // Golpe da arma do jogador (chamado pela PlayerWeapon). Retorna true se contou.
-        public bool TakeMeleeHit(float tipSpeed, float edge, Vector3 dir, WeaponDef weapon, PlayerState ps, float damageMultiplier = 1f, bool head = false)
+        public bool TakeMeleeHit(float tipSpeed, float edge, Vector3 dir, WeaponDef weapon, PlayerState ps, float damageMultiplier = 1f,
+                                 float heightFraction = 0.5f, float thrust = 0f)
         {
             if (Dead || hitCooldown > 0f || SpawnGrace > 0f) return false;
             bool hasSta = ps.SpendSwingStamina(weapon);
             float dmg = Combat.MeleeDamage(tipSpeed, weapon, Combat.SharpEdge(ps.Has(SkillIds.FioAfiado), weapon), hasSta, weapon.Blunt ? 1f : edge)
                         * damageMultiplier * Combat.ExecuteMultiplier(weapon, State.HpFraction);
-            if (head) { dmg *= WeakPoints.HeadMultiplier; HeadText(); }
+            // Tipo de dano (corte, perfuração, pancada) × material do inimigo × parte do corpo.
+            var type = DamageTypes.Classify(weapon.Kind, edge, thrust);
+            bool head = WeakPoints.IsHead(Def.Kind, heightFraction);
+            dmg *= WeakPoints.Multiplier(Def.Kind, heightFraction) * MaterialFactor(type);
+            if (DamageTypes.IsFlatHit(weapon.Kind, type)) dmg *= DamageTypes.FlatHitMultiplier;   // de chapa
+            if (head) HeadText();
             if (comboBreaker.RegisterHit(State.Posture.IsBroken)) { ComboBreak(); return true; }
             if (dmg <= 0f) return false;
             if (ps.ConsumeBackstab())
@@ -201,6 +217,12 @@ namespace Arena
             ArenaAudio.Play(weapon.Weight > 5f ? Sfx.HitHeavy : Sfx.Hit, Center, 0.4f + tipSpeed / 10f);
             hitCooldown = Combat.HitCooldown;
             var ev = ApplyDamage(dmg, weapon.PostureFactor, dir, Combat.Knockback(tipSpeed, weapon));
+            // Nocaute: pancada forte na cabeça atordoa.
+            if (!Dead && DamageTypes.Knocksout(Def.Kind, type, head, tipSpeed))
+            {
+                State.ApplyStun(DamageTypes.KnockoutSeconds);
+                ArenaFx.FloatText("NOCAUTE!", Center + Vector3.up * (0.9f + bodyTop * 0.3f), new Color(1f, 0.85f, 0.4f), 1.2f);
+            }
             ps.OnDealtDamage(ev.Amount, weapon);
             if (ps.ActiveItem?.Passive == WeaponPassive.Atordoante && !Dead && Random.value < WeaponAbilities.StunChance)
             {
@@ -209,6 +231,22 @@ namespace Arena
             }
             ArenaInput.Haptic(Mathf.Min(1f, 0.3f + tipSpeed / 8f) * (weapon.Weight > 5 ? 1f : 0.7f), 0.05f + weapon.Weight * 0.004f);
             return true;
+        }
+
+        // Multiplicador do material contra o tipo de dano; avisa quando o inimigo é fraco ou resistente (ensina a escolher a arma).
+        float materialHintCd;
+        float MaterialFactor(DamageType type)
+        {
+            var m = DamageTypes.MaterialOf(Def.Kind);
+            float f = DamageTypes.Multiplier(m, type);
+            if (Time.time >= materialHintCd && (f >= 1.2f || f <= 0.65f))
+            {
+                materialHintCd = Time.time + 2.5f;
+                bool weak = f >= 1.2f;
+                ArenaFx.FloatText(weak ? "FRACO!" : "RESISTE (" + DamageTypes.MaterialName(m) + ")", Center + Vector3.up * (0.55f + bodyTop * 0.3f),
+                                  weak ? new Color(0.5f, 1f, 0.5f) : new Color(0.7f, 0.7f, 0.75f), 0.85f);
+            }
+            return f;
         }
 
         public DamageEvent ApplyDamage(float amount, float postureFactor = 0.7f, Vector3? dir = null, float knockback = 0f,
