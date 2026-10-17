@@ -104,13 +104,26 @@ namespace Arena
             joint.autoConfigureConnectedAnchor = false;
             joint.anchor = Vector3.zero;
             joint.connectedAnchor = Vector3.zero;
-            joint.xMotion = joint.yMotion = joint.zMotion = ConfigurableJointMotion.Free;
+            joint.linearLimit = new SoftJointLimit { limit = WeaponPhysics.GripLimit };
+            joint.linearLimitSpring = new SoftJointLimitSpring { spring = WeaponPhysics.GripLimitSpring, damper = WeaponPhysics.GripLimitDamper };
+            SetGripLocked(true);
             joint.angularXMotion = joint.angularYMotion = joint.angularZMotion = ConfigurableJointMotion.Free;
             joint.rotationDriveMode = RotationDriveMode.Slerp;
             joint.enableCollision = false;
             joint.enablePreprocessing = false;   // recomendação da Unity para objetos segurados (evita reações extremas)
             ApplyDrives();
             farTime = 0f;
+        }
+
+        bool gripLocked;
+        float contactRelax;
+
+        void SetGripLocked(bool locked)
+        {
+            if (!joint) return;
+            gripLocked = locked;
+            var m = locked ? ConfigurableJointMotion.Limited : ConfigurableJointMotion.Free;
+            joint.xMotion = joint.yMotion = joint.zMotion = m;
         }
 
         void ApplyDrives()
@@ -442,6 +455,10 @@ namespace Arena
             if (TwoHanded && wrist2) wrist2.MovePosition(target2Pos);
             if (mode != Mode.Held) return;
             ApplyDrives();   // a Força muda ao subir de nível
+            // Encostada em algo: solta o limite (para no obstáculo). Livre no ar: cabo travado na mão.
+            contactRelax -= Time.fixedDeltaTime;
+            bool wantLocked = contactRelax <= 0f;
+            if (wantLocked != gripLocked) SetGripLocked(wantLocked);
             // Inimigo espetado pesa na lâmina e freia o movimento ao longo dela (sensação da lâmina entrando).
             if (skewered)
             {
@@ -489,6 +506,7 @@ namespace Arena
         // Chamado pelo WeaponImpactRelay: vibração proporcional ao impacto.
         public void OnImpact(Collision c)
         {
+            contactRelax = WeaponPhysics.ContactRelaxSeconds;
             var enemy = c.collider.GetComponentInParent<ArenaEnemy>();
             // Fase 3: estocada com a ponta crava a lâmina.
             if (enemy && TryStab(enemy, c)) return;
@@ -533,6 +551,7 @@ namespace Arena
         // Pressão (B&S): ponta encostada no inimigo, empurrando devagar ao longo da lâmina, também fura.
         public void OnContactStay(Collision c)
         {
+            contactRelax = WeaponPhysics.ContactRelaxSeconds;
             if (mode != Mode.Held || Stuck || c.contactCount == 0) { pressureT = 0f; return; }
             var enemy = c.collider.GetComponentInParent<ArenaEnemy>();
             if (!enemy || enemy.Dead || !enemy.Body || !StabRules.CanPierce(Def.Kind)) { pressureT = 0f; return; }

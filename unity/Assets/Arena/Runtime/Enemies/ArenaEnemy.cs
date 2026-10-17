@@ -222,6 +222,8 @@ namespace Arena
 
         public Vector3 Center => transform.position + Vector3.up * (bodyBottom + bodyTop) * 0.5f;
         public float Radius => Def.Radius;
+        // Raio da superfície visível numa altura (0-1): a cabeça é mais fina que o corpo.
+        public virtual float SurfaceRadiusAt(float heightFraction) => WeakPoints.IsHead(Def.Kind, heightFraction) ? Radius * 0.65f : Radius;
         public void BodyAxis(out Vector3 a, out Vector3 b)
         {
             a = transform.position + Vector3.up * bodyBottom;

@@ -70,6 +70,10 @@ namespace Arena.Core
         public const float MaxAcceleration = 600f;     // m/s²: limite da mola (evita explodir contra paredes)
         public const float SnapDistance = 1.2f;        // presa longe da mão por muito tempo (e sem parede no meio) = volta para a mão
         public const float SnapSeconds = 1f;
+        // O cabo fica TRAVADO na mão (limite rígido com um pouco de mola): antes era só mola e, no balanço rápido, a força
+        // centrífuga esticava 20-90 cm (a lança "saía da mão"). Encostando em parede/inimigo o limite solta por um instante
+        // para a arma parar no obstáculo em vez de atravessar.
+        public const float GripLimit = 0.03f, GripLimitSpring = 40000f, GripLimitDamper = 600f, ContactRelaxSeconds = 0.15f;
         public const float ThrowMinHandSpeed = 2f;     // soltar o grip com a mão mais rápida que isso arremessa; mais devagar, só larga
         public const float GhostHandDistance = 0.08f;  // a partir daqui mostra a mão fantasma
 

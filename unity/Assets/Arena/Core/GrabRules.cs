@@ -9,6 +9,7 @@ namespace Arena.Core
         public const float Reach = 0.15f;          // a palma precisa estar a até 15 cm da superfície do corpo
         public const float MaxThrowSpeed = 14f;
         public const float MinThrowSpeed = 1.5f;   // abaixo disso só larga (cai)
+        public const float HandThickness = 0.035f; // a palma encosta na pele (não entra no inimigo)
 
         // Leves dá para agarrar; orc, chefe, mímico (baú) e boneco não.
         public static bool CanGrab(EnemyKind k) =>

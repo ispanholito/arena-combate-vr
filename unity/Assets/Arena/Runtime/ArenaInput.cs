@@ -33,6 +33,7 @@ namespace Arena
         public Vector2 MousePointer;
 
         bool trigWasHeld, snapReady = true, menuReady = true, gripLatch, leftGripLatch;
+        float gripLowT;
         float stickHoldT; bool stickHoldFired;
 
         public void Update(bool xrActive, float dt)
@@ -97,7 +98,10 @@ namespace Arena
             GripPressed = OVRInput.GetDown(OVRInput.Button.PrimaryHandTrigger, R);
             PickupPressed = GripPressed;
             float g = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, R);
-            if (g > 0.55f) gripLatch = true; else if (g < 0.3f) gripLatch = false;
+            // Solta só abaixo de 15% por 0,08 s (afrouxar a mão no meio do golpe não larga a arma).
+            if (g > 0.55f) { gripLatch = true; gripLowT = 0f; }
+            else if (g < 0.15f) { gripLowT += dt; if (gripLowT >= 0.08f) gripLatch = false; }
+            else gripLowT = 0f;
             GripHeld = gripLatch;
             float lg = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, L);
             bool lWas = leftGripLatch;

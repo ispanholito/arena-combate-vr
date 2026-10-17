@@ -326,13 +326,18 @@ namespace Arena.Core
             return true;
         }
 
-        // Poderes da mão: soco no chão e corte da palma (recarga + mana).
-        public SkillCastResult TryHandPower(string id)
+        // Poderes da mão: soco e corte da palma (recarga + mana). Cada mão tem a SUA recarga (pedido do Pablo, 2026-10-17):
+        // hand 0 = esquerda, 1 = direita. A mana é a mesma.
+        public static string HandCooldownKey(string id, int hand) => hand == 1 ? id + "_dir" : id;
+        public float HandCooldownLeft(string id, int hand) => CooldownLeft(HandCooldownKey(id, hand));
+
+        public SkillCastResult TryHandPower(string id, int hand = 0)
         {
             var (cd, cost) = HandPowers.Cost(id);
-            if (CooldownLeft(id) > 0f) return SkillCastResult.Cooldown;
+            var key = HandCooldownKey(id, hand);
+            if (CooldownLeft(key) > 0f) return SkillCastResult.Cooldown;
             if (!Mana.TrySpend(cost, 0.6f)) return SkillCastResult.NoMana;
-            cooldowns[id] = cd;
+            cooldowns[key] = cd;
             return SkillCastResult.Ok;
         }
 

@@ -154,7 +154,7 @@ namespace Arena
             if (fist && flatVel.magnitude > HandPowers.PunchMinSpeed && Vector3.Dot(flatVel.normalized, player.HeadForward) > 0.5f)
                 Punch(h.WristPrev, h.WristVel.normalized, h.IsRight);
             // Palma aberta rápida = corte.
-            if (h.Shape == HandShape.Aberta && h.ShapeT > 0.1f && h.WristVel.magnitude > HandPowers.PalmMinSpeed) Palm(h.WristPrev, h.WristVel);
+            if (h.Shape == HandShape.Aberta && h.ShapeT > 0.1f && h.WristVel.magnitude > HandPowers.PalmMinSpeed) Palm(h.WristPrev, h.WristVel, h.IsRight ? 1 : 0);
             // Apontar o indicador = raio do Freeza: carrega um ponto vermelho na ponta do dedo e dispara.
             if (h.Shape == HandShape.Apontar && IndexAim(xh, out var origin, out var dir))
             {
@@ -262,7 +262,7 @@ namespace Arena
                 if (d < best) { best = d; target = e; }
             }
             if (!target) return false;   // socar o ar não gasta nada
-            if (player.State.TryHandPower(HandPowers.Punch) != SkillCastResult.Ok) return false;
+            if (player.State.TryHandPower(HandPowers.Punch, rightHand ? 1 : 0) != SkillCastResult.Ok) return false;
             var at = target.Center - dir * target.Radius * 0.8f;
             target.ApplyDamage(HandPowers.PunchDamage, HandPowers.PunchPosture, dir, HandPowers.PunchKnock, new Color(1f, 0.82f, 0.56f));
             target.PhysicalImpact(12f, dir);
@@ -296,9 +296,9 @@ namespace Arena
             return true;
         }
 
-        bool Palm(Vector3 pos, Vector3 sweep)
+        bool Palm(Vector3 pos, Vector3 sweep, int hand = 0)
         {
-            if (player.State.TryHandPower(HandPowers.Palm) != SkillCastResult.Ok) return false;
+            if (player.State.TryHandPower(HandPowers.Palm, hand) != SkillCastResult.Ok) return false;
             SkillCaster.LaunchSlash(pos + player.HeadForward * 0.3f, player.HeadForward, sweep, HandPowers.PalmDamage, new Color(1f, 0.9f, 0.66f));
             return true;
         }

@@ -17,6 +17,7 @@ namespace Arena
         ArenaPlayer player;
         readonly ArenaEnemy[] held = new ArenaEnemy[2];        // 0 = esquerda, 1 = direita
         readonly Vector3[] offset = new Vector3[2];            // pés do inimigo - ponto da mão
+        readonly Vector3[] targetOffset = new Vector3[2];      // offset com a superfície encostada na palma (chega em ~0,1 s)
         readonly bool[] byController = new bool[2];
         readonly Vector3[] ctrlPrev = new Vector3[2], ctrlVel = new Vector3[2];
         float heavyMsgCd;
@@ -48,7 +49,17 @@ namespace Arena
                 return false;
             }
             held[side] = best;
+            // A mão fica POR FORA do inimigo: o inimigo se ajusta para a superfície encostar na palma.
+            best.BodyAxis(out var ax, out var bx);
+            var axis = bx - ax;
+            var onAxis = ax + axis * Mathf.Clamp01(Vector3.Dot(palm - ax, axis) / Mathf.Max(axis.sqrMagnitude, 1e-6f));
+            var outDir = palm - onAxis; outDir.y = 0f;
+            if (outDir.sqrMagnitude < 1e-4f) outDir = -player.HeadForward;
+            outDir.Normalize();
+            float surf = best.SurfaceRadiusAt(best.HeightFraction(palm)) + GrabRules.HandThickness;
+            var shift = (palm - outDir * surf) - onAxis;
             offset[side] = best.transform.position - palm;
+            targetOffset[side] = best.transform.position + shift - palm;
             byController[side] = !tracked;
             ctrlPrev[side] = player.trackingSpace.InverseTransformPoint(palm); ctrlVel[side] = Vector3.zero;
             best.SetImpaled(true);
@@ -69,6 +80,7 @@ namespace Arena
         {
             var e = held[side];
             if (!e || e.Dead) { Clear(side); return; }
+            offset[side] = Vector3.Lerp(offset[side], targetOffset[side], Mathf.Clamp01(Time.deltaTime * 15f));
             var feet = palm + offset[side];
             if (feet.y < 0f) feet.y = 0f;
             e.transform.position = ArenaUtil.ClampToArena(feet);
