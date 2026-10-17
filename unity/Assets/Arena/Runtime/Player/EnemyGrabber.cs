@@ -22,10 +22,29 @@ namespace Arena
         readonly Vector3[] ctrlPrev = new Vector3[2], ctrlVel = new Vector3[2];
         float heavyMsgCd;
 
-        void Awake() { player = GetComponent<ArenaPlayer>(); Instance = this; }
-        void OnDestroy() { if (Instance == this) Instance = null; }
+        // Goblin físico (ragdoll ativo): a mão é um corpo cinemático preso ao osso por uma junta.
+        readonly Rigidbody[] handBody = new Rigidbody[2];
+        readonly ConfigurableJoint[] ragJoint = new ConfigurableJoint[2];
+        readonly RagdollGoblin[] ragOwner = new RagdollGoblin[2];
 
-        public bool Holding(int side) => held[side] && !held[side].Dead;
+        void Awake()
+        {
+            player = GetComponent<ArenaPlayer>(); Instance = this;
+            for (int i = 0; i < 2; i++)
+            {
+                var go = new GameObject(i == 0 ? "MaoFisicaEsq" : "MaoFisicaDir");
+                handBody[i] = go.AddComponent<Rigidbody>();
+                handBody[i].isKinematic = true;
+                handBody[i].interpolation = RigidbodyInterpolation.Interpolate;
+            }
+        }
+        void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+            foreach (var h in handBody) if (h) Destroy(h.gameObject);
+        }
+
+        public bool Holding(int side) => (held[side] && !held[side].Dead) || ragJoint[side];
         public bool HoldingWithTrackedHand(int side) => Holding(side) && !byController[side];
 
         public static bool CanGrab(EnemyKind k) => GrabRules.CanGrab(k);
@@ -34,6 +53,17 @@ namespace Arena
         public bool TryGrab(int side, Vector3 palm, bool tracked)
         {
             if (Holding(side)) return false;
+            // Primeiro o goblin físico: agarra o osso mais perto (na superfície).
+            handBody[side].position = palm; handBody[side].transform.position = palm;
+            var rj = RagdollGoblin.TryGrab(palm, handBody[side], out var rOwner);
+            if (rj)
+            {
+                ragJoint[side] = rj; ragOwner[side] = rOwner;
+                byController[side] = !tracked;
+                ctrlPrev[side] = player.trackingSpace.InverseTransformPoint(palm); ctrlVel[side] = Vector3.zero;
+                ArenaInput.Haptic(0.6f, 0.08f, left: side == 0);
+                return true;
+            }
             ArenaEnemy best = null; float bestD = float.MaxValue;
             foreach (var e in ArenaEnemy.All)
             {
@@ -78,6 +108,7 @@ namespace Arena
 
         public void Hold(int side, Vector3 palm)
         {
+            if (ragJoint[side]) { handBody[side].MovePosition(palm); return; }
             var e = held[side];
             if (!e || e.Dead) { Clear(side); return; }
             offset[side] = Vector3.Lerp(offset[side], targetOffset[side], Mathf.Clamp01(Time.deltaTime * 15f));
@@ -88,6 +119,19 @@ namespace Arena
 
         public void Release(int side, Vector3 handVelocity)
         {
+            if (ragJoint[side] || ragOwner[side])
+            {
+                if (ragJoint[side])
+                {
+                    // Arremesso: dá ao osso agarrado a velocidade da mão (o resto do corpo vem junto pelas juntas).
+                    var rb = ragJoint[side].GetComponent<Rigidbody>();
+                    Destroy(ragJoint[side]);
+                    if (rb && handVelocity.magnitude > GrabRules.MinThrowSpeed) rb.linearVelocity = handVelocity * 1.3f;
+                }
+                if (ragOwner[side]) ragOwner[side].OnGrabReleased();
+                ragJoint[side] = null; ragOwner[side] = null;
+                return;
+            }
             var e = held[side];
             Clear(side);
             if (!e || e.Dead) return;

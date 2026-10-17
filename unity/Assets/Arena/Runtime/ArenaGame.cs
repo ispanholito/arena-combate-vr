@@ -143,6 +143,10 @@ namespace Arena
                 var p = player.State.Progression;
                 p.GainXp(1000000);
                 Spawn(EnemyDef.Boneco, new Vector3(0f, 0f, 0f), false);
+                // Teste do passo A1 do plano: um goblin com corpo físico (ragdoll ativo) ao lado do boneco.
+                ragdollSpawner = new GameObject("GoblinFisicoSpawner").AddComponent<RagdollGoblinSpawner>();
+                ragdollSpawner.Point = new Vector3(2.5f, 0f, 1.5f);
+                ragdollSpawner.LookAt = BonfireStandPoint;
                 Message("Treino: nível " + p.Level + ", " + p.UnspentPoints + " pontos para gastar na árvore (A+B)", 4f);
                 return;
             }
@@ -185,6 +189,8 @@ namespace Arena
         void ClearEnemies()
         {
             WeaponPickup.ClearAll(Mode == GameMode.Treino || Mode == GameMode.Menu ? null : player.State);
+            if (ragdollSpawner) Destroy(ragdollSpawner.gameObject);
+            RagdollGoblin.ClearAll();
             Tokens.Clear();
             foreach (var e in ArenaEnemy.All.ToArray()) if (e) Destroy(e.gameObject);
             ArenaEnemy.All.Clear();
@@ -390,6 +396,8 @@ namespace Arena
             Message($"Você morreu: {lossText}", 2.6f);
             RequestSave();
         }
+
+        RagdollGoblinSpawner ragdollSpawner;
 
         public void Message(string text, float seconds)
         {

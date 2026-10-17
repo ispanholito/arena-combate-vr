@@ -54,6 +54,8 @@ namespace Arena
         Material ghostMat;
 
         public Transform Visual => visual;
+        public Rigidbody Body => body;
+        public Vector3 RigVelocity => rigVel;   // velocidade do corpo do jogador (andar/esquivar)
         public Vector3 CrystalPoint => staffCrystal ? staffCrystal.position : TipPoint;
 
         public void Init(ArenaPlayer p)
@@ -518,7 +520,7 @@ namespace Arena
                 enemy.PhysicalImpact(c.impulse.magnitude, dir, c.contactCount > 0 ? enemy.HeightFraction(c.GetContact(0).point) : 0.5f);
             }
             // Arma batendo em parede/chão: som metálico proporcional ao impacto.
-            if (!enemy && mode != Mode.Recalling && soundCd <= 0f && c.contactCount > 0)
+            if (!enemy && mode != Mode.Recalling && soundCd <= 0f && c.contactCount > 0 && !c.collider.GetComponent<RagdollBone>())
             {
                 float s = WeaponPhysics.HapticFromImpulse(c.impulse.magnitude, Def);
                 if (s > 0.15f) { soundCd = 0.12f; ArenaAudio.Play(Sfx.Block, c.GetContact(0).point, s * 0.7f, Def.Weight > 5f ? 0.6f : 1.2f); }
@@ -592,10 +594,12 @@ namespace Arena
             var j = rb.gameObject.AddComponent<ConfigurableJoint>();
             j.connectedBody = body;
             j.autoConfigureConnectedAnchor = false;
-            j.anchor = rb.transform.InverseTransformPoint(point);
-            j.connectedAnchor = visual.InverseTransformPoint(point);
-            j.axis = rb.transform.InverseTransformDirection(visual.right);
-            j.secondaryAxis = rb.transform.InverseTransformDirection(visual.up);
+            // Pose física (o corpo do cadáver é interpolado: o transform fica atrasado durante a física).
+            var inv = Quaternion.Inverse(rb.rotation);
+            j.anchor = inv * (point - rb.position);
+            j.connectedAnchor = Quaternion.Inverse(body.rotation) * (point - body.position);
+            j.axis = inv * (body.rotation * Vector3.right);
+            j.secondaryAxis = inv * (body.rotation * Vector3.up);
             j.xMotion = j.yMotion = ConfigurableJointMotion.Locked;
             j.zMotion = ConfigurableJointMotion.Free;   // desliza ao longo da lâmina
             j.angularXMotion = j.angularYMotion = j.angularZMotion = ConfigurableJointMotion.Free;
