@@ -9,6 +9,13 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00. NOVO — IA inspirada no estudo do Blade & Sorcery
+- [ ] **Fichas de ataque**: com vários goblins, só 2 atacam ao mesmo tempo no normal (1 no fácil, 3 no difícil); os outros rondam a ~2 m esperando a vez. O cerco ficou justo?
+- [ ] **Interromper**: golpe forte durante o aviso (clava vermelha) cancela o ataque ("INTERROMPIDO"). Golpe fraco não.
+- [ ] **Janela de combo**: logo depois de levar um golpe o goblin não consegue bloquear por 0,75 s → dá para emendar golpes.
+- [ ] **Revide**: depois de bloquear seu golpe ("BLOQUEOU"), ele contra-ataca rápido ("REVIDE!", aviso mais curto). Dá tempo de aparar?
+- [ ] Mude a **dificuldade** na pausa e sinta a diferença na agressividade (quantos atacam, intervalo entre ataques, rapidez do revide).
+
 ## 0. NOVO — seus pedidos de 2026-10-16 (depois de jogar no PC)
 - [ ] **Slot vazio**: guarde a 2ª arma na estante e pegue outra → ela vai para a 2ª vaga (antes trocava a da mão).
 - [ ] **Armas só em baús** (e mímico/chefe); inimigos comuns deixam só ouro. A dungeon ficou "limpa"? Faltam armas?

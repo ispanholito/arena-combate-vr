@@ -108,6 +108,7 @@ Outros comportamentos (iguais em todas):
 ---
 
 ## 5. Proposta de próxima leva (ordem sugerida)
+Itens 1 e 2 FEITOS em 2026-10-16 (7ª leva, `CombatAI`). Bloqueio ainda é por sorte (falta o bloqueio reativo do item 6 da seção 2).
 1. **Fichas de ataque + dificuldade por agressividade** (IA) — maior ganho de sensação, pouco risco.
 2. **Janela de combo, interromper com dano e revide** (IA).
 3. **Partes do corpo**: membros ×0,5–0,6, cabeça ×2, golpe fatal na cabeça/pescoço com estocada funda.
