@@ -9,6 +9,11 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000. NOVO — mãos rastreadas visíveis
+- [ ] Solte o controle esquerdo: a mão aparece (bolinhas nas articulações e ossos dos dedos) e acompanha os dedos. Faça punho, aponte, abra a mão.
+- [ ] Solte o controle direito: a mão direita aparece também. Pegue de volta: some e a arma volta com a luva.
+- [ ] A mão some/pisca quando sai da vista das câmeras? Atraso perceptível?
+
 ## 00000. NOVO — correções do seu teste de 2026-10-17
 - [ ] **Controle não vira mão**: segurando os controles, a arma/escudo nunca mais pulam para a pose da mão rastreada. Teste girando a mão, fechando os dedos e tirando o controle da vista das câmeras (atrás das costas, acima da cabeça): a arma fica parada no lugar em vez de saltar.
 - [ ] **Mão presa na arma**: agora há uma luva no cabo. Encoste a espada na parede e empurre a mão para dentro: a luva/espada ficam do lado de cá; o controle real aparece como a mão fantasma azul. A espada só volta sozinha se ficar a mais de 1,2 m por 1 s **sem parede no meio**.
