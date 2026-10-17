@@ -95,6 +95,7 @@ namespace Arena
             pauseMenu = GetComponent<PauseMenu>();
             if (!pauseMenu) pauseMenu = gameObject.AddComponent<PauseMenu>();
             if (!GetComponent<DungeonMap>()) gameObject.AddComponent<DungeonMap>();
+            if (!GetComponent<HandVisual>()) gameObject.AddComponent<HandVisual>();   // mãos rastreadas visíveis
             ResetCharacter(startClass);
             yaw = rigRoot.eulerAngles.y;
         }
