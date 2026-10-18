@@ -17,6 +17,7 @@ namespace Arena.Core
         public const float KnockdownSpeed = 7.5f;          // m/s do golpe (arma pesada: 6)
         public const float KnockdownSpeedHeavy = 6f;
         public const float DragOffDistance = 0.45f;        // bacia a mais de 45 cm do ponto da IA = perdeu o pé
+        public const float DragOffDistanceHeld = 0.25f;    // agarrado/espetado: 25 cm já tira do chão
 
         // Perfurar osso (B&S): a lâmina entra pelo próprio movimento, freada por um amortecedor ao longo dela.
         // Freio ao longo da lâmina diferente para entrar e para sair (como os "damper in/out" do B&S): a estocada afunda,

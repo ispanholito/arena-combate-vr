@@ -44,6 +44,43 @@ namespace Arena
             foreach (var h in handBody) if (h) Destroy(h.gameObject);
         }
 
+        // Ponto agarrado no corpo (para desenhar a mão ali, por fora) — só no goblin físico.
+        public bool TryGetGrabPoint(int side, out Vector3 point)
+        {
+            point = default;
+            var j = ragJoint[side];
+            if (!j) return false;
+            point = j.transform.TransformPoint(j.anchor);   // pose desenhada (interpolada), igual à da mão
+            return true;
+        }
+
+        // Velocidade de pico da mão nos últimos 0,15 s: ao abrir a mão o braço já desacelerou (antes o inimigo só caía).
+        readonly Vector3[,] velHist = new Vector3[2, 12];
+        readonly float[,] velTime = new float[2, 12];
+        readonly int[] velIdx = new int[2];
+        readonly Vector3[] lastPalm = new Vector3[2];
+        readonly bool[] hasLastPalm = new bool[2];
+
+        void RecordPalm(int side, Vector3 palm)
+        {
+            float dt = Time.deltaTime;
+            if (hasLastPalm[side] && dt > 0f)
+            {
+                int i = velIdx[side] = (velIdx[side] + 1) % 12;
+                velHist[side, i] = (palm - lastPalm[side]) / dt;
+                velTime[side, i] = Time.time;
+            }
+            lastPalm[side] = palm; hasLastPalm[side] = true;
+        }
+
+        Vector3 PeakVelocity(int side, Vector3 fallback)
+        {
+            var best = fallback;
+            for (int i = 0; i < 12; i++)
+                if (Time.time - velTime[side, i] <= GrabRules.ThrowWindow && velHist[side, i].sqrMagnitude > best.sqrMagnitude) best = velHist[side, i];
+            return best;
+        }
+
         public bool Holding(int side) => (held[side] && !held[side].Dead) || ragJoint[side];
         public bool HoldingWithTrackedHand(int side) => Holding(side) && !byController[side];
 
@@ -108,6 +145,7 @@ namespace Arena
 
         public void Hold(int side, Vector3 palm)
         {
+            RecordPalm(side, palm);
             if (ragJoint[side]) { handBody[side].MovePosition(palm); return; }
             var e = held[side];
             if (!e || e.Dead) { Clear(side); return; }
@@ -119,6 +157,9 @@ namespace Arena
 
         public void Release(int side, Vector3 handVelocity)
         {
+            handVelocity = PeakVelocity(side, handVelocity);
+            hasLastPalm[side] = false;
+            for (int i = 0; i < 12; i++) velTime[side, i] = -10f;
             if (ragJoint[side] || ragOwner[side])
             {
                 if (ragJoint[side])
@@ -126,7 +167,7 @@ namespace Arena
                     // Arremesso: dá ao osso agarrado a velocidade da mão (o resto do corpo vem junto pelas juntas).
                     var rb = ragJoint[side].GetComponent<Rigidbody>();
                     Destroy(ragJoint[side]);
-                    if (rb && handVelocity.magnitude > GrabRules.MinThrowSpeed) rb.linearVelocity = handVelocity * 1.3f;
+                    if (ragOwner[side]) ragOwner[side].OnThrown(GrabRules.ThrowVelocity(handVelocity.ToN(), EnemyKind.Goblin).ToU());
                 }
                 if (ragOwner[side]) ragOwner[side].OnGrabReleased();
                 ragJoint[side] = null; ragOwner[side] = null;

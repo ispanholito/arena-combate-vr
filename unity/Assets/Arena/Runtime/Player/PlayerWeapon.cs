@@ -56,6 +56,7 @@ namespace Arena
         public Transform Visual => visual;
         public Rigidbody Body => body;
         public Vector3 RigVelocity => rigVel;   // velocidade do corpo do jogador (andar/esquivar)
+        public Vector3 PhysTipVelocity => physTipVel;   // velocidade da ponta no passo de física ANTES do contato
         public Vector3 CrystalPoint => staffCrystal ? staffCrystal.position : TipPoint;
 
         public void Init(ArenaPlayer p)

@@ -67,19 +67,27 @@ namespace Arena
         {
             if (!anchorRight) return;
             bool vr = XRSettings.isDeviceActive;
-            SyncHand(rightHand, anchorRight, OVRInput.Controller.RTouch, vr && Input.RightControllerHeld && OVRInput.IsControllerConnected(OVRInput.Controller.RTouch));
-            SyncHand(leftHand, anchorLeft, OVRInput.Controller.LTouch, vr && Input.LeftControllerConnected);
+            SyncHand(rightHand, anchorRight, OVRInput.Controller.RTouch, vr && Input.RightControllerHeld && OVRInput.IsControllerConnected(OVRInput.Controller.RTouch), ref untrackedR);
+            SyncHand(leftHand, anchorLeft, OVRInput.Controller.LTouch, vr && Input.LeftControllerConnected, ref untrackedL);
         }
 
-        static void SyncHand(Transform hand, Transform anchor, OVRInput.Controller c, bool useController)
+        // No balanço rápido o Quest perde o rastreamento óptico por instantes, mas continua prevendo a posição pelos sensores
+        // do controle: usa essa previsão. Só congela se ficar mais de 0,4 s sem rastreamento (controle fora das câmeras).
+        // (Antes congelava na hora — a arma ficava para trás e "saía da mão" no balanço.)
+        float untrackedR, untrackedL;
+        const float FreezeAfterUntracked = 0.4f;
+
+        static void SyncHand(Transform hand, Transform anchor, OVRInput.Controller c, bool useController, ref float untracked)
         {
             if (!useController)
             {
                 hand.SetLocalPositionAndRotation(anchor.localPosition, anchor.localRotation);
+                untracked = 0f;
                 return;
             }
             var rot = OVRInput.GetLocalControllerRotation(c);
-            var pos = OVRInput.GetControllerPositionTracked(c) ? OVRInput.GetLocalControllerPosition(c) : hand.localPosition;
+            untracked = OVRInput.GetControllerPositionTracked(c) ? 0f : untracked + Time.deltaTime;
+            var pos = untracked < FreezeAfterUntracked ? OVRInput.GetLocalControllerPosition(c) : hand.localPosition;
             hand.SetLocalPositionAndRotation(pos, rot);
         }
 

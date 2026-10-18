@@ -10,6 +10,7 @@ namespace Arena.Core
         public const float MaxThrowSpeed = 14f;
         public const float MinThrowSpeed = 1.5f;   // abaixo disso só larga (cai)
         public const float HandThickness = 0.035f; // a palma encosta na pele (não entra no inimigo)
+        public const float ThrowWindow = 0.15f;    // arremesso usa a velocidade de pico da mão nesse intervalo
 
         // Leves dá para agarrar; orc, chefe, mímico (baú) e boneco não.
         public static bool CanGrab(EnemyKind k) =>

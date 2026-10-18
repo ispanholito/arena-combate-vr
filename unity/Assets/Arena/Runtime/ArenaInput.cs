@@ -123,11 +123,16 @@ namespace Arena
             bool raw = ControllerHeld(OVRInput.Hand.HandRight, OVRInput.Controller.RTouch, OVRInput.Controller.RHand);
             if (raw == RightControllerHeld) { rightInHandStableT = 0f; return; }
             rightInHandStableT += dt;
-            if (rightInHandStableT >= (raw ? 0.2f : 0.5f)) { RightControllerHeld = raw; rightInHandStableT = 0f; }
+            if (rightInHandStableT >= (raw ? 0.2f : 1f)) { RightControllerHeld = raw; rightInHandStableT = 0f; }   // largar a arma exige 1 s sem tocar no controle
         }
 
         static bool ControllerHeld(OVRInput.Hand hand, OVRInput.Controller touch, OVRInput.Controller trackedHand)
         {
+            // Apertando grip/gatilho ou com o dedo encostado nos sensores: está na mão, ponto (o sensor da Meta falha no golpe).
+            if (OVRInput.IsControllerConnected(touch)
+                && (OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, touch) > 0.2f || OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, touch) > 0.2f
+                    || OVRInput.Get(OVRInput.Touch.Any, touch) || OVRInput.Get(OVRInput.NearTouch.Any, touch)))
+                return true;
             var st = OVRInput.GetControllerIsInHandState(hand);
             bool raw = st == OVRInput.ControllerInHandState.ControllerInHand
                        || (st == OVRInput.ControllerInHandState.NoHand && OVRInput.GetControllerPositionTracked(touch));
@@ -139,12 +144,7 @@ namespace Arena
         void UpdateLeftInHand(float dt)
         {
             var st = OVRInput.GetControllerIsInHandState(OVRInput.Hand.HandLeft);
-            bool raw = st == OVRInput.ControllerInHandState.ControllerInHand
-                       || (st == OVRInput.ControllerInHandState.NoHand && OVRInput.GetControllerPositionTracked(OVRInput.Controller.LTouch));
-            // O sensor às vezes diz "largado" com o controle na mão: se a mão rastreada está colada no controle, está segurando.
-            if (!raw && OVRInput.IsControllerConnected(OVRInput.Controller.LTouch) && OVRInput.GetControllerPositionTracked(OVRInput.Controller.LHand))
-                raw = Vector3.Distance(OVRInput.GetLocalControllerPosition(OVRInput.Controller.LHand),
-                                       OVRInput.GetLocalControllerPosition(OVRInput.Controller.LTouch)) < HeldHandDistance;
+            bool raw = ControllerHeld(OVRInput.Hand.HandLeft, OVRInput.Controller.LTouch, OVRInput.Controller.LHand);
             if (raw == LeftControllerConnected) { inHandStableT = 0f; return; }
             inHandStableT += dt;
             // Pegar o controle vale rápido; largar precisa ficar estável por mais tempo (evita trocar no meio do combate).

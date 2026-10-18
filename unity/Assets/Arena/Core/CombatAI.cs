@@ -9,7 +9,8 @@ namespace Arena.Core
     public static class CombatAI
     {
         // Fichas de ataque: quantos inimigos corpo a corpo podem atacar ao mesmo tempo.
-        public static int AttackTokens(Difficulty d) => d switch { Difficulty.Facil => 1, Difficulty.Dificil => 3, _ => 2 };
+        // 2026-10-18 (Pablo): menos gente rondando, mais atacando — fácil 2, normal 3, difícil 5 ao mesmo tempo.
+        public static int AttackTokens(Difficulty d) => d switch { Difficulty.Facil => 2, Difficulty.Dificil => 5, _ => 3 };
 
         // Intervalo extra (s) antes de começar um ataque, sorteado entre min e max.
         public static (float min, float max) AttackDelay(Difficulty d) => d switch

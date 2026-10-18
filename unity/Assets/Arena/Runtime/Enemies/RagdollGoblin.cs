@@ -274,7 +274,9 @@ namespace Arena
                     muscle = flopT > 0f ? ActiveRagdollRules.MuscleHit : ActiveRagdollRules.MuscleNormal;
                     speed01 = pl ? Think(pl, dt) : 0f;
                     // Arrastado para longe do ponto da IA (agarrado e puxado, empurrado forte): perde o pé.
-                    if ((bones[RagBone.Bacia].Rb.position - anchor.transform.TransformPoint(PelvisOffset)).magnitude > ActiveRagdollRules.DragOffDistance) KnockDown();
+                    // (agarrado ou espetado perde o pé mais fácil: dá para levantar do chão)
+                    float dragOff = GrabbedOrStuck ? ActiveRagdollRules.DragOffDistanceHeld : ActiveRagdollRules.DragOffDistance;
+                    if ((bones[RagBone.Bacia].Rb.position - anchor.transform.TransformPoint(PelvisOffset)).magnitude > dragOff) KnockDown();
                     break;
                 case Mode.Down:
                     muscle = ActiveRagdollRules.MuscleDown;
@@ -373,13 +375,19 @@ namespace Arena
             if (hitCd > 0f || mode == Mode.Dead && !CanHitCorpse) return;
             var def = w.Def;
             var bladeDir = w.BladeDir;
-            var vel = -c.relativeVelocity;   // velocidade da arma em relação ao osso
-            float align = speed > 0.01f ? Vector3.Dot(bladeDir, vel / speed) : 0f;
-            float fromTip = Vector3.Distance(contact, w.TipPoint);
+            // Velocidade da ponta medida ANTES do impacto (depois do contato a colisão já freou a lâmina) — igual ao inimigo antigo.
+            var tipVel = w.PhysTipVelocity;
+            float tipSpeed = tipVel.magnitude;
+            var vel = tipVel.sqrMagnitude > c.relativeVelocity.sqrMagnitude ? tipVel : c.relativeVelocity;
+            speed = Mathf.Max(speed, tipSpeed);
+            float align = tipSpeed > 0.01f ? Vector3.Dot(bladeDir, tipVel / tipSpeed) : 0f;
+            var tipWorld = w.Body.position + w.Body.rotation * new Vector3(0f, 0f, def.Length);
+            float fromTip = Vector3.Distance(contact, tipWorld);
+            if (PlayerWeapon.DebugStab) Debug.Log($"[GoblinFisico] contato {id} vel={tipSpeed:0.0} alinh={align:0.00} ponta={fromTip:0.00}");
             // Perfurar
-            if (StabRules.CanPierce(def.Kind) && ActiveRagdollRules.CanStab(speed, align, fromTip) && w.Held && !IsStuckBy(w))
+            if (StabRules.CanPierce(def.Kind) && ActiveRagdollRules.CanStab(tipSpeed, align, fromTip) && w.Held && !IsStuckBy(w))
             {
-                Stab(bone, contact, w, speed);
+                Stab(bone, contact, w, tipSpeed);
                 return;
             }
             if (speed < Combat.MinSwingSpeed) return;
@@ -602,6 +610,16 @@ namespace Arena
         }
 
         public void OnGrabReleased() => grabs = Mathf.Max(0, grabs - 1);
+
+        // Soltou da mão: arremessado (ou largado no alto) cai de verdade — perde o pé e o corpo inteiro voa com a mão.
+        public void OnThrown(Vector3 velocity)
+        {
+            bool thrown = velocity.magnitude > GrabRules.MinThrowSpeed;
+            bool lifted = (bones[RagBone.Bacia].Rb.position - anchor.transform.TransformPoint(PelvisOffset)).magnitude > 0.2f;
+            if (!thrown && !lifted) return;
+            if (mode == Mode.Stand) KnockDown();
+            if (thrown) foreach (var b in boneList) if (b.Rb && !b.Severed) b.Rb.linearVelocity = velocity;
+        }
 
         void OnDestroy()
         {

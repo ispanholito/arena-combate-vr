@@ -10,11 +10,12 @@ namespace Arena.Core.Tests
             var pool = new AttackTokenPool { Capacity = CombatAI.AttackTokens(Difficulty.Normal) };
             Assert.IsTrue(pool.TryTake(1));
             Assert.IsTrue(pool.TryTake(2));
-            Assert.IsFalse(pool.TryTake(3));      // o 3º espera
+            Assert.IsTrue(pool.TryTake(3));       // normal: 3 atacam juntos (2026-10-18)
+            Assert.IsFalse(pool.TryTake(4));      // o 4º espera
             Assert.IsTrue(pool.TryTake(1));       // quem já tem continua tendo
             pool.Release(1);
-            Assert.IsTrue(pool.TryTake(3));
-            Assert.AreEqual(2, pool.InUse);
+            Assert.IsTrue(pool.TryTake(4));
+            Assert.AreEqual(3, pool.InUse);
             pool.Capacity = 0;                    // nunca trava todo mundo
             pool.Clear();
             Assert.IsTrue(pool.TryTake(9));

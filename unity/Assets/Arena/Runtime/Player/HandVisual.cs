@@ -94,19 +94,24 @@ namespace Arena
             }
             bool showLeft = hands != null && hands.leftHand.isTracked && player.Input.LeftHandFree;
             bool showRight = hands != null && hands.rightHand.isTracked && player.Input.RightHandFree;
-            Pose(left, showLeft ? hands.leftHand : default, showLeft);
-            Pose(right, showRight ? hands.rightHand : default, showRight);
+            Pose(left, showLeft ? hands.leftHand : default, showLeft, 0);
+            Pose(right, showRight ? hands.rightHand : default, showRight, 1);
         }
 
-        void Pose(HandRig h, XRHand hand, bool show)
+        void Pose(HandRig h, XRHand hand, bool show, int side)
         {
             if (!show) { if (h.Root.gameObject.activeSelf) h.Root.gameObject.SetActive(false); return; }
             if (!h.Root.gameObject.activeSelf) h.Root.gameObject.SetActive(true);
             var space = player.trackingSpace;
+            // Agarrando o goblin físico: a mão é desenhada presa no ponto agarrado (por fora do corpo), não onde a mão real está.
+            var offset = Vector3.zero;
+            var grabber = EnemyGrabber.Instance;
+            if (grabber && grabber.TryGetGrabPoint(side, out var gp) && hand.GetJoint(XRHandJointID.Palm).TryGetPose(out UnityEngine.Pose palmPose))
+                offset = gp - space.TransformPoint(palmPose.position);
             foreach (var kv in h.Joints)
             {
                 if (!hand.GetJoint(kv.Key).TryGetPose(out UnityEngine.Pose p)) { kv.Value.gameObject.SetActive(false); h.Pos.Remove(kv.Key); continue; }
-                var w = space.TransformPoint(p.position);
+                var w = space.TransformPoint(p.position) + offset;
                 kv.Value.gameObject.SetActive(true);
                 kv.Value.position = w;
                 h.Pos[kv.Key] = w;
