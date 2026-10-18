@@ -9,6 +9,13 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000. NOVO — correções do seu teste de 2026-10-18
+- [ ] **Perfurar o goblin físico** (Treino): estocada com a ponta no tronco/cabeça agora crava?
+- [ ] **Balanço rápido** (espada e lança): a arma não sai mais da mão? (também quando o controle sai da vista das câmeras)
+- [ ] **Agarrar a cabeça/braço do goblin físico**: a mão fica desenhada na superfície, não dentro.
+- [ ] **Arremessar**: agarre, levante e jogue com força — ele voa para onde você jogou e cai no chão.
+- [ ] **IA**: com 4-5 goblins, 3 atacam juntos no normal (antes 2). Ficou melhor ou pesado demais?
+
 ## 000000000. NOVO — passo A1: goblin com CORPO FÍSICO (Treino)
 No Treino, ao lado do boneco, nasce um goblin novo (corpo de 11 peças). Quando ele morre, outro nasce em 3 s.
 - [ ] **Bater**: os membros reagem de verdade ao golpe (braço vai para trás, cabeça balança). Golpe forte no tronco/cabeça derruba ("CAIU!") e ele se levanta sozinho.
