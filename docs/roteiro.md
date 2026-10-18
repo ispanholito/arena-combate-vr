@@ -94,3 +94,5 @@ Projeto Unity no Quest; arena jogável; Lâmina e Elementalista com árvore; pod
 ## Ideias do Pablo (2026-10-17, tarde) — para depois
 - **Andar sem controle (só mãos)**: mão direita puxada para trás = virar para trás / para frente = andar para frente, ou **teleporte com recarga**. Base para uma **classe só de mãos** estilo jutsu do Naruto (sequência de sinais de mão = técnica; `HandSigns` já reconhece 6 sinais). Crítica: locomoção por gesto cansa e conflita com os poderes da mesma mão — sugestão: teleporte apontando com a mão direita em formato de sinal específico (ex.: "V") + confirmação ao fechar a mão, com recarga; andar contínuo fica no analógico enquanto houver controle.
 - **Desmembrar braços dos goblins** (hoje só cabeça; o esqueleto já perde braços/pernas) e **mão atingida solta a arma** (item pendente do estudo).
+
+- **IA local para assets** (marcação de 2026-10-18): montar quando a Fase C (gráficos) começar — detalhes em `docs/plano-objetivo-final.md`.

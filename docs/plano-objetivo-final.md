@@ -40,6 +40,12 @@ só para as mãos. Ele não resolve o inimigo, por isso vem depois da Fase A.
   Peças separadas deixam o desmembramento simples, sem cortar malha.
 - Iluminação "baked" + tochas, sangue e faíscas, pós-processamento leve. Alvo fixo: 72 FPS no Quest 2.
 
+### Marcação: IA local para assets (decidido em 2026-10-18 — fazer quando a Fase C começar)
+- **O que**: IA rodando no PC do Pablo para gerar **texturas e ícones** (Stable Diffusion/Flux), **modelos 3D base** (Hunyuan3D/TRELLIS → limpar e separar por membro no Blender), **vozes** (TTS) e **efeitos sonoros**. Opcional: autocompletar código offline (Continue + Ollama).
+- **O que NÃO é**: não substitui o Claude no código do projeto; não roda no Quest (IA dentro do jogo fica fora do MVP).
+- **Antes de instalar**: conferir placa de vídeo/VRAM e RAM do PC; instalar tudo no **E:** (modelos de 5-40 GB cada; C: está lotado) com caches apontando para `E:UnityCache`.
+- **Comparar com kits prontos** (KayKit, Quaternius — CC0) antes: modelos gerados por IA vêm pesados e sem esqueleto para o ragdoll.
+
 ## Fase D — Conteúdo do MVP
 Santuário, dungeon de 2-3 andares, 4-5 inimigos físicos, chefe estilo Souls, Lâmina + Elementalista, **luvas de poder + inventário**, loot e ferreiro, nível 10. A maior parte já existe em código e só precisa migrar para os corpos físicos.
 
