@@ -1,10 +1,11 @@
 using System;
+using System.Numerics;
 
 namespace Arena.Core
 {
     // Regras do inimigo com corpo físico (ragdoll ativo, Fase A do plano — docs/plano-objetivo-final.md).
     // Ossos com juntas; "músculos" = molas que puxam a pose da animação; a bacia é presa à posição da IA.
-    public enum RagBone { Bacia, Tronco, Cabeca, BracoE, AntebracoE, BracoD, AntebracoD, CoxaE, CanelaE, CoxaD, CanelaD }
+    public enum RagBone { Bacia, Tronco, Cabeca, BracoE, AntebracoE, BracoD, AntebracoD, CoxaE, CanelaE, CoxaD, CanelaD, Clava }
 
     public static class ActiveRagdollRules
     {
@@ -33,7 +34,22 @@ namespace Arena.Core
         // Desmembrar: corte de fio rápido num membro.
         public const float SeverMinSpeed = 5.5f, SeverMinEdge = 0.6f;
 
-        public static bool CanSever(RagBone b) => b != RagBone.Bacia && b != RagBone.Tronco;
+        public static bool CanSever(RagBone b) => b != RagBone.Bacia && b != RagBone.Tronco && b != RagBone.Clava;
+
+        // ---------- IA física (passo A3) ----------
+        // Desarmar: golpe forte no braço/antebraço da clava (ou na própria clava) faz soltar a arma, como no B&S.
+        public const float DisarmSpeed = 4f;
+        public static bool Disarms(RagBone b, float speed) =>
+            speed >= DisarmSpeed && (b == RagBone.AntebracoD || b == RagBone.BracoD || b == RagBone.Clava);
+        // Desarmado ataca com socos: mais perto e fraco.
+        public const float PunchReach = 1.1f, PunchDamageFraction = 0.35f;
+
+        // Defesa: quando a arma do jogador vem rápida perto da cabeça/tronco, às vezes ergue a clava na frente.
+        public const float GuardTriggerSpeed = 3f, GuardTriggerDistance = 1.2f, GuardSeconds = 0.6f, GuardCooldown = 1.6f;
+        public static float GuardChance(Difficulty d) => d switch { Difficulty.Facil => 0.15f, Difficulty.Dificil => 0.5f, _ => 0.3f };
+
+        // Sem ficha de ataque: ronda o jogador a essa distância em vez de ficar parado na frente.
+        public const float CircleRadius = 2.1f, CircleSpeed = 0.9f;
         public static bool IsLeg(RagBone b) => b == RagBone.CoxaE || b == RagBone.CanelaE || b == RagBone.CoxaD || b == RagBone.CanelaD;
         public static bool IsWeaponArm(RagBone b) => b == RagBone.BracoD || b == RagBone.AntebracoD;
 
@@ -57,5 +73,29 @@ namespace Arena.Core
         // Força da mola do músculo para um osso de massa m (N·m/rad) e amortecedor.
         public static float MuscleSpring(float mass, float muscle) => 90f * mass * Math.Max(0f, muscle);
         public static float MuscleDamper(float mass) => 6f * mass;
+    }
+
+    // Poses dos ataques no corpo físico (graus do braço e antebraço da clava, relativos à pose de pé).
+    // X = para frente/trás (negativo = braço para frente), Z = para o lado (positivo = para fora/direita).
+    public static class ActiveRagdollPoses
+    {
+        public static (Vector3 arm, Vector3 fore) Windup(EnemyAttack a) => a switch
+        {
+            EnemyAttack.DireitaEsquerda => (new Vector3(-55f, 0f, 85f), new Vector3(-25f, 0f, 0f)),    // clava aberta à direita
+            EnemyAttack.EsquerdaDireita => (new Vector3(-75f, 0f, -55f), new Vector3(-95f, 0f, 0f)),   // clava cruzada à esquerda
+            _ => (new Vector3(150f, -15f, 0f), new Vector3(-70f, 0f, 0f)),                             // de cima (e passo à frente)
+        };
+
+        public static (Vector3 arm, Vector3 fore) Strike(EnemyAttack a) => a switch
+        {
+            EnemyAttack.DireitaEsquerda => (new Vector3(-85f, 0f, -45f), new Vector3(-15f, 0f, 0f)),   // passa da direita para a esquerda
+            EnemyAttack.EsquerdaDireita => (new Vector3(-70f, 0f, 75f), new Vector3(-10f, 0f, 0f)),    // passa da esquerda para a direita
+            _ => (new Vector3(-75f, 10f, 0f), new Vector3(-5f, 0f, 0f)),
+        };
+
+        // Guarda: clava atravessada na frente da cabeça.
+        public static (Vector3 arm, Vector3 fore) Guard => (new Vector3(-100f, 0f, 25f), new Vector3(-85f, 0f, 0f));
+
+        public const float StepLunge = 0.6f;   // passo à frente avança a bacia durante o golpe (m)
     }
 }

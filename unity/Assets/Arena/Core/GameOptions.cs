@@ -45,6 +45,10 @@ namespace Arena.Core
         public int difficulty = (int)Difficulty.Normal;
         public bool music = true;            // trilha ambiente sintetizada
         public int deathPenalty = (int)DeathPenalty.Xp;
+        // Quantos goblins físicos (ragdoll ativo) o Treino mantém vivos: 1, 3 ou 6 (medir o FPS no Quest).
+        public int trainingGoblins = 1;
+        public int TrainingGoblins => trainingGoblins >= 6 ? 6 : trainingGoblins >= 3 ? 3 : 1;
+        public void CycleTrainingGoblins() => trainingGoblins = TrainingGoblins == 1 ? 3 : TrainingGoblins == 3 ? 6 : 1;
 
         public DeathPenalty DeathPenalty => Enum.IsDefined(typeof(DeathPenalty), deathPenalty) ? (DeathPenalty)deathPenalty : DeathPenalty.Xp;
         public void CycleDeathPenalty() => deathPenalty = ((int)DeathPenalty + 1) % 4;
@@ -75,6 +79,7 @@ namespace Arena.Core
             turn = (int)Turn;
             difficulty = (int)Difficulty;
             deathPenalty = (int)DeathPenalty;
+            trainingGoblins = TrainingGoblins;
             return this;
         }
     }
