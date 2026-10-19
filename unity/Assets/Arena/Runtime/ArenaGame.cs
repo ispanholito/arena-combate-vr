@@ -292,10 +292,11 @@ namespace Arena
             var go = new GameObject(def.Name);
             go.transform.SetParent(enemyRoot, false);
             go.transform.position = ArenaUtil.ClampToArena(new Vector3(pos.x, 0, pos.z));
-            ArenaEnemy e = def.Kind switch
+            // Opção beta: goblin, esqueleto e orc com corpo físico (ragdoll ativo).
+            ArenaEnemy e = SaveSystem.Options.physicalGoblins && RagdollSpec.HasPhysicalBody(def.Kind) ? go.AddComponent<PhysicalGoblinEnemy>() : def.Kind switch
             {
                 EnemyKind.Slime => go.AddComponent<SlimeEnemy>(),
-                EnemyKind.Goblin => SaveSystem.Options.physicalGoblins ? go.AddComponent<PhysicalGoblinEnemy>() : go.AddComponent<GoblinEnemy>(),
+                EnemyKind.Goblin => go.AddComponent<GoblinEnemy>(),
                 EnemyKind.Boneco => go.AddComponent<TrainingDummy>(),
                 EnemyKind.Esqueleto => go.AddComponent<SkeletonEnemy>(),
                 EnemyKind.Mimico => go.AddComponent<MimicEnemy>(),

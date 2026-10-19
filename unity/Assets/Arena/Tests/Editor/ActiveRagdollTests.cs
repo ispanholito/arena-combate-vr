@@ -43,5 +43,28 @@ namespace Arena.Core.Tests
             o.CycleTrainingGoblins(); Assert.AreEqual(6, o.TrainingGoblins);
             o.CycleTrainingGoblins(); Assert.AreEqual(1, o.TrainingGoblins);
         }
+
+        [Test]
+        public void A4_SpecsPerEnemy()
+        {
+            var orc = RagdollSpec.For(EnemyKind.Orc);
+            var sk = RagdollSpec.For(EnemyKind.Esqueleto);
+            var gob = RagdollSpec.For(EnemyKind.Goblin);
+            Assert.Greater(orc.Scale, gob.Scale);
+            Assert.Greater(orc.MassMultiplier, gob.MassMultiplier);
+            Assert.IsFalse(orc.Grabbable);                 // pesado demais
+            Assert.IsTrue(orc.SeverNeedsHeavy);            // só arma pesada arranca membro
+            Assert.AreEqual(RagWeapon.Machado, orc.Weapon);
+            Assert.IsTrue(sk.Reassembles);                 // peças voltam
+            Assert.IsFalse(sk.HeadKills);                  // sem cabeça continua
+            Assert.AreEqual(RagWeapon.Espada, sk.Weapon);
+            Assert.IsTrue(gob.HeadKills);
+            Assert.IsTrue(RagdollSpec.HasPhysicalBody(EnemyKind.Orc));
+            Assert.IsFalse(RagdollSpec.HasPhysicalBody(EnemyKind.ReiGoblin));   // chefe ainda no sistema antigo
+            Assert.IsFalse(RagdollSpec.HasPhysicalBody(EnemyKind.Slime));
+            // Orc precisa de golpe mais forte para cair que o goblin (multiplicador sobre a velocidade).
+            Assert.IsTrue(ActiveRagdollRules.Knocksdown(RagBone.Tronco, 8f / gob.KnockdownMultiplier, false));
+            Assert.IsFalse(ActiveRagdollRules.Knocksdown(RagBone.Tronco, 8f / orc.KnockdownMultiplier, false));
+        }
     }
 }

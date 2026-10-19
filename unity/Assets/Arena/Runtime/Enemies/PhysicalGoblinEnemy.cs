@@ -15,7 +15,8 @@ namespace Arena
 
         protected override void BuildModel()
         {
-            bodyBottom = 0.25f; bodyTop = 1.05f;
+            float s = Arena.Core.RagdollSpec.For(Def.Kind).Scale;
+            bodyBottom = 0.25f * s; bodyTop = 1.05f * s;
             new GameObject("Modelo").transform.SetParent(transform, false);
         }
 

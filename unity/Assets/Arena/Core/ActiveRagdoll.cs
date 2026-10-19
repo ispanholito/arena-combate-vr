@@ -104,3 +104,49 @@ namespace Arena.Core
         public const float StepLunge = 0.6f;   // passo à frente avança a bacia durante o golpe (m)
     }
 }
+
+namespace Arena.Core
+{
+    public enum RagWeapon { Clava, Espada, Machado }
+
+    // Como é o corpo físico de cada tipo de inimigo (passo A4 do plano): tamanho, peso, cores, arma e regras próprias.
+    public sealed class RagdollSpec
+    {
+        public float Scale = 1f, MassMultiplier = 1f, AnchorMultiplier = 1f;
+        public float KnockdownMultiplier = 1f;   // × a velocidade para derrubar
+        public float SeverMultiplier = 1f;       // × a velocidade para arrancar membro
+        public float DisarmMultiplier = 1f;
+        public bool SeverNeedsHeavy;             // orc: só arma pesada arranca membro
+        public bool Grabbable = true;
+        public bool HeadKills = true;            // esqueleto continua sem cabeça
+        public bool Reassembles;                 // esqueleto: peças voltam se não forem quebradas
+        public RagWeapon Weapon = RagWeapon.Clava;
+        public float WeaponLength = 0.5f, WeaponRadius = 0.06f, WeaponMass = 1.3f;
+        public (float r, float g, float b) Skin = (0.37f, 0.54f, 0.23f), Cloth = (0.35f, 0.25f, 0.16f), Eye = (1f, 0.88f, 0.29f);
+        public bool Ears = true;
+
+        public const float ReassembleSeconds = 4f;   // como o SkeletonBody antigo
+        public const float BreakSpeed = 2f;          // golpe numa peça caída (no chão) quebra a peça
+
+        public static RagdollSpec For(EnemyKind k) => k switch
+        {
+            EnemyKind.Orc => new RagdollSpec
+            {
+                Scale = 1.35f, MassMultiplier = 2.5f, AnchorMultiplier = 1.6f, KnockdownMultiplier = 1.4f, SeverMultiplier = 1.25f,
+                DisarmMultiplier = 1.5f, SeverNeedsHeavy = true, Grabbable = false, Weapon = RagWeapon.Machado,
+                WeaponLength = 0.75f, WeaponRadius = 0.05f, WeaponMass = 3.5f,
+                Skin = (0.3f, 0.42f, 0.25f), Cloth = (0.35f, 0.35f, 0.38f), Eye = (1f, 0.3f, 0.2f), Ears = false,
+            },
+            EnemyKind.Esqueleto => new RagdollSpec
+            {
+                Scale = 1.08f, MassMultiplier = 0.6f, KnockdownMultiplier = 0.9f, SeverMultiplier = 0.8f, HeadKills = false, Reassembles = true,
+                Weapon = RagWeapon.Espada, WeaponLength = 0.8f, WeaponRadius = 0.035f, WeaponMass = 1.2f,
+                Skin = (0.86f, 0.84f, 0.76f), Cloth = (0.78f, 0.76f, 0.68f), Eye = (1f, 0.25f, 0.2f), Ears = false,
+            },
+            _ => new RagdollSpec(),
+        };
+
+        // Tipos que já têm corpo físico na opção beta.
+        public static bool HasPhysicalBody(EnemyKind k) => k == EnemyKind.Goblin || k == EnemyKind.Orc || k == EnemyKind.Esqueleto;
+    }
+}

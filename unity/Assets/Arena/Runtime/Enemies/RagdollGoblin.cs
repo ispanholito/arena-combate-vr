@@ -26,6 +26,10 @@ namespace Arena
             public Collider Col;
             public bool Severed;
             public float Mass;
+            // Para remontar (esqueleto): pontos da junta no próprio osso e no pai, e a rotação relativa original.
+            public Vector3 AnchorLocal, ParentAnchorLocal;
+            public Quaternion RelRot;
+            public Vector3 JointLocalBuild;   // ponto da junta em coordenadas do corpo (para recriar os limites)
         }
 
         readonly Dictionary<RagBone, Bone> bones = new Dictionary<RagBone, Bone>();
@@ -34,7 +38,12 @@ namespace Arena
         Rigidbody anchor;
         ConfigurableJoint anchorJoint;
         float totalMass;
-        static readonly Vector3 PelvisOffset = new Vector3(0f, 0.55f, 0f);   // bacia em relação aos pés (ponto da IA)
+        Vector3 PelvisOffset => new Vector3(0f, 0.55f * k, 0f);   // bacia em relação aos pés (ponto da IA)
+        // Passo A4: o mesmo corpo serve para goblin, esqueleto e orc (tamanho, peso, cores, arma e regras em RagdollSpec).
+        RagdollSpec spec = new RagdollSpec();
+        float k = 1f;
+        Vector3 weaponTip;   // ponta da arma no espaço da própria arma
+        public EnemyKind Kind => State != null ? State.Def.Kind : EnemyKind.Goblin;
 
         enum Mode { Stand, Down, Dead }
         Mode mode = Mode.Stand;
@@ -66,7 +75,7 @@ namespace Arena
         // shared/proxy: na Arena/Dungeon o corpo usa a vida do representante (PhysicalGoblinEnemy).
         public static RagdollGoblin Spawn(Vector3 feet, Vector3 lookAt, EnemyState shared = null, ArenaEnemy proxy = null)
         {
-            var go = new GameObject("Goblin Fisico");
+            var go = new GameObject((shared != null ? shared.Def.Name : "Goblin") + " (fisico)");
             go.transform.position = feet;
             var dir = (lookAt - feet); dir.y = 0f;
             go.transform.rotation = Quaternion.LookRotation(dir.sqrMagnitude > 1e-4f ? dir.normalized : Vector3.forward);
@@ -99,9 +108,11 @@ namespace Arena
         void Build()
         {
             State = shared ?? new EnemyState(EnemyDef.Goblin);
-            skin = ArenaUtil.Lit(new Color(0.37f, 0.54f, 0.23f));
-            cloth = ArenaUtil.Lit(new Color(0.35f, 0.25f, 0.16f));
-            club = ArenaUtil.Lit(new Color(0.42f, 0.27f, 0.15f));
+            spec = RagdollSpec.For(State.Def.Kind);
+            k = spec.Scale;
+            skin = ArenaUtil.Lit(new Color(spec.Skin.r, spec.Skin.g, spec.Skin.b));
+            cloth = ArenaUtil.Lit(new Color(spec.Cloth.r, spec.Cloth.g, spec.Cloth.b));
+            club = ArenaUtil.Lit(spec.Weapon == RagWeapon.Clava ? new Color(0.42f, 0.27f, 0.15f) : new Color(0.62f, 0.64f, 0.68f), spec.Weapon == RagWeapon.Clava ? (Color?)null : new Color(0.08f, 0.08f, 0.1f));
             anchor = gameObject.AddComponent<Rigidbody>();
             anchor.isKinematic = true;
 
@@ -122,15 +133,19 @@ namespace Arena
                 AddLimb(shin, thigh, new Vector3(0.1f * s, 0.28f, 0), new Vector3(0.1f * s, 0.04f, 0), 0.06f, 2f, skin);
             }
             BuildClub();
-            // Rosto: olhos e orelhas presos à cabeça.
+            // Rosto: olhos (e orelhas no goblin) presos à cabeça.
             var head = bones[RagBone.Cabeca].Rb.transform;
-            var eye = ArenaUtil.Lit(new Color(1f, 0.88f, 0.29f), new Color(0.6f, 0.5f, 0.1f));
+            var eye = ArenaUtil.Lit(new Color(spec.Eye.r, spec.Eye.g, spec.Eye.b), new Color(spec.Eye.r * 0.6f, spec.Eye.g * 0.5f, spec.Eye.b * 0.3f));
             foreach (int s in new[] { -1, 1 })
             {
-                ArenaUtil.Prim(PrimitiveType.Sphere, head, new Vector3(s * 0.075f, 0.03f, 0.16f), Vector3.one * 0.06f, eye);
-                ArenaUtil.Prim(PrimitiveType.Capsule, head, new Vector3(s * 0.22f, 0.05f, 0), new Vector3(0.06f, 0.12f, 0.06f), skin)
-                    .transform.localRotation = Quaternion.Euler(0, 0, -s * 65f);
+                ArenaUtil.Prim(PrimitiveType.Sphere, head, new Vector3(s * 0.075f, 0.03f, 0.16f) * k, Vector3.one * 0.06f * k, eye);
+                if (spec.Ears)
+                    ArenaUtil.Prim(PrimitiveType.Capsule, head, new Vector3(s * 0.22f, 0.05f, 0) * k, new Vector3(0.06f, 0.12f, 0.06f) * k, skin)
+                        .transform.localRotation = Quaternion.Euler(0, 0, -s * 65f);
             }
+            if (spec.Weapon == RagWeapon.Machado)   // orc: ombreiras
+                foreach (int s in new[] { -1, 1 })
+                    ArenaUtil.Prim(PrimitiveType.Sphere, bones[RagBone.Tronco].Rb.transform, new Vector3(s * 0.2f, 0.15f, 0) * k, new Vector3(0.18f, 0.1f, 0.18f) * k, cloth);
             // Ossos do mesmo corpo não colidem entre si (evita tremedeira); o resto do mundo sim.
             var cols = BodyColliders();
             for (int i = 0; i < cols.Count; i++) for (int j = i + 1; j < cols.Count; j++) Physics.IgnoreCollision(cols[i], cols[j]);
@@ -147,19 +162,35 @@ namespace Arena
             All.Add(this);
         }
 
-        // Clava: corpo físico próprio preso na mão por uma junta fixa. Golpe forte no braço ou nela = solta (desarma).
+        // Arma (clava, espada ou machado): corpo físico próprio preso na mão por uma junta fixa. Golpe forte no braço ou nela = solta.
         void BuildClub()
         {
             var fr = bones[RagBone.AntebracoD];
-            var go = new GameObject("Clava");
-            go.transform.SetPositionAndRotation(transform.TransformPoint(new Vector3(0.23f, 0.46f, 0.22f)), transform.rotation);
+            float L = spec.WeaponLength, r = spec.WeaponRadius;
+            var go = new GameObject(spec.Weapon.ToString());
+            go.transform.SetPositionAndRotation(transform.TransformPoint(new Vector3(0.23f, 0.46f, 0f) * k + Vector3.forward * (L * 0.5f - 0.03f)), transform.rotation);
             clubRb = go.AddComponent<Rigidbody>();
-            clubRb.mass = 1.3f;
+            clubRb.mass = spec.WeaponMass;
             clubRb.interpolation = RigidbodyInterpolation.Interpolate;
             clubRb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
             var col = go.AddComponent<CapsuleCollider>();
-            col.direction = 2; col.radius = 0.06f; col.height = 0.5f;
-            ArenaUtil.Prim(PrimitiveType.Capsule, go.transform, Vector3.zero, new Vector3(0.12f, 0.25f, 0.12f), club).transform.localRotation = Quaternion.Euler(90, 0, 0);
+            col.direction = 2; col.radius = r; col.height = L;
+            weaponTip = new Vector3(0f, 0f, L * 0.5f - 0.01f);
+            switch (spec.Weapon)
+            {
+                case RagWeapon.Espada:
+                    ArenaUtil.Prim(PrimitiveType.Cube, go.transform, new Vector3(0, 0, 0.08f), new Vector3(0.02f, 0.06f, L * 0.8f), club);
+                    ArenaUtil.Prim(PrimitiveType.Cube, go.transform, new Vector3(0, 0, -L * 0.33f), new Vector3(0.04f, 0.18f, 0.03f), cloth);
+                    break;
+                case RagWeapon.Machado:
+                    ArenaUtil.Prim(PrimitiveType.Cylinder, go.transform, Vector3.zero, new Vector3(0.05f, L * 0.5f, 0.05f), ArenaUtil.Lit(new Color(0.35f, 0.24f, 0.13f)))
+                        .transform.localRotation = Quaternion.Euler(90, 0, 0);
+                    ArenaUtil.Prim(PrimitiveType.Cube, go.transform, new Vector3(0, -0.08f, L * 0.36f), new Vector3(0.04f, 0.2f, 0.16f), club);
+                    break;
+                default:
+                    ArenaUtil.Prim(PrimitiveType.Capsule, go.transform, Vector3.zero, new Vector3(r * 2f, L * 0.5f, r * 2f), club).transform.localRotation = Quaternion.Euler(90, 0, 0);
+                    break;
+            }
             go.AddComponent<RagdollBone>().Init(this, RagBone.Clava);
             clubJoint = go.AddComponent<FixedJoint>();
             clubJoint.connectedBody = fr.Rb;
@@ -219,6 +250,11 @@ namespace Arena
             j.rotationDriveMode = RotationDriveMode.Slerp;
             j.enablePreprocessing = false;
             b.Joint = j;
+            var jw = transform.TransformPoint(localJoint);
+            b.AnchorLocal = j.anchor;
+            b.ParentAnchorLocal = b.Parent.Rb.transform.InverseTransformPoint(jw);
+            b.RelRot = Quaternion.Inverse(b.Parent.Rb.transform.rotation) * b.Rb.transform.rotation;
+            b.JointLocalBuild = localJoint;
         }
 
         // Limites das juntas (graus): X baixo/alto, Y, Z.
@@ -234,6 +270,7 @@ namespace Arena
 
         void AddBox(RagBone id, RagBone? parent, Vector3 center, Vector3 size, float mass, Material m, Vector3 joint)
         {
+            center *= k; size *= k; joint *= k; mass *= spec.MassMultiplier;
             var b = NewBone(id, parent, center, mass);
             b.Rb.gameObject.AddComponent<BoxCollider>().size = size;
             b.Col = b.Rb.GetComponent<Collider>();
@@ -243,6 +280,7 @@ namespace Arena
 
         void AddSphere(RagBone id, RagBone parent, Vector3 center, float r, float mass, Vector3 joint)
         {
+            center *= k; r *= k; joint *= k; mass *= spec.MassMultiplier;
             var b = NewBone(id, parent, center, mass);
             b.Rb.gameObject.AddComponent<SphereCollider>().radius = r;
             b.Col = b.Rb.GetComponent<Collider>();
@@ -253,6 +291,7 @@ namespace Arena
         // Membro em cápsula do ponto "de" (junta) até "até".
         void AddLimb(RagBone id, RagBone parent, Vector3 from, Vector3 to, float r, float mass, Material m)
         {
+            from *= k; to *= k; r *= k; mass *= spec.MassMultiplier;
             var b = NewBone(id, parent, (from + to) * 0.5f, mass);
             var cap = b.Rb.gameObject.AddComponent<CapsuleCollider>();
             cap.direction = 1; cap.radius = r; cap.height = Vector3.Distance(from, to) + r * 2f;
@@ -263,15 +302,17 @@ namespace Arena
 
         float anchorStrength = 1f;
 
-        void SetAnchorStrength(float k)
+        void SetAnchorStrength(float strength)
         {
-            anchorStrength = k;
+            float k = strength;   // (aqui k = força da âncora, não a escala)
+            anchorStrength = strength;
             if (!anchorJoint) return;
             const float w = 14f;
+            float m = spec.AnchorMultiplier;
             float spring = totalMass * w * w * k;
-            var lin = new JointDrive { positionSpring = spring, positionDamper = 2f * 0.9f * totalMass * w * Mathf.Sqrt(Mathf.Max(k, 0.05f)), maximumForce = totalMass * 80f * k };
+            var lin = new JointDrive { positionSpring = spring, positionDamper = 2f * 0.9f * totalMass * w * Mathf.Sqrt(Mathf.Max(k, 0.05f)), maximumForce = totalMass * 80f * k * m };
             anchorJoint.xDrive = anchorJoint.yDrive = anchorJoint.zDrive = lin;
-            anchorJoint.slerpDrive = new JointDrive { positionSpring = 900f * k, positionDamper = 60f * Mathf.Max(k, 0.05f), maximumForce = float.MaxValue };
+            anchorJoint.slerpDrive = new JointDrive { positionSpring = 900f * k * m * spec.MassMultiplier, positionDamper = 60f * Mathf.Max(k, 0.05f) * m * spec.MassMultiplier, maximumForce = float.MaxValue };
         }
 
         // ---------- Pose ("animação" que os músculos seguem) ----------
@@ -308,7 +349,7 @@ namespace Arena
         {
             foreach (var b in boneList)
             {
-                if (!b.Joint) continue;
+                if (!b.Joint || !b.Rb) continue;
                 float m = b.Severed ? 0f : muscle;
                 if (b.Id == RagBone.BracoD || b.Id == RagBone.AntebracoD) m *= attack == Attack.Strike ? 2.5f : guardT > 0f ? 2f : 1.3f;   // golpe rápido / guarda firme
                 b.Joint.slerpDrive = new JointDrive
@@ -332,6 +373,7 @@ namespace Arena
             if (mode != Mode.Dead)
             {
                 if (!Proxied) State.Tick(dt);   // com representante, quem avança o tempo da vida/status é ele
+                UpdatePieces(dt);
                 UpdateStabsBleed(dt);
                 if (State.Dead) Die();
             }
@@ -463,8 +505,8 @@ namespace Arena
         void CheckShield(ArenaPlayer pl)
         {
             if (!bones.TryGetValue(RagBone.AntebracoD, out var fr) || fr.Severed) { hasClubPrev = false; return; }
-            var a = fr.Rb.position + fr.Rb.rotation * new Vector3(0f, -0.12f, 0f);
-            var b = Armed ? clubRb.position + clubRb.rotation * new Vector3(0f, 0f, 0.24f) : a;
+            var a = fr.Rb.position + fr.Rb.rotation * new Vector3(0f, -0.12f * k, 0f);
+            var b = Armed ? clubRb.position + clubRb.rotation * weaponTip : a;
             var shield = pl.Shield;
             if (hasClubPrev && shield && shield.Equipped && shield.Intercepts(clubPrevA, clubPrevB, a, b, 0.05f))
             {
@@ -524,8 +566,8 @@ namespace Arena
         {
             if (!bones.TryGetValue(RagBone.AntebracoD, out var fr) || fr.Severed) return;
             // Ponta da clava (armado) ou o punho (desarmado).
-            var tip = Armed ? clubRb.position + clubRb.rotation * new Vector3(0f, 0f, 0.24f)
-                            : fr.Rb.position + fr.Rb.rotation * new Vector3(0f, -0.12f, 0f);
+            var tip = Armed ? clubRb.position + clubRb.rotation * weaponTip
+                            : fr.Rb.position + fr.Rb.rotation * new Vector3(0f, -0.12f * k, 0f);
             var head = pl.HeadPosition; var waist = new Vector3(head.x, pl.FeetPosition.y + 0.7f, head.z);
             var ab = head - waist;
             var c = waist + ab * Mathf.Clamp01(Vector3.Dot(tip - waist, ab) / ab.sqrMagnitude);
@@ -563,7 +605,13 @@ namespace Arena
                     ArenaInput.Haptic(0.5f, 0.06f);
                     if (speed >= ActiveRagdollRules.DisarmSpeed * 1.6f) Disarm(-c.relativeVelocity);   // pancada muito forte na guarda arranca a clava
                 }
-                else if (ActiveRagdollRules.Disarms(id, speed)) Disarm(-c.relativeVelocity);
+                else if (ActiveRagdollRules.Disarms(id, speed / spec.DisarmMultiplier)) Disarm(-c.relativeVelocity);
+                return;
+            }
+            // Peça arrancada no chão (esqueleto): golpe quebra a peça — aí ela não volta mais.
+            if (bone != null && bone.Severed)
+            {
+                if (spec.Reassembles && speed >= RagdollSpec.BreakSpeed && bone.Rb.position.y < 0.4f * k) Shatter(bone);
                 return;
             }
             if (hitCd > 0f || mode == Mode.Dead && !CanHitCorpse) return;
@@ -588,13 +636,16 @@ namespace Arena
             hitCd = 0.25f;
             float edge = Geometry.EdgeAlignment(bladeDir.ToN(), vel.ToN());
             // Desmembrar; golpe forte no braço da clava desarma (B&S: mão atingida solta a arma)
-            if (ActiveRagdollRules.Severs(id, speed, edge, def.Blunt)) { Sever(bone, vel); }
-            else if (Armed && ActiveRagdollRules.Disarms(id, speed)) Disarm(vel);
+            bool canSever = !spec.SeverNeedsHeavy || def.Weight > 5f;   // orc: só arma pesada arranca membro
+            if (canSever && ActiveRagdollRules.Severs(id, speed / spec.SeverMultiplier, edge, def.Blunt)) { Sever(bone, vel); }
+            else if (Armed && ActiveRagdollRules.Disarms(id, speed / spec.DisarmMultiplier)) Disarm(vel);
+            // Tipo de dano × material (maça no osso, machado/estocada na armadura) — igual aos inimigos antigos.
+            var dtype = DamageTypes.Classify(def.Kind, edge, align);
             float dmg = Combat.MeleeDamage(speed, def, Combat.SharpEdge(pl.State.Has(SkillIds.FioAfiado), def), true, def.Blunt ? 1f : edge)
-                        * ActiveRagdollRules.DamageMultiplier(id);
+                        * ActiveRagdollRules.DamageMultiplier(id) * DamageTypes.Multiplier(DamageTypes.MaterialOf(Kind), dtype);
             if (dmg > 0f && mode != Mode.Dead) Damage(dmg, contact);
             flopT = ActiveRagdollRules.HitFlopSeconds;
-            if (mode == Mode.Stand && ActiveRagdollRules.Knocksdown(id, speed, def.Weight > 5f)) KnockDown();
+            if (mode == Mode.Stand && ActiveRagdollRules.Knocksdown(id, speed / spec.KnockdownMultiplier, def.Weight > 5f)) KnockDown();
             ArenaAudio.Play(def.Weight > 5f ? Sfx.HitHeavy : Sfx.Hit, contact, 0.4f + speed / 10f);
         }
 
@@ -649,10 +700,83 @@ namespace Arena
             ArenaInput.Haptic(1f, 0.12f);
             string name = b.Id == RagBone.Cabeca ? "DECAPITOU!" : ActiveRagdollRules.IsLeg(b.Id) ? "PERNA!" : "BRAÇO!";
             ArenaFx.FloatText(name, at + Vector3.up * 0.4f, new Color(1f, 0.25f, 0.25f), 1.2f);
-            if (b.Id == RagBone.Cabeca) { State.TakeDamage(State.Hp + 1f, 0f, false); Die(); return; }
+            if (b.Id == RagBone.Cabeca && spec.HeadKills) { State.TakeDamage(State.Hp + 1f, 0f, false); Die(); return; }
             if (ActiveRagdollRules.IsWeaponArm(b.Id)) { canAttack = false; attack = Attack.None; }
             if (ActiveRagdollRules.IsLeg(b.Id)) { canStand = false; KnockDown(); }
-            State.TakeDamage(15f, 0f, false);
+            if (spec.Reassembles) { pieces.Add(new Piece { Bone = b, T = RagdollSpec.ReassembleSeconds }); ArenaAudio.Play(Sfx.Bone, at, 1f); }
+            State.TakeDamage(spec.Reassembles ? 6f : 15f, 0f, false);
+        }
+
+        // ---------- Esqueleto: peças arrancadas voltam em 4 s, a não ser que sejam quebradas no chão ----------
+        sealed class Piece { public Bone Bone; public float T; }
+        readonly List<Piece> pieces = new List<Piece>();
+
+        void UpdatePieces(float dt)
+        {
+            for (int i = pieces.Count - 1; i >= 0; i--)
+            {
+                var p = pieces[i];
+                if (p.Bone == null || !p.Bone.Rb || mode == Mode.Dead) { pieces.RemoveAt(i); continue; }
+                p.T -= dt;
+                if (p.T > 0f || p.Bone.Parent == null || p.Bone.Parent.Severed || !p.Bone.Parent.Rb) continue;
+                Reattach(p.Bone);
+                pieces.RemoveAt(i);
+            }
+        }
+
+        // Encaixa de volta: coloca a peça na pose original em relação ao pai e recria a junta.
+        void Reattach(Bone b)
+        {
+            var parent = b.Parent.Rb;
+            var rot = parent.rotation * b.RelRot;
+            var jointWorld = parent.position + parent.rotation * b.ParentAnchorLocal;
+            var pos = jointWorld - rot * b.AnchorLocal;
+            b.Rb.position = pos; b.Rb.rotation = rot;
+            b.Rb.transform.SetPositionAndRotation(pos, rot);
+            b.Rb.linearVelocity = parent.linearVelocity; b.Rb.angularVelocity = Vector3.zero;
+            var j = b.Rb.gameObject.AddComponent<ConfigurableJoint>();
+            j.connectedBody = parent;
+            j.autoConfigureConnectedAnchor = false;
+            j.anchor = b.AnchorLocal;
+            j.connectedAnchor = b.ParentAnchorLocal;
+            j.xMotion = j.yMotion = j.zMotion = ConfigurableJointMotion.Locked;
+            j.angularXMotion = j.angularYMotion = j.angularZMotion = ConfigurableJointMotion.Limited;
+            var (lo, hi, y, z) = Limits(b.Id);
+            j.lowAngularXLimit = new SoftJointLimit { limit = lo };
+            j.highAngularXLimit = new SoftJointLimit { limit = hi };
+            j.angularYLimit = new SoftJointLimit { limit = y };
+            j.angularZLimit = new SoftJointLimit { limit = z };
+            j.rotationDriveMode = RotationDriveMode.Slerp;
+            j.enablePreprocessing = false;
+            b.Joint = j;
+            Unsever(b);
+            ArenaFx.FloatText("SE MONTOU", b.Rb.position + Vector3.up * 0.3f, new Color(0.9f, 0.9f, 0.8f), 0.9f);
+            ArenaAudio.Play(Sfx.Rattle, b.Rb.position, 1f);
+            if (!bones[RagBone.BracoD].Severed && !bones[RagBone.AntebracoD].Severed) canAttack = true;
+            if (!bones[RagBone.CoxaE].Severed && !bones[RagBone.CanelaE].Severed && !bones[RagBone.CoxaD].Severed && !bones[RagBone.CanelaD].Severed) canStand = true;
+        }
+
+        void Unsever(Bone b)
+        {
+            b.Severed = false;
+            foreach (var o in boneList) if (o.Parent == b && o.Severed && o.Joint) Unsever(o);
+        }
+
+        // Peça arrancada quebrada no chão: some (não volta). Cabeça quebrada = morre.
+        void Shatter(Bone b)
+        {
+            var at = b.Rb.position;
+            ArenaFx.Burst(at, new Color(0.9f, 0.88f, 0.8f), 20, 3f, 1.2f);
+            ArenaFx.FloatText("QUEBROU!", at + Vector3.up * 0.3f, new Color(1f, 0.9f, 0.7f), 1f);
+            ArenaAudio.Play(Sfx.Bone, at, 1f, 0.7f);
+            ArenaInput.Haptic(0.7f, 0.08f);
+            pieces.RemoveAll(p => p.Bone == b);
+            // Filhos presos nela também quebram.
+            foreach (var o in boneList.ToArray()) if (o.Parent == b && o.Rb) Shatter(o);
+            Destroy(b.Rb.gameObject);
+            b.Rb = null;
+            if (b.Id == RagBone.Cabeca && mode != Mode.Dead) { State.TakeDamage(State.Hp + 1f, 0f, false); Die(); }
+            else if (mode != Mode.Dead) State.TakeDamage(10f, 0f, false);
         }
 
         void MarkSevered(Bone b)
@@ -697,8 +821,9 @@ namespace Arena
             ArenaFx.Burst(contact, new Color(0.7f, 0.12f, 0.16f), 14, 3f);
             ArenaAudio.Play(Sfx.Stab, contact);
             ArenaInput.Haptic(1f, 0.1f);
-            float dmg = StabRules.StabDamage(speed, w.Def, false, true) * ActiveRagdollRules.DamageMultiplier(b.Id);
-            if (b.Id == RagBone.Cabeca && DamageTypes.IsFatalStab(EnemyKind.Goblin, true, speed))
+            float dmg = StabRules.StabDamage(speed, w.Def, false, true) * ActiveRagdollRules.DamageMultiplier(b.Id)
+                        * DamageTypes.Multiplier(DamageTypes.MaterialOf(Kind), DamageType.Perfuracao);
+            if (b.Id == RagBone.Cabeca && spec.HeadKills && DamageTypes.IsFatalStab(EnemyKind.Goblin, true, speed))
             {
                 ArenaFx.FloatText("GOLPE FATAL", contact + Vector3.up * 0.3f, new Color(1f, 0.3f, 0.3f), 1.3f);
                 State.TakeDamage(State.Hp + 1f, 0f, false);
@@ -794,6 +919,11 @@ namespace Arena
                 }
             }
             if (best == null) return null;
+            if (!bestG.spec.Grabbable)
+            {
+                if (Time.time - lastHeavyMsg > 1.5f) { lastHeavyMsg = Time.time; ArenaGame.Instance?.Message(bestG.State.Def.Name + " é pesado demais para agarrar", 1f); }
+                return null;
+            }
             hand.position = bestP; hand.transform.position = bestP;   // a mão encosta na superfície (por fora)
             var j = best.Rb.gameObject.AddComponent<ConfigurableJoint>();
             j.connectedBody = hand;
@@ -810,6 +940,7 @@ namespace Arena
         }
 
         public void OnGrabReleased() => grabs = Mathf.Max(0, grabs - 1);
+        static float lastHeavyMsg = -10f;
 
         // Soltou da mão: arremessado (ou largado no alto) cai de verdade — perde o pé e o corpo inteiro voa com a mão.
         public void OnThrown(Vector3 velocity)
@@ -865,7 +996,8 @@ namespace Arena
                 var dir = (LookAt - Point); dir.y = 0f; dir = dir.sqrMagnitude > 1e-4f ? dir.normalized : Vector3.forward;
                 var side = Vector3.Cross(Vector3.up, dir);
                 float off = (i - (n - 1) * 0.5f) * 1.1f;
-                current[i] = RagdollGoblin.Spawn(ArenaUtil.ClampToArena(Point + side * off - dir * Mathf.Abs(off) * 0.3f), LookAt);
+                var def = (i % 3) switch { 1 => EnemyDef.Esqueleto, 2 => EnemyDef.Orc, _ => EnemyDef.Goblin };
+                current[i] = RagdollGoblin.Spawn(ArenaUtil.ClampToArena(Point + side * off - dir * Mathf.Abs(off) * 0.3f), LookAt, new EnemyState(def));
                 wait[i] = 3f;
             }
         }

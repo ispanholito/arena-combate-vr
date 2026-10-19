@@ -82,8 +82,8 @@ namespace Arena
             Row(7, "Mostrar FPS: " + (o.showFps ? "sim" : "não"));
             Row(8, "Música: " + (o.music ? "ligada" : "desligada"));
             Row(9, "Morte: " + DeathRules.Label(o.DeathPenalty));
-            Row(10, "Goblins físicos no Treino: " + o.TrainingGoblins + " <size=40><color=#999>(teste de desempenho)</color></size>");
-            Row(11, "Goblins físicos na Arena/Dungeon (beta): " + (o.physicalGoblins ? "sim" : "não") + " <size=40><color=#999>(vale para os próximos que nascerem)</color></size>");
+            Row(10, "Inimigos físicos no Treino: " + o.TrainingGoblins + " <size=40><color=#999>(teste de desempenho)</color></size>");
+            Row(11, "Inimigos físicos na Arena/Dungeon (beta): " + (o.physicalGoblins ? "sim" : "não") + " <size=40><color=#999>(goblin, esqueleto e orc; vale para os próximos)</color></size>");
             Row(12, inHub ? "Menu inicial (trocar de personagem)" : "Voltar ao santuário");
             sb.Append("\n<size=40><color=#999>Cima/baixo escolhe · A/Enter confirma · B/R ")
               .Append(inHub ? "menu inicial" : "santuário")
