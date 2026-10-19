@@ -295,7 +295,7 @@ namespace Arena
             ArenaEnemy e = def.Kind switch
             {
                 EnemyKind.Slime => go.AddComponent<SlimeEnemy>(),
-                EnemyKind.Goblin => go.AddComponent<GoblinEnemy>(),
+                EnemyKind.Goblin => SaveSystem.Options.physicalGoblins ? go.AddComponent<PhysicalGoblinEnemy>() : go.AddComponent<GoblinEnemy>(),
                 EnemyKind.Boneco => go.AddComponent<TrainingDummy>(),
                 EnemyKind.Esqueleto => go.AddComponent<SkeletonEnemy>(),
                 EnemyKind.Mimico => go.AddComponent<MimicEnemy>(),
@@ -388,6 +388,7 @@ namespace Arena
             if (Mode == GameMode.Arena) player.State.ArenaTier = 1;
             foreach (var e in ArenaEnemy.All.ToArray()) if (e) Destroy(e.gameObject);
             ArenaEnemy.All.Clear();
+            RagdollGoblin.ClearAll();
             Boss = null;
             Director.Reset(3f);
             if (Mode == GameMode.Dungeon) dungeon.OnPlayerDied();

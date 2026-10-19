@@ -48,6 +48,11 @@ namespace Arena.Core
         public const float GuardTriggerSpeed = 3f, GuardTriggerDistance = 1.2f, GuardSeconds = 0.6f, GuardCooldown = 1.6f;
         public static float GuardChance(Difficulty d) => d switch { Difficulty.Facil => 0.15f, Difficulty.Dificil => 0.5f, _ => 0.3f };
 
+        // Aparo (espada ou escudo empurrado contra o golpe): cambaleia — janela para punir.
+        public const float ParryStunSeconds = 1.1f;
+        // Com pouca vida às vezes recua um pouco (como o goblin antigo).
+        public const float RetreatHpFraction = 0.3f, RetreatChance = 0.35f, RetreatSeconds = 1.4f;
+
         // Sem ficha de ataque: ronda o jogador a essa distância em vez de ficar parado na frente.
         public const float CircleRadius = 2.1f, CircleSpeed = 0.9f;
         public static bool IsLeg(RagBone b) => b == RagBone.CoxaE || b == RagBone.CanelaE || b == RagBone.CoxaD || b == RagBone.CanelaD;

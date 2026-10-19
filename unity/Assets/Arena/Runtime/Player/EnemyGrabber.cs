@@ -104,7 +104,7 @@ namespace Arena
             ArenaEnemy best = null; float bestD = float.MaxValue;
             foreach (var e in ArenaEnemy.All)
             {
-                if (!e || e.Dead || e.Impaled) continue;
+                if (!e || e.Dead || e.Impaled || e is PhysicalGoblinEnemy) continue;
                 e.BodyAxis(out var a, out var b);
                 float d = DistToSegment(palm, a, b) - e.Radius;
                 if (d < GrabRules.Reach && d < bestD) { bestD = d; best = e; }

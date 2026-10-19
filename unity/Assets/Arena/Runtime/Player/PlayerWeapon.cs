@@ -835,7 +835,7 @@ namespace Arena
             for (int i = ArenaEnemy.All.Count - 1; i >= 0; i--)
             {
                 var e = ArenaEnemy.All[i];
-                if (e == null || e.Dead) continue;
+                if (e == null || e.Dead || e is PhysicalGoblinEnemy) continue;   // goblin físico: o golpe é a colisão nos ossos
                 e.BodyAxis(out var a, out var b);
                 if (!Geometry.SweptBladeHits(strikeAPrev.ToN(), strikeBPrev.ToN(), strikeA.ToN(), strikeB.ToN(), a.ToN(), b.ToN(), e.Radius + radius))
                     continue;

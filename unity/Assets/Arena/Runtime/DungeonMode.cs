@@ -214,6 +214,7 @@ namespace Arena
         {
             foreach (var e in ArenaEnemy.All.ToArray()) if (e) Destroy(e.gameObject);
             ArenaEnemy.All.Clear();
+            RagdollGoblin.ClearAll();
             WeaponPickup.ClearAll(game.Player.State);
         }
 

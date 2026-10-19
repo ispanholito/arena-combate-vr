@@ -48,8 +48,11 @@ namespace Arena
         Rigidbody clubRb;
         FixedJoint clubJoint;
         bool Armed => clubJoint;
-        float guardT, guardCd, strafeT;
+        float guardT, guardCd, strafeT, retreatT, retreatCheckT;
+        Vector3 clubPrevA, clubPrevB;
+        bool hasClubPrev;
         int strafeDir = 1;
+        bool riposte;
         Vector3 lungeDir;
         int TokenId => GetInstanceID();
         static Difficulty Diff => SaveSystem.Options.Difficulty;
@@ -60,13 +63,15 @@ namespace Arena
         ArenaPlayer Player => ArenaGame.Instance ? ArenaGame.Instance.Player : null;
 
         // ---------- Criação ----------
-        public static RagdollGoblin Spawn(Vector3 feet, Vector3 lookAt)
+        // shared/proxy: na Arena/Dungeon o corpo usa a vida do representante (PhysicalGoblinEnemy).
+        public static RagdollGoblin Spawn(Vector3 feet, Vector3 lookAt, EnemyState shared = null, ArenaEnemy proxy = null)
         {
             var go = new GameObject("Goblin Fisico");
             go.transform.position = feet;
             var dir = (lookAt - feet); dir.y = 0f;
             go.transform.rotation = Quaternion.LookRotation(dir.sqrMagnitude > 1e-4f ? dir.normalized : Vector3.forward);
             var g = go.AddComponent<RagdollGoblin>();
+            g.shared = shared; g.proxy = proxy;
             g.Build();
             return g;
         }
@@ -77,9 +82,23 @@ namespace Arena
             All.Clear();
         }
 
+        EnemyState shared;
+        ArenaEnemy proxy;
+        bool Proxied => proxy;
+
+        // Pés: o ponto da IA em pé; caído, embaixo da bacia.
+        public Vector3 FeetPosition
+        {
+            get
+            {
+                if (mode == Mode.Stand || !bones.TryGetValue(RagBone.Bacia, out var b) || !b.Rb) return anchor ? anchor.position : transform.position;
+                var p = b.Rb.position; return new Vector3(p.x, anchor ? anchor.position.y : 0f, p.z);
+            }
+        }
+
         void Build()
         {
-            State = new EnemyState(EnemyDef.Goblin);
+            State = shared ?? new EnemyState(EnemyDef.Goblin);
             skin = ArenaUtil.Lit(new Color(0.37f, 0.54f, 0.23f));
             cloth = ArenaUtil.Lit(new Color(0.35f, 0.25f, 0.16f));
             club = ArenaUtil.Lit(new Color(0.42f, 0.27f, 0.15f));
@@ -312,7 +331,7 @@ namespace Arena
             var pl = Player;
             if (mode != Mode.Dead)
             {
-                State.Tick(dt);
+                if (!Proxied) State.Tick(dt);   // com representante, quem avança o tempo da vida/status é ele
                 UpdateStabsBleed(dt);
                 if (State.Dead) Die();
             }
@@ -362,14 +381,24 @@ namespace Arena
             float dist = to.magnitude;
             var dir = dist > 1e-3f ? to / dist : transform.forward;
             if (dist > 1e-3f) anchor.MoveRotation(Quaternion.Slerp(anchor.rotation, Quaternion.LookRotation(dir), dt * 5f));
-            bool stuck = GrabbedOrStuck;
+            bool stuck = GrabbedOrStuck || !State.CanAct;   // atordoado, cambaleando, congelado, eletrocutado ou preso
+            if (!State.CanAct && attack != Attack.None) { attack = Attack.None; ArenaGame.Tokens.Release(TokenId); }
             var tokens = ArenaGame.Tokens;
             bool hasToken = canAttack && !stuck && tokens.TryTake(TokenId);
             if (!hasToken && attack == Attack.None) tokens.Release(TokenId);
             float reach = Armed ? EnemyAttacks.Range(curAttack) : ActiveRagdollRules.PunchReach;
             float speed = 0f;
             Vector3 move = Vector3.zero;
-            if (attack == Attack.None && !stuck && guardT <= 0f)
+            // Pouca vida: às vezes recua um pouco.
+            retreatT -= dt;
+            if (retreatT <= 0f && retreatCheckT <= 0f && attack == Attack.None && State.HpFraction < ActiveRagdollRules.RetreatHpFraction)
+            {
+                retreatCheckT = 3f;
+                if (Random.value < ActiveRagdollRules.RetreatChance) retreatT = ActiveRagdollRules.RetreatSeconds;
+            }
+            retreatCheckT -= dt;
+            if (retreatT > 0f && !stuck) { move = -dir * 1.6f; speed = 1.6f; hasToken = false; tokens.Release(TokenId); }
+            else if (attack == Attack.None && !stuck && guardT <= 0f)
             {
                 if (hasToken && dist > reach - 0.15f) { move = dir * 1.3f; speed = 1.3f; }
                 else if (!hasToken)
@@ -408,15 +437,16 @@ namespace Arena
             if (attack != Attack.None)
             {
                 attackT += dt;
-                float windup = (Armed ? 1.0f : 0.6f) * DifficultyRules.WindupMultiplier(Diff);
+                float windup = (Armed ? 1.0f : 0.6f) * DifficultyRules.WindupMultiplier(Diff) * (riposte ? 0.6f : 1f);
                 if (attack == Attack.Windup && attackT > windup)
                 {
-                    attack = Attack.Strike; attackT = 0f; lungeDir = dir;
+                    attack = Attack.Strike; attackT = 0f; lungeDir = dir; riposte = false; hasClubPrev = false;
                     ArenaAudio.Play(Sfx.Whoosh, Center, 0.7f, Armed ? 0.8f : 1.3f);
                 }
                 else if (attack == Attack.Strike)
                 {
-                    if (!strikeHit) CheckClubHit(pl);
+                    if (!strikeHit) CheckShield(pl);
+                    if (!strikeHit && attack == Attack.Strike) CheckClubHit(pl);
                     if (attackT > 0.35f) { attack = Attack.Recover; attackT = 0f; }
                 }
                 else if (attack == Attack.Recover && attackT > 0.7f)
@@ -427,6 +457,66 @@ namespace Arena
                 }
             }
             return speed > 0.05f ? 1f : 0f;
+        }
+
+        // Escudo do jogador no caminho do golpe (varredura entre passos): aparo, bloqueio, contra-ataque ou guarda quebrada.
+        void CheckShield(ArenaPlayer pl)
+        {
+            if (!bones.TryGetValue(RagBone.AntebracoD, out var fr) || fr.Severed) { hasClubPrev = false; return; }
+            var a = fr.Rb.position + fr.Rb.rotation * new Vector3(0f, -0.12f, 0f);
+            var b = Armed ? clubRb.position + clubRb.rotation * new Vector3(0f, 0f, 0.24f) : a;
+            var shield = pl.Shield;
+            if (hasClubPrev && shield && shield.Equipped && shield.Intercepts(clubPrevA, clubPrevB, a, b, 0.05f))
+            {
+                strikeHit = true;
+                ResolveGuard(pl, Guard.ResolveShield(shield.GuardSpeed, pl.State.CounterStance > 0f, pl.State.Stamina.Current), shield.Center);
+            }
+            clubPrevA = a; clubPrevB = b; hasClubPrev = true;
+        }
+
+        void ResolveGuard(ArenaPlayer pl, GuardResult r, Vector3 at)
+        {
+            var ps = pl.State;
+            switch (r)
+            {
+                case GuardResult.Counter:
+                    ps.ConsumeCounterStance();
+                    Parried(at);
+                    ArenaFx.FloatText("CONTRA-ATAQUE!", at + Vector3.up * 0.4f, new Color(1f, 0.83f, 0.42f), 1.4f);
+                    Damage(Combat.CounterDamage * (ps.Has(SkillIds.FioAfiado) ? Combat.SharpEdgeBonus : 1f), Center);
+                    ArenaInput.Haptic(1f, 0.2f);
+                    pl.Vignette(0.5f);
+                    break;
+                case GuardResult.Parry:
+                    Parried(at);
+                    break;
+                case GuardResult.ShieldBlock:
+                case GuardResult.Block:
+                    ps.Stamina.TrySpend(r == GuardResult.Block ? Guard.BlockStaminaCost : Guard.ShieldBlockStaminaCost, 1f);
+                    ArenaFx.FloatText("BLOQUEIO", at, new Color(0.85f, 0.85f, 0.85f), 0.9f);
+                    ArenaAudio.Play(Sfx.Block, at);
+                    ArenaInput.Haptic(0.6f, 0.07f, left: r == GuardResult.ShieldBlock);
+                    if (r == GuardResult.Block) pl.TakeDamage(Guard.DamageToPlayer(r, State.Def.AttackDamage), Center, ignoreGuardCooldown: true);
+                    attack = Attack.Recover; attackT = 0f;
+                    // Revide: depois de ser bloqueado, às vezes ataca de novo logo (aviso mais curto).
+                    if (Random.value < CombatAI.RiposteChance(Diff)) { riposte = true; attackCd = CombatAI.Pick(CombatAI.RiposteDelay(Diff), Random.value); }
+                    break;
+                case GuardResult.GuardBroken:
+                    ArenaFx.FloatText("GUARDA QUEBRADA", at, new Color(1f, 0.44f, 0.44f), 1f);
+                    pl.TakeDamage(State.Def.AttackDamage, Center, ignoreGuardCooldown: true);
+                    break;
+            }
+        }
+
+        // Aparado: perde o golpe e cambaleia (janela para punir).
+        void Parried(Vector3 at)
+        {
+            attack = Attack.Recover; attackT = 0f; flopT = 0.6f;
+            State.ApplyStun(ActiveRagdollRules.ParryStunSeconds);
+            ArenaFx.FloatText("APARADO", at + Vector3.up * 0.2f, new Color(0.6f, 0.9f, 1f), 0.9f);
+            ArenaAudio.Play(Sfx.Parry, at, 1f);
+            ArenaInput.Haptic(0.8f, 0.08f);
+            ArenaGame.Tokens.Release(TokenId);
         }
 
         // A clava acerta se a ponta passar perto do corpo do jogador (cabeça até a cintura).
@@ -441,7 +531,7 @@ namespace Arena
             var c = waist + ab * Mathf.Clamp01(Vector3.Dot(tip - waist, ab) / ab.sqrMagnitude);
             if (Vector3.Distance(tip, c) > (Armed ? 0.28f : 0.22f)) return;
             strikeHit = true;
-            pl.TakeDamage(EnemyDef.Goblin.AttackDamage * (Armed ? 1f : ActiveRagdollRules.PunchDamageFraction), Center);
+            pl.TakeDamage(State.Def.AttackDamage * (Armed ? 1f : ActiveRagdollRules.PunchDamageFraction), Center);
             ArenaAudio.Play(Sfx.Impact, tip, 0.8f);
         }
 
@@ -462,10 +552,9 @@ namespace Arena
                 if (!Armed || speed < 1.5f) return;
                 if (attack == Attack.Windup || attack == Attack.Strike)
                 {
-                    attack = Attack.Recover; attackT = 0f; flopT = 0.6f;
-                    ArenaFx.FloatText("APARADO", contact + Vector3.up * 0.2f, new Color(0.6f, 0.9f, 1f), 0.9f);
-                    ArenaAudio.Play(Sfx.Parry, contact, 1f);
-                    ArenaInput.Haptic(0.8f, 0.08f);
+                    if (pl.State.CounterStance > 0f) ResolveGuard(pl, GuardResult.Counter, contact);
+                    else Parried(contact);
+                    strikeHit = true;
                 }
                 else if (guardT > 0f)
                 {

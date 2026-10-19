@@ -47,6 +47,8 @@ namespace Arena.Core
         public int deathPenalty = (int)DeathPenalty.Xp;
         // Quantos goblins físicos (ragdoll ativo) o Treino mantém vivos: 1, 3 ou 6 (medir o FPS no Quest).
         public int trainingGoblins = 1;
+        // Beta: na Arena e na Dungeon os goblins nascem com corpo físico (ragdoll ativo).
+        public bool physicalGoblins = false;
         public int TrainingGoblins => trainingGoblins >= 6 ? 6 : trainingGoblins >= 3 ? 3 : 1;
         public void CycleTrainingGoblins() => trainingGoblins = TrainingGoblins == 1 ? 3 : TrainingGoblins == 3 ? 6 : 1;
 

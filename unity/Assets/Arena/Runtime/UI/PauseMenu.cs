@@ -15,7 +15,7 @@ namespace Arena
         TextMesh text;
         int cursor;
         readonly StringBuilder sb = new StringBuilder();
-        const int Rows = 12;
+        const int Rows = 13;
 
         void Awake() => player = GetComponent<ArenaPlayer>();
 
@@ -56,7 +56,8 @@ namespace Arena
                 case 8: o.music = !o.music; break;
                 case 9: o.CycleDeathPenalty(); if (player.State != null) player.State.Penalty = o.DeathPenalty; break;
                 case 10: o.CycleTrainingGoblins(); break;
-                case 11: cursor = 0; game.BackFromPause(); return;
+                case 11: o.physicalGoblins = !o.physicalGoblins; break;
+                case 12: cursor = 0; game.BackFromPause(); return;
             }
             SaveSystem.SaveOptions();
         }
@@ -82,7 +83,8 @@ namespace Arena
             Row(8, "Música: " + (o.music ? "ligada" : "desligada"));
             Row(9, "Morte: " + DeathRules.Label(o.DeathPenalty));
             Row(10, "Goblins físicos no Treino: " + o.TrainingGoblins + " <size=40><color=#999>(teste de desempenho)</color></size>");
-            Row(11, inHub ? "Menu inicial (trocar de personagem)" : "Voltar ao santuário");
+            Row(11, "Goblins físicos na Arena/Dungeon (beta): " + (o.physicalGoblins ? "sim" : "não") + " <size=40><color=#999>(vale para os próximos que nascerem)</color></size>");
+            Row(12, inHub ? "Menu inicial (trocar de personagem)" : "Voltar ao santuário");
             sb.Append("\n<size=40><color=#999>Cima/baixo escolhe · A/Enter confirma · B/R ")
               .Append(inHub ? "menu inicial" : "santuário")
               .Append("\nContinuar também: botão Menu (☰) ou gesto de menu da mão esquerda · P/Esc</color></size>");
