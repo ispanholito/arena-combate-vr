@@ -9,6 +9,12 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000000. NOVO — esqueleto e orc físicos (A4)
+- [ ] Treino → pausa → "Inimigos físicos no Treino" = 3: nascem goblin, **esqueleto** (branco, espada) e **orc** (grande, machado).
+- [ ] **Esqueleto**: corte forte arranca braço/cabeça/perna; em 4 s a peça volta ("SE MONTOU"). Bater na peça caída no chão quebra ("QUEBROU!") e ela não volta. Sem cabeça ele continua lutando; cabeça quebrada mata. Maça faz muito dano nele.
+- [ ] **Orc**: aguenta mais; só cai com golpe forte (ou machado/maça); espada quase não corta (armadura) — machado e estocada funcionam; não dá para agarrar; membros só saem com machado.
+- [ ] Com a opção beta ligada, esqueletos e orcs da Dungeon/Arena também ficam físicos.
+
 ## 000000000000. NOVO — goblins físicos jogando de verdade (beta)
 - [ ] Pausa → **"Goblins físicos na Arena/Dungeon (beta)" = sim**. Jogue uma Arena e uma sala da Dungeon: os goblins nascem com corpo físico (os outros inimigos continuam como antes).
 - [ ] **Escudo**: bloquear o golpe da clava com o escudo parado = BLOQUEIO (sem dano); empurrar o escudo contra o golpe = APARADO e ele cambaleia ~1 s (aproveite para bater). Com a Postura de Contra ativa = CONTRA-ATAQUE.
