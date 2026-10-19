@@ -9,6 +9,13 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000000000. NOVO — goblin físico: IA e desempenho (passos A2/A3)
+- [ ] **FPS (A2)**: pausa → "Goblins físicos no Treino" → 3 e depois 6; ligue "Mostrar FPS". Anote o número com 1, 3 e 6 (precisa 72).
+- [ ] **Ataques variados**: além de cima, eles atacam da direita, da esquerda e com passo à frente. Dá para ler pela pose e aparar do lado certo?
+- [ ] **Cerco**: no normal 3 atacam e os outros rondam a ~2 m andando de lado (como você pediu, menos parados).
+- [ ] **Guarda**: às vezes, quando você golpeia rápido, ele ergue a clava na frente ("BLOQUEOU").
+- [ ] **Desarmar**: golpe forte no braço da clava (ou na clava) faz ela cair ("DESARMOU!"); desarmado ele vem no soco.
+
 ## 0000000000. NOVO — correções do seu teste de 2026-10-18
 - [ ] **Perfurar o goblin físico** (Treino): estocada com a ponta no tronco/cabeça agora crava?
 - [ ] **Balanço rápido** (espada e lança): a arma não sai mais da mão? (também quando o controle sai da vista das câmeras)
