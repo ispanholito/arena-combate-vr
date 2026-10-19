@@ -9,6 +9,14 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000000000. NOVO — goblins físicos jogando de verdade (beta)
+- [ ] Pausa → **"Goblins físicos na Arena/Dungeon (beta)" = sim**. Jogue uma Arena e uma sala da Dungeon: os goblins nascem com corpo físico (os outros inimigos continuam como antes).
+- [ ] **Escudo**: bloquear o golpe da clava com o escudo parado = BLOQUEIO (sem dano); empurrar o escudo contra o golpe = APARADO e ele cambaleia ~1 s (aproveite para bater). Com a Postura de Contra ativa = CONTRA-ATAQUE.
+- [ ] **Revide**: depois de bloqueado, às vezes ele ataca de novo rápido.
+- [ ] Com pouca vida, às vezes ele recua.
+- [ ] Bola de Fogo, raio, Lança de Gelo e habilidades das armas acertam o goblin físico; matar dá XP/ouro e a sala da Dungeon limpa normalmente.
+- [ ] Comparando com o goblin antigo (opção desligada): **qual é mais divertido?** Essa resposta decide se seguimos para o A4 (todos os inimigos físicos).
+
 ## 00000000000. NOVO — goblin físico: IA e desempenho (passos A2/A3)
 - [ ] **FPS (A2)**: pausa → "Goblins físicos no Treino" → 3 e depois 6; ligue "Mostrar FPS". Anote o número com 1, 3 e 6 (precisa 72).
 - [ ] **Ataques variados**: além de cima, eles atacam da direita, da esquerda e com passo à frente. Dá para ler pela pose e aparar do lado certo?
