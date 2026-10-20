@@ -9,6 +9,11 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000000000000. NOVO — perfurar corrigido (goblin "grudado como fantasma")
+- [ ] Estocada no goblin físico: entra e fica preso; puxando a espada para trás ele solta limpo (sem ficar grudado à distância).
+- [ ] Mate-o espetado (ou estocada na cabeça): o corpo fica pendurado na lâmina; apontar para baixo ou puxar faz ele cair.
+- [ ] Depois de soltar, bater de novo nele funciona normal (a lâmina volta a colidir em 0,5 s).
+
 ## 0000000000000. NOVO — esqueleto e orc físicos (A4)
 - [ ] Treino → pausa → "Inimigos físicos no Treino" = 3: nascem goblin, **esqueleto** (branco, espada) e **orc** (grande, machado).
 - [ ] **Esqueleto**: corte forte arranca braço/cabeça/perna; em 4 s a peça volta ("SE MONTOU"). Bater na peça caída no chão quebra ("QUEBROU!") e ela não volta. Sem cabeça ele continua lutando; cabeça quebrada mata. Maça faz muito dano nele.
