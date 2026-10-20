@@ -592,15 +592,14 @@ namespace Arena
             corpse.ScaleMass(StabRules.PinnedCorpseMassScale);
             foreach (var wc in visual.GetComponents<Collider>())
                 foreach (var cc in corpse.GetComponentsInChildren<Collider>()) Physics.IgnoreCollision(wc, cc, true);
-            var j = rb.gameObject.AddComponent<ConfigurableJoint>();
-            j.connectedBody = body;
+            // Junta na ESPADA (eixo de deslize = lâmina, não um eixo do osso que gira junto com o corpo).
+            var j = visual.gameObject.AddComponent<ConfigurableJoint>();
+            j.connectedBody = rb;
             j.autoConfigureConnectedAnchor = false;
             // Pose física (o corpo do cadáver é interpolado: o transform fica atrasado durante a física).
-            var inv = Quaternion.Inverse(rb.rotation);
-            j.anchor = inv * (point - rb.position);
-            j.connectedAnchor = Quaternion.Inverse(body.rotation) * (point - body.position);
-            j.axis = inv * (body.rotation * Vector3.right);
-            j.secondaryAxis = inv * (body.rotation * Vector3.up);
+            j.anchor = Quaternion.Inverse(body.rotation) * (point - body.position);
+            j.connectedAnchor = Quaternion.Inverse(rb.rotation) * (point - rb.position);
+            j.axis = Vector3.right; j.secondaryAxis = Vector3.up;
             j.xMotion = j.yMotion = ConfigurableJointMotion.Locked;
             j.zMotion = ConfigurableJointMotion.Free;   // desliza ao longo da lâmina
             j.angularXMotion = j.angularYMotion = j.angularZMotion = ConfigurableJointMotion.Free;
@@ -615,7 +614,7 @@ namespace Arena
         {
             if (!pinnedCorpse) { pinnedCorpse = null; pinJoint = null; return; }
             if (!pinJoint || !pinBody) { UnpinCorpse(); return; }   // a junta quebrou (sacudida forte)
-            var anchorWorld = pinBody.transform.TransformPoint(pinJoint.anchor);
+            var anchorWorld = pinBody.transform.TransformPoint(pinJoint.connectedAnchor);
             if (visual.InverseTransformPoint(anchorWorld).z > Def.Length + 0.04f) UnpinCorpse();   // escorregou pela ponta
         }
 

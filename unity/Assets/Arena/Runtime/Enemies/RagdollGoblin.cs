@@ -374,9 +374,12 @@ namespace Arena
             {
                 if (!Proxied) State.Tick(dt);   // com representante, quem avança o tempo da vida/status é ele
                 UpdatePieces(dt);
-                UpdateStabsBleed(dt);
+
                 if (State.Dead) Die();
             }
+            UpdateStabsBleed(dt);      // vivo OU morto: senão o corpo morto nunca soltava da espada ("fantasma grudado")
+            UpdatePendingCollisions(dt);
+            FollowBodyWhileStuck();
             float speed01 = 0f;
             switch (mode)
             {
@@ -679,6 +682,8 @@ namespace Arena
         {
             if (mode == Mode.Dead) return;
             mode = Mode.Dead; attack = Attack.None;
+            // Morreu espetado: o corpo fica mais leve para a espada conseguir segurar pendurado (igual ao inimigo antigo).
+            if (stabs.Count > 0) foreach (var b in boneList) if (b.Rb) b.Rb.mass *= StabRules.PinnedCorpseMassScale;
             ArenaGame.Tokens.Release(TokenId);
             if (anchorJoint) Destroy(anchorJoint);
             if (Armed) { Destroy(clubJoint); clubJoint = null; if (clubRb) Destroy(clubRb.gameObject, 10f); }
@@ -786,7 +791,7 @@ namespace Arena
         }
 
         // ---------- Perfurar ----------
-        sealed class StabLink { public Bone Bone; public ConfigurableJoint Joint; public PlayerWeapon Weapon; public bool Deep; public int Frames; }
+        sealed class StabLink { public Bone Bone; public ConfigurableJoint Joint; public PlayerWeapon Weapon; public bool Deep; public int Frames; public float Age; }
         readonly List<StabLink> stabs = new List<StabLink>();
 
         bool IsStuckBy(PlayerWeapon w) { foreach (var s in stabs) if (s.Weapon == w && s.Joint) return true; return false; }
@@ -799,17 +804,18 @@ namespace Arena
             // A lâmina passa pelo corpo todo (a física dela não bate mais nos ossos deste goblin).
             var body = BodyColliders();
             foreach (var wc in vis.GetComponents<Collider>()) foreach (var bc in body) Physics.IgnoreCollision(wc, bc, true);
-            var j = b.Rb.gameObject.AddComponent<ConfigurableJoint>();
-            j.connectedBody = w.Body;
+            // A junta fica na ESPADA (não no osso): assim o eixo de deslize é sempre a lâmina. Montada no osso, o eixo girava
+            // junto com o corpo e ele "escorregava" por uma linha fora da lâmina (o fantasma grudado).
+            var j = vis.gameObject.AddComponent<ConfigurableJoint>();
+            j.connectedBody = b.Rb;
             j.autoConfigureConnectedAnchor = false;
-            // Ponto do osso preso na lâmina: começa ~6 cm dentro (puxar uns 8 cm solta; tremidas não).
-            var onBlade = vis.TransformPoint(new Vector3(0f, 0f, Mathf.Min(w.Def.Length - 0.06f, vis.InverseTransformPoint(contact).z)));
+            // Ponto do osso preso na lâmina: começa 15 cm dentro (a junta nova se acomoda uns centímetros no 1º passo).
+            float startZ = Mathf.Min(w.Def.Length - ActiveRagdollRules.StabStartDepth, (Quaternion.Inverse(w.Body.rotation) * (contact - w.Body.position)).z);
+            var onBlade = w.Body.position + w.Body.rotation * new Vector3(0f, 0f, startZ);
             // Pose física dos corpos (o transform de corpo interpolado fica atrasado durante a física).
-            var inv = Quaternion.Inverse(b.Rb.rotation);
-            j.anchor = inv * (onBlade - b.Rb.position);
-            j.connectedAnchor = Quaternion.Inverse(w.Body.rotation) * (onBlade - w.Body.position);
-            j.axis = inv * (w.Body.rotation * Vector3.right);
-            j.secondaryAxis = inv * (w.Body.rotation * Vector3.up);
+            j.anchor = new Vector3(0f, 0f, startZ);                                   // na lâmina (espaço da espada)
+            j.connectedAnchor = Quaternion.Inverse(b.Rb.rotation) * (onBlade - b.Rb.position);   // no osso
+            j.axis = Vector3.right; j.secondaryAxis = Vector3.up;                    // z da junta = eixo da lâmina
             j.xMotion = j.yMotion = ConfigurableJointMotion.Locked;
             j.zMotion = ConfigurableJointMotion.Free;   // desliza ao longo da lâmina, com freio
             j.angularXMotion = j.angularYMotion = j.angularZMotion = ConfigurableJointMotion.Free;
@@ -837,36 +843,39 @@ namespace Arena
 
         void UpdateStabsBleed(float dt)
         {
+            anyPulling = false;
             for (int i = stabs.Count - 1; i >= 0; i--)
             {
                 var s = stabs[i];
                 var w = s.Weapon;
-                bool gone = !s.Joint || !w || !w.Body || !w.Held;
+                bool gone = !s.Joint || !w || !w.Body || !w.Held || s.Bone == null || !s.Bone.Rb;
                 if (!gone)
                 {
                     var vis = w.Visual;
                     // Pose FÍSICA (Rigidbody), não o transform: com interpolação o transform no passo de física está atrasado.
-                    var p = s.Bone.Rb.position + s.Bone.Rb.rotation * s.Joint.anchor;
+                    var p = s.Bone.Rb.position + s.Bone.Rb.rotation * s.Joint.connectedAnchor;
                     float z = (Quaternion.Inverse(w.Body.rotation) * (p - w.Body.position)).z;
                     // Freio de entrada/saída pela velocidade relativa ao longo da lâmina.
                     var axis = w.Body.rotation * Vector3.forward;
                     float vAxial = Vector3.Dot(s.Bone.Rb.GetPointVelocity(p) - w.Body.GetPointVelocity(p), axis);   // > 0: osso indo para a ponta (saindo)
-                    float damper = vAxial > 0f ? ActiveRagdollRules.StabDamperOut : ActiveRagdollRules.StabDamperIn;
+                    // Jogador puxando a espada para trás: sai fácil (freio baixo). Corpo escorregando sozinho: freio alto.
+                    bool pulling = Vector3.Dot(w.Body.linearVelocity - w.RigVelocity, axis) < -ActiveRagdollRules.PullOutSpeed;
+                    anyPulling |= pulling;
+                    float damper = pulling ? ActiveRagdollRules.StabDamperPull : vAxial > 0f ? ActiveRagdollRules.StabDamperOut : ActiveRagdollRules.StabDamperIn;
                     if (Mathf.Abs(s.Joint.zDrive.positionDamper - damper) > 1f)
                         s.Joint.zDrive = new JointDrive { positionSpring = 0f, positionDamper = damper, maximumForce = float.MaxValue };
-                    // Só sai se o JOGADOR puxar a espada para trás (a arma recuando ao longo da lâmina); sozinho o corpo
-                    // para na ponta. Também para na guarda. Travar = prender no ponto atual (sem tranco).
+                    // A ponta passou para fora do osso = soltou. (Antes havia uma "trava na ponta" que só liberava se o jogador
+                    // puxasse rápido — puxando devagar o goblin ficava grudado na ponta, como um fantasma.) Para o corpo não
+                    // escorregar sozinho, o ponto da IA segue o corpo enquanto está espetado (FollowBodyWhileStuck).
                     float L = w.Def.Length;
-                    bool pulling = Vector3.Dot(w.Body.linearVelocity - w.RigVelocity, axis) < -ActiveRagdollRules.PullOutSpeed;
-                    if (z > L + 0.02f && pulling) gone = true;                                   // puxou até a ponta sair
-                    float lockZ = -1f;
-                    if (z < ActiveRagdollRules.StabGuard) lockZ = ActiveRagdollRules.StabGuard;
-                    else if (z > L - 0.03f && !pulling) lockZ = Mathf.Min(z, L - 0.03f);
+                    s.Age += dt;
+                    if (z > L + 0.01f && s.Age > ActiveRagdollRules.StabSettleSeconds) { gone = true; if (PlayerWeapon.DebugStab) Debug.Log($"[GoblinFisico] ponta saiu z={z:0.000} L={L}"); }
+                    float lockZ = z < ActiveRagdollRules.StabGuard ? ActiveRagdollRules.StabGuard : -1f;   // para na guarda
                     if (lockZ >= 0f)
                     {
                         if (s.Joint.zMotion != ConfigurableJointMotion.Locked)
                         {
-                            s.Joint.connectedAnchor = new Vector3(0f, 0f, lockZ);
+                            s.Joint.anchor = new Vector3(0f, 0f, lockZ);
                             s.Joint.zMotion = ConfigurableJointMotion.Locked;
                         }
                     }
@@ -879,6 +888,7 @@ namespace Arena
                         ArenaInput.Haptic(0.8f, 0.08f);
                     }
                 }
+                if (gone && PlayerWeapon.DebugStab) Debug.Log($"[GoblinFisico] soltou: joint={(bool)s.Joint} held={(w && w.Held)} rb={(s.Bone != null && s.Bone.Rb)}");
                 if (gone) { ReleaseStab(s); stabs.RemoveAt(i); continue; }
                 if (mode != Mode.Dead)
                 {
@@ -888,14 +898,37 @@ namespace Arena
             }
         }
 
+        // Solta a junta na hora, mas só volta a colidir arma × corpo 0,5 s depois — a lâmina ainda está dentro dele e
+        // religar a colisão na hora dava um tranco que "bugava tudo".
         void ReleaseStab(StabLink s)
         {
             if (s.Joint) Destroy(s.Joint);
-            if (s.Weapon && s.Weapon.Visual)
+            if (s.Weapon && s.Weapon.Visual) pendingCollisions.Add((s.Weapon, 0.5f));
+        }
+
+        bool anyPulling;
+        readonly List<(PlayerWeapon w, float t)> pendingCollisions = new List<(PlayerWeapon, float)>();
+
+        void UpdatePendingCollisions(float dt)
+        {
+            for (int i = pendingCollisions.Count - 1; i >= 0; i--)
             {
+                var (w, t) = pendingCollisions[i];
+                t -= dt;
+                if (t > 0f && w) { pendingCollisions[i] = (w, t); continue; }
+                pendingCollisions.RemoveAt(i);
+                if (!w || !w.Visual || IsStuckBy(w)) continue;   // espetou de novo nesse meio tempo: continua atravessando
                 var body = BodyColliders();
-                foreach (var wc in s.Weapon.Visual.GetComponents<Collider>()) foreach (var bc in body) if (bc) Physics.IgnoreCollision(wc, bc, false);
+                foreach (var wc in w.Visual.GetComponents<Collider>()) foreach (var bc in body) if (bc) Physics.IgnoreCollision(wc, bc, false);
             }
+        }
+
+        // Espetado: o ponto da IA acompanha a bacia (a mola de ficar em pé não empurra o corpo ao longo da lâmina).
+        void FollowBodyWhileStuck()
+        {
+            if (stabs.Count == 0 || mode != Mode.Stand || !anchor || anyPulling) return;   // puxando: os pés resistem
+            var p = bones[RagBone.Bacia].Rb.position - anchor.rotation * PelvisOffset;
+            anchor.MovePosition(new Vector3(p.x, anchor.position.y, p.z));
         }
 
         // ---------- Agarrar ----------
@@ -957,7 +990,7 @@ namespace Arena
             All.Remove(this);
             ArenaGame.Tokens.Release(TokenId);
             if (clubRb && Armed) Destroy(clubRb.gameObject);
-            foreach (var s in stabs) ReleaseStab(s);
+            foreach (var s in stabs) if (s.Joint) Destroy(s.Joint);   // o corpo some junto: não precisa religar colisão
             foreach (var b in boneList) if (b.Rb) Destroy(b.Rb.gameObject);
         }
     }

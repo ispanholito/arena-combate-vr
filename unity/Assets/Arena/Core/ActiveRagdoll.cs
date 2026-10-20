@@ -23,11 +23,13 @@ namespace Arena.Core
         // Perfurar osso (B&S): a lâmina entra pelo próprio movimento, freada por um amortecedor ao longo dela.
         // Freio ao longo da lâmina diferente para entrar e para sair (como os "damper in/out" do B&S): a estocada afunda,
         // mas o corpo não escorrega sozinho para fora — só sai puxando com vontade.
-        public const float StabDamperIn = 500f, StabDamperOut = 2500f;   // N·s/m
+        public const float StabDamperIn = 500f, StabDamperOut = 20000f;   // saída parado ~ atrito (quase travado, sem trava rígida)   // N·s/m
         public const float StabDamper = StabDamperIn;
-        public const float PullOutSpeed = 0.3f;          // m/s da arma recuando ao longo da lâmina = "puxando"
+        public const float StabDamperPull = 300f;      // a mão puxando a espada para trás: sai fácil ("held damper out" do B&S)
+        public const float PullOutSpeed = 0.12f;          // m/s da arma recuando ao longo da lâmina = "puxando"
         public const float StuckStandStrength = 0.35f;   // espetado: a "perna" amolece (dá para arrastar pelo cabo)
         public const float StabMinSpeed = 1.3f, StabMinAlignment = 0.5f, StabTipZone = 0.3f;
+        public const float StabStartDepth = 0.15f, StabSettleSeconds = 0.3f;   // começa 15 cm dentro; 0,3 s para a junta se acomodar
         public const float StabGuard = 0.15f;              // para antes da guarda
         public const float BleedDps = 4f;
 
