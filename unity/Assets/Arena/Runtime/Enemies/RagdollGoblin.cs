@@ -150,7 +150,7 @@ namespace Arena
             var cols = BodyColliders();
             for (int i = 0; i < cols.Count; i++) for (int j = i + 1; j < cols.Count; j++) Physics.IgnoreCollision(cols[i], cols[j]);
             foreach (var b in boneList) totalMass += b.Rb.mass;
-            if (State.Def.Kind == EnemyKind.Esqueleto) DressKayKit();
+            if (State.Def.Kind == EnemyKind.Esqueleto) DressSkeleton();
 
             // Bacia presa ao ponto da IA (fica em pé).
             anchorJoint = bones[RagBone.Bacia].Rb.gameObject.AddComponent<ConfigurableJoint>();
@@ -163,43 +163,114 @@ namespace Arena
             All.Add(this);
         }
 
-        // Esqueleto com o modelo do KayKit (cortado por osso no editor): esconde as formas simples e põe o pedaço do
-        // modelo em cada osso. Arrancar/remontar membros leva o pedaço junto. Sem a arte importada, fica como estava.
-        void DressKayKit()
+        // Esqueleto = "goblin em ossos" (pedido do Pablo, 2026-10-28, depois de não gostar do modelo do KayKit): crânio de
+        // goblin com focinho, orelhas pontudas de osso e órbitas escuras com brasas; costelas, coluna e bacia; ossos finos
+        // com nós nas juntas, mãos e pés. Os colisores continuam os mesmos; só o desenho muda. As peças de cada osso são
+        // juntadas numa malha por material (poucas chamadas de desenho no Quest).
+        void DressSkeleton()
         {
-            var mat = KayKitArt.SkeletonMaterial;
-            if (!mat) return;
+            var boneMat = ArenaUtil.Lit(new Color(0.87f, 0.84f, 0.72f));
+            var darkMat = ArenaUtil.Lit(new Color(0.05f, 0.04f, 0.04f));
+            var glowMat = ArenaUtil.Lit(new Color(1f, 0.35f, 0.15f), new Color(1.8f, 0.4f, 0.1f));
             foreach (var b in boneList)
             {
-                var mesh = KayKitArt.SkeletonPart(b.Id);
-                if (!mesh) continue;
-                foreach (var r in b.Rb.GetComponentsInChildren<Renderer>()) r.enabled = false;
-                var v = new GameObject("KayKit");
-                v.transform.SetParent(b.Rb.transform, false);
-                v.transform.SetPositionAndRotation(transform.position, transform.rotation);   // malha no espaço do corpo em repouso
-                v.transform.localScale = Vector3.one * k;
-                v.AddComponent<MeshFilter>().sharedMesh = mesh;
-                v.AddComponent<MeshRenderer>().sharedMaterial = mat;
+                var t = b.Rb.transform;
+                foreach (var r in t.GetComponentsInChildren<Renderer>()) r.enabled = false;
+                var holder = new GameObject("Ossos").transform;
+                holder.SetParent(t, false);
+                void P(PrimitiveType type, Vector3 pos, Vector3 size, Material m, Vector3? euler = null)
+                {
+                    var g = ArenaUtil.Prim(type, holder, pos, size, m);
+                    if (euler.HasValue) g.transform.localRotation = Quaternion.Euler(euler.Value);
+                }
+                switch (b.Col)
+                {
+                    case CapsuleCollider c:
+                    {
+                        float L = c.height - 2f * c.radius, th = c.radius * 0.42f;
+                        P(PrimitiveType.Cylinder, Vector3.zero, new Vector3(th * 2f, L * 0.5f, th * 2f), boneMat);
+                        P(PrimitiveType.Sphere, Vector3.up * L * 0.5f, Vector3.one * c.radius * 1.15f, boneMat);    // junta de cima
+                        P(PrimitiveType.Sphere, Vector3.down * L * 0.5f, Vector3.one * c.radius * 0.95f, boneMat);  // junta de baixo
+                        if (b.Id == RagBone.CanelaE || b.Id == RagBone.CanelaD)   // pé
+                            P(PrimitiveType.Cube, new Vector3(0f, -L * 0.5f - c.radius * 0.35f, 0.05f * k), new Vector3(0.07f, 0.03f, 0.17f) * k, boneMat);
+                        if (b.Id == RagBone.AntebracoE || b.Id == RagBone.AntebracoD)   // mão de dedos compridos
+                        {
+                            float y = -L * 0.5f - c.radius * 0.8f;
+                            P(PrimitiveType.Sphere, new Vector3(0f, y, 0f), new Vector3(0.07f, 0.05f, 0.05f) * k, boneMat);
+                            for (int f = -1; f <= 1; f++)
+                                P(PrimitiveType.Capsule, new Vector3(f * 0.022f * k, y - 0.05f * k, 0.01f * k), new Vector3(0.016f, 0.04f, 0.016f) * k, boneMat, new Vector3(-15f, 0f, f * 12f));
+                        }
+                        break;
+                    }
+                    case BoxCollider box when b.Id == RagBone.Tronco:
+                    {
+                        var s = box.size;   // ~0.34 × 0.32 × 0.20 (× escala)
+                        P(PrimitiveType.Cylinder, new Vector3(0f, 0f, -s.z * 0.35f), new Vector3(0.045f * k, s.y * 0.55f, 0.045f * k), boneMat);   // coluna
+                        for (int i = 0; i < 4; i++)
+                        {
+                            float y = s.y * (0.28f - i * 0.17f), w = s.x * (0.92f - Mathf.Abs(i - 1.2f) * 0.07f);
+                            foreach (int sd in new[] { -1, 1 })   // costela: lado indo de trás para frente
+                                P(PrimitiveType.Capsule, new Vector3(sd * w * 0.45f, y, 0f), new Vector3(0.028f * k, s.z * 0.42f, 0.028f * k), boneMat, new Vector3(90f, sd * -12f, 0f));
+                            P(PrimitiveType.Capsule, new Vector3(0f, y, s.z * 0.42f), new Vector3(0.026f * k, w * 0.3f, 0.026f * k), boneMat, new Vector3(0f, 0f, 90f));   // frente
+                        }
+                        P(PrimitiveType.Cube, new Vector3(0f, 0f, s.z * 0.46f), new Vector3(0.035f * k, s.y * 0.6f, 0.025f * k), boneMat);   // esterno
+                        P(PrimitiveType.Capsule, new Vector3(0f, s.y * 0.48f, s.z * 0.1f), new Vector3(0.03f * k, s.x * 0.48f, 0.03f * k), boneMat, new Vector3(0f, 0f, 90f));   // clavículas
+                        break;
+                    }
+                    case BoxCollider box:   // bacia
+                    {
+                        var s = box.size;
+                        foreach (int sd in new[] { -1, 1 })
+                            P(PrimitiveType.Sphere, new Vector3(sd * s.x * 0.24f, 0.01f * k, 0f), new Vector3(s.x * 0.42f, s.y * 0.75f, s.z * 0.45f), boneMat, new Vector3(0f, 0f, sd * -20f));
+                        P(PrimitiveType.Cylinder, new Vector3(0f, s.y * 0.55f, -s.z * 0.3f), new Vector3(0.045f * k, s.y * 0.5f, 0.045f * k), boneMat);   // coluna baixa
+                        break;
+                    }
+                    case SphereCollider sc:   // crânio de goblin
+                    {
+                        float r = sc.radius;
+                        P(PrimitiveType.Sphere, new Vector3(0f, 0.05f * r, -0.05f * r), new Vector3(1.9f, 1.75f, 1.95f) * r, boneMat);          // calota
+                        P(PrimitiveType.Sphere, new Vector3(0f, -0.3f * r, 0.75f * r), new Vector3(1.05f, 0.75f, 1.0f) * r, boneMat);            // focinho
+                        P(PrimitiveType.Cube, new Vector3(0f, 0.32f * r, 0.72f * r), new Vector3(1.5f, 0.22f, 0.4f) * r, boneMat, new Vector3(-12f, 0f, 0f));   // sobrancelha
+                        foreach (int sd in new[] { -1, 1 })
+                        {
+                            P(PrimitiveType.Sphere, new Vector3(sd * 0.4f * r, 0.08f * r, 0.78f * r), Vector3.one * 0.48f * r, darkMat);          // órbita
+                            P(PrimitiveType.Sphere, new Vector3(sd * 0.4f * r, 0.08f * r, 0.96f * r), Vector3.one * 0.16f * r, glowMat);          // brasa
+                            P(PrimitiveType.Capsule, new Vector3(sd * 1.05f * r, 0.25f * r, -0.1f * r), new Vector3(0.22f, 0.62f, 0.1f) * r, boneMat, new Vector3(0f, sd * 15f, sd * -68f));   // orelha pontuda
+                            P(PrimitiveType.Sphere, new Vector3(sd * 0.1f * r, -0.25f * r, 1.22f * r), Vector3.one * 0.13f * r, darkMat);         // narina
+                        }
+                        P(PrimitiveType.Cube, new Vector3(0f, -0.72f * r, 0.55f * r), new Vector3(0.95f, 0.2f, 0.85f) * r, boneMat, new Vector3(8f, 0f, 0f));   // maxilar
+                        for (int i = -2; i <= 2; i++)   // dentes
+                            P(PrimitiveType.Cube, new Vector3(i * 0.17f * r, -0.55f * r, 1.02f * r), new Vector3(0.1f, 0.16f, 0.08f) * r, boneMat);
+                        break;
+                    }
+                }
+                CombineByMaterial(holder);
             }
-            // Espada do KayKit no lugar da lâmina simples: o maior eixo do modelo vira o eixo da arma.
-            var blade = KayKitArt.Model("Skeletons/Skeleton_Blade");
-            if (clubRb && blade)
+        }
+
+        // Junta as peças filhas numa malha por material (as primitivas vêm legíveis da Unity).
+        static void CombineByMaterial(Transform holder)
+        {
+            var groups = new Dictionary<Material, List<CombineInstance>>();
+            var toLocal = holder.worldToLocalMatrix;
+            foreach (var mf in holder.GetComponentsInChildren<MeshFilter>())
             {
-                var bounds = new Bounds(); bool first = true;
-                foreach (var mf in blade.GetComponentsInChildren<MeshFilter>()) { var mb = mf.sharedMesh.bounds; if (first) { bounds = mb; first = false; } else bounds.Encapsulate(mb); }
-                var sz = bounds.size;
-                var axis = sz.y >= sz.x && sz.y >= sz.z ? Vector3.up : sz.x >= sz.z ? Vector3.right : Vector3.forward;
-                float len = Vector3.Scale(sz, axis).magnitude;
-                foreach (var r in clubRb.GetComponentsInChildren<Renderer>()) r.enabled = false;
-                var w = Instantiate(blade, clubRb.transform);
-                foreach (var c in w.GetComponentsInChildren<Collider>()) Destroy(c);
-                float s = spec.WeaponLength / Mathf.Max(0.01f, len);
-                w.transform.localScale = Vector3.one * s;
-                w.transform.localRotation = Quaternion.FromToRotation(axis, Vector3.forward);
-                // Centraliza o modelo no corpo da arma (o cabo fica para trás, a ponta para frente).
-                w.transform.localPosition = -(w.transform.localRotation * (bounds.center * s));
-                foreach (var r in w.GetComponentsInChildren<Renderer>()) r.sharedMaterial = mat;
+                var mat = mf.GetComponent<MeshRenderer>().sharedMaterial;
+                if (!groups.TryGetValue(mat, out var list)) groups[mat] = list = new List<CombineInstance>();
+                list.Add(new CombineInstance { mesh = mf.sharedMesh, transform = toLocal * mf.transform.localToWorldMatrix });
             }
+            var kids = new List<GameObject>();
+            foreach (Transform c in holder) kids.Add(c.gameObject);
+            foreach (var kv in groups)
+            {
+                var mesh = new Mesh();
+                mesh.CombineMeshes(kv.Value.ToArray(), true, true);
+                var go = new GameObject("Malha");
+                go.transform.SetParent(holder, false);
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                go.AddComponent<MeshRenderer>().sharedMaterial = kv.Key;
+            }
+            foreach (var kid in kids) Destroy(kid);
         }
 
         // Arma (clava, espada ou machado): corpo físico próprio preso na mão por uma junta fixa. Golpe forte no braço ou nela = solta.
@@ -391,6 +462,7 @@ namespace Arena
             {
                 if (!b.Joint || !b.Rb) continue;
                 float m = b.Severed ? 0f : muscle;
+                if (b.Id != RagBone.Bacia && b.Id != RagBone.Tronco) m *= spec.LimbMuscle;   // esqueleto: ossos soltos, chacoalham
                 if (b.Id == RagBone.BracoD || b.Id == RagBone.AntebracoD) m *= attack == Attack.Strike ? 2.5f : guardT > 0f ? 2f : 1.3f;   // golpe rápido / guarda firme
                 b.Joint.slerpDrive = new JointDrive
                 {

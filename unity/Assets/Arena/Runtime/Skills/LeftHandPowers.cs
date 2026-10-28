@@ -120,7 +120,7 @@ namespace Arena
         {
             var grabber = EnemyGrabber.Instance;
             int side = h.IsRight ? 1 : 0;
-            if (SpiderLocomotion.IsBusy(side) || HandMagic.IsBusy(side)) { h.BeamCharge = 0f; ChargeDot(h, Vector3.zero, -1f); return; }   // segurando a teia / carregando magia
+            if (!HandLock.Free(side, "mao")) { h.BeamCharge = 0f; ChargeDot(h, Vector3.zero, -1f); return; }   // mão ocupada com teia/magia (HandLock)
             if (!free || !h.Tracked)
             {
                 h.BeamCharge = 0f; ChargeDot(h, Vector3.zero, -1f);
@@ -144,6 +144,7 @@ namespace Arena
                         if (h.OpenT > 0.12f) grabber.Release(side, h.WristVel);
                     }
                     h.WasFist = fist;
+                    HandLock.Hold(side, "mao");
                     return;   // segurando alguém: sem outros poderes nesta mão
                 }
                 if (fist && !h.WasFist && grabber.TryGrab(side, palm, tracked: true)) { h.WasFist = true; h.OpenT = 0f; return; }
@@ -153,13 +154,21 @@ namespace Arena
             // Soco: punho fechado indo rápido para frente (na direção em que você olha, no plano do chão).
             var flatVel = h.WristVel.Flat();
             if (fist && flatVel.magnitude > HandPowers.PunchMinSpeed && Vector3.Dot(flatVel.normalized, player.HeadForward) > 0.5f)
+            {
                 Punch(h.WristPrev, h.WristVel.normalized, h.IsRight);
+                HandLock.Hold(side, "mao", 0.4f);
+            }
             // Palma aberta rápida = corte.
-            if (h.Shape == HandShape.Aberta && h.ShapeT > 0.1f && h.WristVel.magnitude > HandPowers.PalmMinSpeed) Palm(h.WristPrev, h.WristVel, h.IsRight ? 1 : 0);
+            if (h.Shape == HandShape.Aberta && h.ShapeT > 0.1f && h.WristVel.magnitude > HandPowers.PalmMinSpeed)
+            {
+                Palm(h.WristPrev, h.WristVel, h.IsRight ? 1 : 0);
+                HandLock.Hold(side, "mao", 0.4f);
+            }
             // Apontar o indicador = raio do Freeza: carrega um ponto vermelho na ponta do dedo e dispara.
             if (h.Shape == HandShape.Apontar && IndexAim(xh, out var origin, out var dir))
             {
                 h.BeamCharge += dt;
+                HandLock.Hold(side, "mao");
                 ChargeDot(h, origin, Mathf.Clamp01(h.BeamCharge / HandPowers.BeamChargeSeconds));
                 if (h.BeamCharge >= HandPowers.BeamChargeSeconds && h.GunCooldown <= 0f) Fire(h, origin, dir);
             }

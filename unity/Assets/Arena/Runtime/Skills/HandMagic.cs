@@ -40,8 +40,6 @@ namespace Arena
         bool kameCharging;
         Transform kameOrb;
 
-        // Mão ocupada com magia (carregando bola de fogo ou Kamehameha): os poderes de uma mão ficam desligados.
-        public static bool IsBusy(int side) => Instance && (Instance.kameCharging || Instance.clapWindow > 0f || Instance.h[side].Armed || Instance.h[side].Charging);
 
         void Awake() { player = GetComponent<ArenaPlayer>(); Instance = this; }
         void OnDestroy() { if (Instance == this) Instance = null; }
@@ -59,13 +57,15 @@ namespace Arena
             }
             if (hands == null) { CancelAll(); return; }
             for (int side = 0; side < 2; side++) Track(side, dt);
-            bool leftFree = player.Input.LeftHandFree && h[0].Tracked && !SpiderLocomotion.IsBusy(0);
-            bool rightFree = player.Input.RightHandFree && h[1].Tracked && !SpiderLocomotion.IsBusy(1);
+            bool leftFree = player.Input.LeftHandFree && h[0].Tracked;
+            bool rightFree = player.Input.RightHandFree && h[1].Tracked;
 
-            if (leftFree && rightFree && TwoHandMagic(dt)) { CancelFire(0); CancelFire(1); return; }
-            if (!kameCharging) { HideKameOrb(); }
-            if (leftFree) Fireball(0, dt); else CancelFire(0);
-            if (rightFree) Fireball(1, dt); else CancelFire(1);
+            // Trava de mão (HandLock): duas mãos só com as duas livres; bola de fogo só na mão livre para ela.
+            if (leftFree && rightFree && HandLock.BothFree("duas") && TwoHandMagic(dt)) { CancelFire(0); CancelFire(1); return; }
+            if (kameCharging) { kameCharging = false; kameT = 0f; }
+            HideKameOrb();
+            if (leftFree && HandLock.Free(0, "fogo")) Fireball(0, dt); else CancelFire(0);
+            if (rightFree && HandLock.Free(1, "fogo")) Fireball(1, dt); else CancelFire(1);
         }
 
         void Track(int side, float dt)
@@ -98,10 +98,12 @@ namespace Arena
                 ArenaInput.Haptic(0.3f, 0.05f);
             }
             if (clapWindow <= 0f && !kameCharging) return false;
+            HandLock.HoldBoth("duas");   // palma batida: as duas mãos ficam com as magias de duas mãos
             // Raízes: separou e jogou as duas mãos para baixo.
             if (!kameCharging && HandMagicRules.RootsSlam(palmsApart, L.Vel.y, R.Vel.y))
             {
                 if (rootsCd <= 0f) CastRoots(); else ArenaGame.Instance?.Message("Raízes em recarga", 0.6f);
+                HandLock.HoldBoth("duas", HandLock.AfterCast);
                 clapWindow = 0f;
                 return true;
             }
@@ -122,6 +124,7 @@ namespace Arena
                 if (c > 0f && Vector3.Dot(push, player.HeadForward) > HandMagicRules.KamePushSpeed)
                 {
                     FireKamehameha(mid, push.normalized, c);
+                    HandLock.HoldBoth("duas", HandLock.AfterCast);
                     kameCharging = false; kameT = 0f;
                 }
                 return true;
@@ -134,6 +137,7 @@ namespace Arena
                 if (c > 0f && Vector3.Dot(push, player.HeadForward) > HandMagicRules.KamePushSpeed && palmsApart < 0.5f)
                 {
                     FireKamehameha(mid, push.normalized, c);
+                    HandLock.HoldBoth("duas", HandLock.AfterCast);
                 }
                 kameCharging = false; kameT = 0f; HideKameOrb();
                 return c > 0f;
@@ -231,6 +235,7 @@ namespace Arena
         void Fireball(int side, float dt)
         {
             var d = h[side];
+            if (d.Armed || d.Charging) HandLock.Hold(side, "fogo");
             var eye = player.HeadPosition;
             var fwd = Vector3.Dot(d.Palm - eye, player.HeadForward);
             bool extended = fwd > HandMagicRules.FireExtendForward && Mathf.Abs(d.Palm.y - eye.y) < 0.6f;
@@ -244,6 +249,7 @@ namespace Arena
                 if (power > 0f && Vector3.Dot(d.Vel, player.HeadForward) > HandMagicRules.FireThrowSpeed)
                 {
                     ThrowFireball(d.Palm, d.Vel, power);
+                    HandLock.Hold(side, "fogo", HandLock.AfterCast);   // o arremesso não vira corte da palma
                     CancelFire(side);
                 }
                 return;

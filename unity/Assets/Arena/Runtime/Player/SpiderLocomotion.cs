@@ -30,7 +30,6 @@ namespace Arena
         LineRenderer line;
         GrapplePoint target;   // ponto aceso (para onde o jogador olha)
 
-        public static bool IsBusy(int side) => Instance && Instance.ropeActive && Instance.ropeSide == side;
         public GrapplePoint Target => target;
 
         void Awake() { player = GetComponent<ArenaPlayer>(); Instance = this; }
@@ -58,7 +57,7 @@ namespace Arena
                 var shape = Detect(hand);
                 bool fistOnset = shape == HandShape.Punho && lastShape[side] != HandShape.Punho;
                 lastShape[side] = shape;
-                if (ropeActive && ropeSide == side) { UpdateRope(hand, shape, dt); continue; }
+                if (ropeActive && ropeSide == side) { HandLock.Hold(side, "teia"); UpdateRope(hand, shape, dt); continue; }
                 // Sinal do Homem-Aranha 2× = dash para trás (a teia por sinal foi trocada pelos pontos de gancho).
                 if (detectors[side].Update(shape == HandShape.Chifres, 0f, dt) == SpiderAction.DashBack)
                 {
@@ -66,7 +65,7 @@ namespace Arena
                     ArenaFx.FloatText("DASH", player.HeadPosition + player.HeadForward * 0.8f, new Color(0.8f, 0.9f, 1f), 0.5f);
                 }
                 // Mão esticada em direção ao ponto aceso + fechar = lança a teia.
-                if (fistOnset && !ropeActive && target && World(hand, XRHandJointID.Palm, out var palm) && AimsAt(palm, target.Position))
+                if (fistOnset && !ropeActive && target && HandLock.Free(side, "teia") && World(hand, XRHandJointID.Palm, out var palm) && AimsAt(palm, target.Position))
                     Shoot(side, palm, target.Position);
             }
         }

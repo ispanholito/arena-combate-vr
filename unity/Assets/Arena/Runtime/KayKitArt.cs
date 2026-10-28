@@ -1,36 +1,19 @@
 using System.Collections.Generic;
-using Arena.Core;
 using UnityEngine;
 
 namespace Arena
 {
     // Arte do KayKit (Kay Lousberg, CC0 — kaylousberg.com), 1º teste do visual (2026-10-28): a sala do Treino montada
-    // com as peças da "Dungeon Remastered" e o esqueleto físico vestido com o modelo do "Skeletons" cortado por osso
-    // (Editor/KayKitImport). As peças da dungeon seguem uma grade de 4 m (parede 4×4×1, piso 4×4, pilar 1,5×4).
+    // com as peças da "Dungeon Remastered". (O esqueleto do KayKit foi testado e descartado: o Pablo não gostou do
+    // design; o corte por osso continua em Editor/KayKitImport para um modelo nosso no futuro.) As peças da dungeon seguem uma grade de 4 m (parede 4×4×1, piso 4×4, pilar 1,5×4).
     public static class KayKitArt
     {
-        static Material skeletonMat;
         static readonly Dictionary<string, GameObject> cache = new Dictionary<string, GameObject>();
 
         public static GameObject Model(string path)
         {
             if (!cache.TryGetValue(path, out var go)) cache[path] = go = Resources.Load<GameObject>("KayKit/" + path);
             return go;
-        }
-
-        public static Mesh SkeletonPart(RagBone bone) => Resources.Load<Mesh>("KayKit/Skeletons/Parts/Warrior_" + bone);
-
-        public static Material SkeletonMaterial
-        {
-            get
-            {
-                if (skeletonMat) return skeletonMat;
-                var tex = Resources.Load<Texture2D>("KayKit/Skeletons/skeleton_texture");
-                if (!tex) return null;
-                skeletonMat = new Material(Shader.Find("Standard")) { mainTexture = tex, color = Color.white };
-                skeletonMat.SetFloat("_Glossiness", 0.1f);
-                return skeletonMat;
-            }
         }
 
         // Instancia uma peça da dungeon (sem colisores: a colisão do jogo continua nas formas simples).

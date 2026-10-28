@@ -118,6 +118,7 @@ namespace Arena.Core
         public float KnockdownMultiplier = 1f;   // × a velocidade para derrubar
         public float SeverMultiplier = 1f;       // × a velocidade para arrancar membro
         public float DisarmMultiplier = 1f;
+        public float LimbMuscle = 1f;            // × força dos músculos de braços, pernas e cabeça (esqueleto: mais solto)
         public bool SeverNeedsHeavy;             // orc: só arma pesada arranca membro
         public bool Grabbable = true;
         public bool HeadKills = true;            // esqueleto continua sem cabeça
@@ -141,7 +142,7 @@ namespace Arena.Core
             },
             EnemyKind.Esqueleto => new RagdollSpec
             {
-                Scale = 1.08f, MassMultiplier = 0.6f, KnockdownMultiplier = 0.9f, SeverMultiplier = 0.8f, HeadKills = false, Reassembles = true,
+                Scale = 1.08f, MassMultiplier = 0.6f, KnockdownMultiplier = 0.9f, SeverMultiplier = 0.8f, HeadKills = false, Reassembles = true, LimbMuscle = 0.7f,
                 Weapon = RagWeapon.Espada, WeaponLength = 0.8f, WeaponRadius = 0.035f, WeaponMass = 1.2f,
                 Skin = (0.86f, 0.84f, 0.76f), Cloth = (0.78f, 0.76f, 0.68f), Eye = (1f, 0.25f, 0.2f), Ears = false,
             },

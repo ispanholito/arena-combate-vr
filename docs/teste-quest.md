@@ -9,7 +9,12 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
-## 0000000000000000000. NOVO — 1º teste do visual (KayKit no Treino)
+## 00000000000000000000. NOVO — esqueleto-goblin e trava de mão
+- [ ] **Esqueleto** (Treino com 3 ou 6 inimigos): crânio de goblin de osso, costelas, ossos finos. Os braços, pernas e cabeça balançam soltos? Ficou bom ou exagerado?
+- [ ] **Trava**: Kamehameha e bola de fogo NÃO soltam mais o corte da palma junto. Raízes também não.
+- [ ] Segure a teia numa mão e use raio/soco/bola de fogo na outra: tem que funcionar.
+
+## 0000000000000000000. 1º teste do visual (KayKit no Treino) — FPS aprovado, esqueleto KayKit reprovado
 - [ ] Entre no **Treino**: sala nova (piso de pedra, muralha, pilares decorados, tochas, estandartes). Gostou do estilo? Fofinho demais?
 - [ ] **FPS** (pausa → Mostrar FPS) parado olhando a sala inteira e com 6 inimigos físicos: anote média e pior.
 - [ ] **Esqueleto** com o modelo do KayKit (capacete com chifres): os pedaços acompanham o corpo físico? Arranque um braço/cabeça: o pedaço sai certo? Remonta?
