@@ -9,6 +9,13 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000000000000. NOVO — andar sem controle (sinal do Homem-Aranha)
+Largue um ou os dois controles (a mão precisa estar livre).
+- [ ] **Dash para trás**: faça o sinal do Homem-Aranha (indicador + mindinho esticados, médio e anelar dobrados) duas vezes seguidas, rápido.
+- [ ] **Teia**: faça o sinal apontando para cima (teto, pilar ou parede): sai uma linha branca. Feche a mão e puxe em direção ao peito: você sobe/avança pela teia. Abra a mão: solta e cai.
+- [ ] Na arena (céu aberto) a teia prende no ar a 12 m. Na dungeon prende no teto/paredes.
+- [ ] O sinal é bem reconhecido? Dispara sem querer? Cansa? Dá enjoo ao subir/cair (diga se precisa de vinheta)?
+
 ## 00000000000000. NOVO — perfurar corrigido (goblin "grudado como fantasma")
 - [ ] Estocada no goblin físico: entra e fica preso; puxando a espada para trás ele solta limpo (sem ficar grudado à distância).
 - [ ] Mate-o espetado (ou estocada na cabeça): o corpo fica pendurado na lâmina; apontar para baixo ou puxar faz ele cair.
