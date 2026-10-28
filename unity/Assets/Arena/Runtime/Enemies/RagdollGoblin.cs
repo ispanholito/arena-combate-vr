@@ -150,6 +150,7 @@ namespace Arena
             var cols = BodyColliders();
             for (int i = 0; i < cols.Count; i++) for (int j = i + 1; j < cols.Count; j++) Physics.IgnoreCollision(cols[i], cols[j]);
             foreach (var b in boneList) totalMass += b.Rb.mass;
+            if (State.Def.Kind == EnemyKind.Esqueleto) DressKayKit();
 
             // Bacia presa ao ponto da IA (fica em pé).
             anchorJoint = bones[RagBone.Bacia].Rb.gameObject.AddComponent<ConfigurableJoint>();
@@ -160,6 +161,45 @@ namespace Arena
             anchorJoint.enablePreprocessing = false;
             SetAnchorStrength(1f);
             All.Add(this);
+        }
+
+        // Esqueleto com o modelo do KayKit (cortado por osso no editor): esconde as formas simples e põe o pedaço do
+        // modelo em cada osso. Arrancar/remontar membros leva o pedaço junto. Sem a arte importada, fica como estava.
+        void DressKayKit()
+        {
+            var mat = KayKitArt.SkeletonMaterial;
+            if (!mat) return;
+            foreach (var b in boneList)
+            {
+                var mesh = KayKitArt.SkeletonPart(b.Id);
+                if (!mesh) continue;
+                foreach (var r in b.Rb.GetComponentsInChildren<Renderer>()) r.enabled = false;
+                var v = new GameObject("KayKit");
+                v.transform.SetParent(b.Rb.transform, false);
+                v.transform.SetPositionAndRotation(transform.position, transform.rotation);   // malha no espaço do corpo em repouso
+                v.transform.localScale = Vector3.one * k;
+                v.AddComponent<MeshFilter>().sharedMesh = mesh;
+                v.AddComponent<MeshRenderer>().sharedMaterial = mat;
+            }
+            // Espada do KayKit no lugar da lâmina simples: o maior eixo do modelo vira o eixo da arma.
+            var blade = KayKitArt.Model("Skeletons/Skeleton_Blade");
+            if (clubRb && blade)
+            {
+                var bounds = new Bounds(); bool first = true;
+                foreach (var mf in blade.GetComponentsInChildren<MeshFilter>()) { var mb = mf.sharedMesh.bounds; if (first) { bounds = mb; first = false; } else bounds.Encapsulate(mb); }
+                var sz = bounds.size;
+                var axis = sz.y >= sz.x && sz.y >= sz.z ? Vector3.up : sz.x >= sz.z ? Vector3.right : Vector3.forward;
+                float len = Vector3.Scale(sz, axis).magnitude;
+                foreach (var r in clubRb.GetComponentsInChildren<Renderer>()) r.enabled = false;
+                var w = Instantiate(blade, clubRb.transform);
+                foreach (var c in w.GetComponentsInChildren<Collider>()) Destroy(c);
+                float s = spec.WeaponLength / Mathf.Max(0.01f, len);
+                w.transform.localScale = Vector3.one * s;
+                w.transform.localRotation = Quaternion.FromToRotation(axis, Vector3.forward);
+                // Centraliza o modelo no corpo da arma (o cabo fica para trás, a ponta para frente).
+                w.transform.localPosition = -(w.transform.localRotation * (bounds.center * s));
+                foreach (var r in w.GetComponentsInChildren<Renderer>()) r.sharedMaterial = mat;
+            }
         }
 
         // Arma (clava, espada ou machado): corpo físico próprio preso na mão por uma junta fixa. Golpe forte no braço ou nela = solta.

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Arena.Core;
 using UnityEngine;
 
@@ -120,6 +121,32 @@ namespace Arena
             ReturnToMenu();
         }
 
+        // 1º teste do visual (2026-10-28): no Treino a arena ganha a arte do KayKit. As formas simples continuam (colisão,
+        // ganchos da teia, luzes); só o desenho delas some enquanto a sala KayKit aparece.
+        Transform trainingHall;
+        readonly List<Renderer> arenaPrims = new List<Renderer>();
+
+        void SetTrainingHall(bool on)
+        {
+            if (!arenaWorld) return;
+            if (on && !trainingHall)
+            {
+                var pillars = new List<Transform>(); var torches = new List<Vector3>();
+                arenaPrims.Clear();
+                foreach (Transform t in arenaWorld)
+                {
+                    if (t.name == "Pilar") pillars.Add(t);
+                    if (t.name == "Tocha") torches.Add(t.position);
+                    if (t.name == "Chao" || t.name.StartsWith("Parede") || t.name == "Pilar" || t.name == "Tocha")
+                        arenaPrims.AddRange(t.GetComponentsInChildren<Renderer>());
+                }
+                trainingHall = KayKitArt.BuildTrainingHall(arenaWorld, 13f, pillars, torches);
+                if (!trainingHall) return;   // arte não encontrada: fica a arena simples
+            }
+            if (trainingHall) trainingHall.gameObject.SetActive(on);
+            foreach (var r in arenaPrims) if (r) r.enabled = !on || !trainingHall;
+        }
+
         // Pontos de gancho da teia na arena (filhos da geometria: somem junto na dungeon): topo das pilastras e alto das paredes.
         void SpawnArenaGrapples()
         {
@@ -143,6 +170,7 @@ namespace Arena
             if (Persistent) SaveNow();
             LeaveDungeon();
             Mode = GameMode.Menu;
+            SetTrainingHall(false);
             spawnWaves = false;
             player.TreeOpen = false;
             player.TeleportTo(BonfireStandPoint, Vector3.zero);
@@ -154,6 +182,7 @@ namespace Arena
             ClearEnemies();
             LeaveDungeon();
             Mode = mode;
+            SetTrainingHall(mode == GameMode.Treino);
             if (mode == GameMode.Treino)
             {
                 player.ResetCharacter(character.Class.Id);

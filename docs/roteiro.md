@@ -5,6 +5,7 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 ## Próxima prioridade (decisão do Pablo, 2026-10-28): VISUAL, depois balanceamento
 - Habilidades "completinhas por agora"; a mecânica da teia com gravidade aprovada ("ficou bem maneiro").
 - Proposta: 1º uma **fatia vertical** (1 sala da dungeon + goblin com modelo real + mãos com pele) medindo FPS no Quest 2 antes de trocar tudo; escolher UM estilo coerente (pacote low-poly dark fantasy) e um orçamento (triângulos, draw calls, 1 luz real por sala, luz assada). Inimigos físicos pedem modelos separados por membro (plano, fase C).
+- **Feito**: sala do Treino com KayKit (grátis, CC0) e esqueleto físico com modelo cortado por osso. Próximo: goblin/orc (o KayKit grátis não tem; opções: KayKit Adventurers adaptado, outro pacote CC0, ou pago), arma e mãos do jogador, levar o estilo para Arena/Dungeon se o FPS aguentar.
 - Balanceamento depois do visual, jogando.
 
 ## Validar no Quest (pendente de teste seu)

@@ -9,6 +9,12 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000000000000. NOVO — 1º teste do visual (KayKit no Treino)
+- [ ] Entre no **Treino**: sala nova (piso de pedra, muralha, pilares decorados, tochas, estandartes). Gostou do estilo? Fofinho demais?
+- [ ] **FPS** (pausa → Mostrar FPS) parado olhando a sala inteira e com 6 inimigos físicos: anote média e pior.
+- [ ] **Esqueleto** com o modelo do KayKit (capacete com chifres): os pedaços acompanham o corpo físico? Arranque um braço/cabeça: o pedaço sai certo? Remonta?
+- [ ] Algo flutuando, atravessado ou com buraco (paredes, cantos, pilares)?
+
 ## 000000000000000000. NOVO — menus com o dedo, livro de magias, palma batida, bola teleguiada
 Largue os dois controles.
 - [ ] **Menus com o dedo**: pause (palma esquerda virada para você + pinça). Sai um raio de cada mão; a linha mirada acende; encoste o indicador no polegar para clicar. A pinça que abriu a pausa NÃO pode clicar sozinha em "Continuar".
