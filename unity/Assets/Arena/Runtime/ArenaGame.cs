@@ -183,6 +183,7 @@ namespace Arena
             LeaveDungeon();
             Mode = mode;
             SetTrainingHall(mode == GameMode.Treino);
+            NavObstacles.SetFromArena(arenaWorld, mode == GameMode.Arena || mode == GameMode.Treino);
             if (mode == GameMode.Treino)
             {
                 player.ResetCharacter(character.Class.Id);

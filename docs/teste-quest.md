@@ -9,6 +9,13 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000000000000000. NOVO — IA em grupo
+- [ ] Treino com 6 (ou Arena com inimigos físicos): eles se espalham na sua FRENTE em vez de empilhar? Algum ataca pelas costas?
+- [ ] Perto dos pilares: eles contornam em vez de tropeçar e cair sozinhos?
+- [ ] Raio/lança de gelo/bola do cajado: às vezes eles dão um passo para o lado (a bola teleguiada da mão não).
+- [ ] Kamehameha carregando: quem está na frente às vezes sai do caminho.
+- [ ] Finta (normal/difícil): às vezes ergue a clava e desiste. Fica justo ou irritante?
+
 ## 000000000000000000000. NOVO — goblin com modelo gerado por IA
 - [ ] **Goblin** (Treino e Arena com inimigos físicos): modelo novo (orelhas, rosto, ombreira, faixas). Os pedaços acompanham o corpo? Algum buraco ou peça flutuando nas juntas (ombro, quadril, pescoço)?
 - [ ] Arrancar a cabeça/braço: sai o pedaço certo do modelo?

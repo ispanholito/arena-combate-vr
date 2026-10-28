@@ -61,9 +61,16 @@ namespace Arena
         Vector3 clubPrevA, clubPrevB;
         bool hasClubPrev;
         int strafeDir = 1;
+        // IA em grupo (CombatSteering): rondando = sem ficha; esquiva de ameaça; finta.
+        bool circling, feint;
+        float dodgeT, threatCheckT, kameCheckT;
+        Vector3 dodgeDir;
+        readonly HashSet<Projectile> seenThreats = new HashSet<Projectile>();
+        static readonly List<System.Numerics.Vector2> neighbors = new List<System.Numerics.Vector2>();
         bool riposte;
         Vector3 lungeDir;
         int TokenId => GetInstanceID();
+        public bool IsDown => mode == Mode.Down;   // caído (derrubado), para diagnóstico/IA
         static Difficulty Diff => SaveSystem.Options.Difficulty;
 
         public bool Dead => mode == Mode.Dead;
@@ -583,23 +590,32 @@ namespace Arena
                 if (Random.value < ActiveRagdollRules.RetreatChance) retreatT = ActiveRagdollRules.RetreatSeconds;
             }
             retreatCheckT -= dt;
-            if (retreatT > 0f && !stuck) { move = -dir * 1.6f; speed = 1.6f; hasToken = false; tokens.Release(TokenId); }
+            // Ameaças (projétil vindo, Kamehameha carregando na minha direção): às vezes dá um passo para o lado.
+            dodgeT -= dt; threatCheckT -= dt; kameCheckT -= dt;
+            if (dodgeT <= 0f && threatCheckT <= 0f && !stuck && attack != Attack.Strike) { threatCheckT = 0.1f; CheckThreats(pl); }
+            circling = false;
+            if (dodgeT > 0f && !stuck) { move = dodgeDir * CombatSteering.DodgeSpeed; }
+            else if (retreatT > 0f && !stuck) { move = -dir * 1.6f; hasToken = false; tokens.Release(TokenId); }
             else if (attack == Attack.None && !stuck && guardT <= 0f)
             {
-                if (hasToken && dist > reach - 0.15f) { move = dir * 1.3f; speed = 1.3f; }
+                if (hasToken && dist > reach - 0.15f) move = dir * 1.3f;
                 else if (!hasToken)
                 {
-                    // Ronda: mantém ~2 m e anda de lado (troca de lado de vez em quando).
+                    // Ronda numa VAGA do arco na frente do jogador (CombatSteering.AssignSlots); parado na vaga, balança de lado.
+                    circling = true;
+                    var target = pl.FeetPosition + Quaternion.Euler(0f, MySlotAngle(pl), 0f) * pl.HeadForward * CombatSteering.SlotRadius;
+                    var toSlot = target - anchor.position; toSlot.y = 0f;
+                    move = Vector3.ClampMagnitude(toSlot * 1.5f, ActiveRagdollRules.CircleSpeed * 1.6f);
                     strafeT -= dt;
-                    if (strafeT <= 0f) { strafeT = Random.Range(1.5f, 3f); strafeDir = Random.value < 0.5f ? -1 : 1; }
-                    var side = Vector3.Cross(Vector3.up, dir) * strafeDir;
-                    float radial = dist - ActiveRagdollRules.CircleRadius;
-                    move = side * ActiveRagdollRules.CircleSpeed + dir * Mathf.Clamp(radial, -1f, 1f) * 1.2f;
-                    speed = move.magnitude;
+                    if (strafeT <= 0f) { strafeT = Random.Range(1.2f, 2.5f); strafeDir = Random.value < 0.5f ? -1 : 1; }
+                    if (toSlot.magnitude < 0.5f) move += Vector3.Cross(Vector3.up, dir) * strafeDir * 0.35f;
                 }
             }
             // Passo à frente: avança durante o golpe.
-            if (attack == Attack.Strike && curAttack == EnemyAttack.Passo && attackT < 0.2f) move = lungeDir * (ActiveRagdollPoses.StepLunge / 0.2f);
+            bool lunging = attack == Attack.Strike && curAttack == EnemyAttack.Passo && attackT < 0.2f;
+            if (lunging) move = lungeDir * (ActiveRagdollPoses.StepLunge / 0.2f);
+            else if (!stuck) move = Steer(move);   // separação dos vizinhos + desvio dos pilares
+            speed = move.magnitude;
             if (move.sqrMagnitude > 1e-6f)
             {
                 anchor.MovePosition(ArenaUtil.ClampToArena(anchor.position + move * dt));
@@ -619,12 +635,19 @@ namespace Arena
             {
                 curAttack = Armed ? EnemyAttacks.Pick(EnemyKind.Goblin, Diff, Random.value) : EnemyAttack.Cima;
                 attack = Attack.Windup; attackT = 0f; strikeHit = false;
+                feint = Armed && !riposte && Random.value < CombatSteering.FeintChance(Diff);
             }
             if (attack != Attack.None)
             {
                 attackT += dt;
                 float windup = (Armed ? 1.0f : 0.6f) * DifficultyRules.WindupMultiplier(Diff) * (riposte ? 0.6f : 1f);
-                if (attack == Attack.Windup && attackT > windup)
+                if (attack == Attack.Windup && feint && attackT > windup * CombatSteering.FeintAt)
+                {
+                    // Finta: ergueu a arma e desistiu, com um passinho para trás (quem aparou no ar fica exposto).
+                    feint = false; attack = Attack.Recover; attackT = 0.35f;
+                    dodgeT = 0.3f; dodgeDir = -dir;
+                }
+                else if (attack == Attack.Windup && attackT > windup)
                 {
                     attack = Attack.Strike; attackT = 0f; lungeDir = dir; riposte = false; hasClubPrev = false;
                     ArenaAudio.Play(Sfx.Whoosh, Center, 0.7f, Armed ? 0.8f : 1.3f);
@@ -643,6 +666,69 @@ namespace Arena
                 }
             }
             return speed > 0.05f ? 1f : 0f;
+        }
+
+        // Vaga deste inimigo no arco: junta quem está rondando (inimigos físicos de pé) e distribui pela ordem em volta do jogador.
+        float MySlotAngle(ArenaPlayer pl)
+        {
+            var fwd = pl.HeadForward; var feet = pl.FeetPosition;
+            var angles = new List<float>(); int me = -1;
+            foreach (var g in All)
+            {
+                if (!g || g.mode != Mode.Stand || g.State.Dead || (!g.circling && g != this)) continue;
+                var to = g.FeetPosition - feet; to.y = 0f;
+                if (g == this) me = angles.Count;
+                angles.Add(Vector3.SignedAngle(fwd, to, Vector3.up));
+            }
+            if (me < 0) return 0f;
+            return CombatSteering.AssignSlots(angles.ToArray())[me];
+        }
+
+        // Separação dos vizinhos (outros inimigos de pé) + desvio dos pilares, no plano do chão.
+        Vector3 Steer(Vector3 move)
+        {
+            var self = new System.Numerics.Vector2(anchor.position.x, anchor.position.z);
+            neighbors.Clear();
+            foreach (var g in All) if (g && g != this && g.mode == Mode.Stand && !g.State.Dead) { var p = g.FeetPosition; neighbors.Add(new System.Numerics.Vector2(p.x, p.z)); }
+            foreach (var e in ArenaEnemy.All) if (e && !e.Dead && !(e is PhysicalGoblinEnemy)) { var p = e.transform.position; neighbors.Add(new System.Numerics.Vector2(p.x, p.z)); }
+            var desired = new System.Numerics.Vector2(move.x, move.z) + CombatSteering.Separation(self, neighbors);
+            desired += CombatSteering.Avoid(self, desired, NavObstacles.Circles, 0.22f * k);
+            desired = CombatSteering.ClampSpeed(desired, Mathf.Max(CombatSteering.MaxSpeed, move.magnitude));
+            return new Vector3(desired.X, 0f, desired.Y);
+        }
+
+        // Projétil vindo na minha direção (a bola teleguiada não conta: foi feita para acertar) ou Kamehameha carregando
+        // na minha direção: com a chance da dificuldade, um passo rápido para o lado (cancela o aviso de ataque).
+        void CheckThreats(ArenaPlayer pl)
+        {
+            var e = new System.Numerics.Vector2(anchor.position.x, anchor.position.z);
+            if (seenThreats.Count > 30) seenThreats.Clear();
+            foreach (var p in Projectile.All)
+            {
+                if (!p || seenThreats.Contains(p) || p.GetComponent<HomingProjectile>()) continue;
+                var pp = p.transform.position;
+                if (!CombatSteering.ProjectileThreat(e, new System.Numerics.Vector2(pp.x, pp.z), new System.Numerics.Vector2(p.Velocity.x, p.Velocity.z), out var dd)) continue;
+                seenThreats.Add(p);
+                if (Random.value < CombatSteering.DodgeChance(Diff)) StartDodge(new Vector3(dd.X, 0f, dd.Y));
+                return;
+            }
+            var hm = HandMagic.Instance;
+            if (hm && hm.KameCharging && kameCheckT <= 0f)
+            {
+                kameCheckT = 0.7f;
+                var toMe = anchor.position - pl.FeetPosition; toMe.y = 0f;
+                if (toMe.magnitude < 14f && Vector3.Angle(pl.HeadForward, toMe) < 15f && Random.value < CombatSteering.DodgeChance(Diff))
+                {
+                    var side = Vector3.Cross(Vector3.up, pl.HeadForward);
+                    StartDodge(Vector3.Dot(toMe, side) >= 0f ? side : -side);
+                }
+            }
+        }
+
+        void StartDodge(Vector3 dir)
+        {
+            dodgeT = CombatSteering.DodgeSeconds; dodgeDir = dir.normalized;
+            if (attack == Attack.Windup) { attack = Attack.None; ArenaGame.Tokens.Release(TokenId); }
         }
 
         // Escudo do jogador no caminho do golpe (varredura entre passos): aparo, bloqueio, contra-ataque ou guarda quebrada.

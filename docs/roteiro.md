@@ -2,6 +2,14 @@
 
 Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do MVP · **D** = futuro distante.
 
+## Direção até vender (2026-10-28, combinado com o Pablo)
+1. **Congelar funcionalidades**: nada de classe/sistema/poder novo até o "pedaço vendável". Só correção, polimento, arte e IA.
+2. **Pedaço vendável**: ciclo completo e bonito de 20–30 min (Santuário → dungeon de 2 andares → Rei Goblin) com arte em tudo do MVP (slime, esqueleto, orc, arqueiro, mímico, Rei Goblin, 6 armas, mãos, dungeon no estilo da sala do Treino), inimigos físicos como padrão e uma **sala-tutorial** dos gestos.
+3. **Teste com o público**: 5–10 adolescentes jogando sem explicação; só observar.
+4. **Diferencial para vender**: a magia sem controle (raio, bola teleguiada, onda de duas mãos, teia) — vídeos curtos.
+5. **Demo grátis** (itch.io/SideQuest) com o pedaço vendável → **acesso antecipado pago** (~US$ 10–15, Meta Horizon Store; Steam depois) com 2–3 h de conteúdo, arte coerente, sem bug que quebre a partida e conforto.
+6. **Obrigatório antes de vender**: renomear "Kamehameha" e "Freeza" (marcas de Dragon Ball) e não citar "Homem-Aranha"; conferir a licença do TRELLIS.2 (e do Hunyuan, se usar); KayKit é CC0; teto de receita do Unity Personal; conta de desenvolvedor, W-8BEN e de preferência MEI.
+
 ## Próxima prioridade (decisão do Pablo, 2026-10-28): VISUAL, depois balanceamento
 - Habilidades "completinhas por agora"; a mecânica da teia com gravidade aprovada ("ficou bem maneiro").
 - Proposta: 1º uma **fatia vertical** (1 sala da dungeon + goblin com modelo real + mãos com pele) medindo FPS no Quest 2 antes de trocar tudo; escolher UM estilo coerente (pacote low-poly dark fantasy) e um orçamento (triângulos, draw calls, 1 luz real por sala, luz assada). Inimigos físicos pedem modelos separados por membro (plano, fase C).

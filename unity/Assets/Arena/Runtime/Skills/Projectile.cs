@@ -14,6 +14,11 @@ namespace Arena
         public Action<ArenaEnemy, Projectile> OnHitEnemy;
         public Action<Projectile> OnEnd;
 
+        // Projéteis no ar (a IA olha para desviar).
+        public static readonly List<Projectile> All = new List<Projectile>();
+        void OnEnable() => All.Add(this);
+        void OnDisable() => All.Remove(this);
+
         readonly HashSet<ArenaEnemy> hit = new HashSet<ArenaEnemy>();
         float t;
         bool ended;

@@ -38,6 +38,7 @@ namespace Arena
 
         float rootsCd, kameT, kameCd, fireCd, clapWindow, clapCd, prevPalmsApart = 1f;
         bool kameCharging;
+        public bool KameCharging => kameCharging;   // a IA sai da frente
         Transform kameOrb;
 
 
