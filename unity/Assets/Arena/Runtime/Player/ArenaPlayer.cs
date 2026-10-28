@@ -105,6 +105,7 @@ namespace Arena
             if (!GetComponent<DungeonMap>()) gameObject.AddComponent<DungeonMap>();
             if (!GetComponent<HandVisual>()) gameObject.AddComponent<HandVisual>();   // mãos rastreadas visíveis
             if (!GetComponent<EnemyGrabber>()) gameObject.AddComponent<EnemyGrabber>();   // agarrar inimigos com a mão vazia
+            if (!GetComponent<SpiderLocomotion>()) gameObject.AddComponent<SpiderLocomotion>();   // sinal do Homem-Aranha: dash e teia
             ResetCharacter(startClass);
             yaw = rigRoot.eulerAngles.y;
         }
@@ -293,11 +294,49 @@ namespace Arena
             var hp = head.position;
             var clamped = ArenaUtil.ClampToArena(hp);
             rigRoot.position += new Vector3(clamped.x - hp.x, 0, clamped.z - hp.z);
+            Gravity(dt);
         }
 
         // Empurrão no jogador (onda de choque do chefe): somado ao movimento e amortecido.
         Vector3 pushVel;
         public void Push(Vector3 velocity) => pushVel = velocity.Flat();
+
+        // ---------- Sem controle: dash para trás e teia (SpiderLocomotion) ----------
+        // Segurando a teia: sem gravidade. Solto no alto: cai.
+        public bool Hanging { get; set; }
+        float airVy;
+
+        public void DashBack()
+        {
+            if (dashT > 0f || chargeT > 0f || !State.TryDash()) return;
+            dashT = Combat.DashDuration;
+            dashDir = -HeadForward;
+            vignette = 1f;
+            ArenaAudio.Play2D(Sfx.Dash, 0.6f);
+        }
+
+        // Move o corpo (a teia puxa em 3D): sobe até o teto das salas, nunca abaixo do chão, sem sair da área.
+        public void MoveRig(Vector3 delta)
+        {
+            var p = rigRoot.position + delta;
+            p.y = Mathf.Clamp(p.y, 0f, RopeRules.MaxHeight);
+            rigRoot.position = p;
+            airVy = 0f;
+        }
+
+        void Gravity(float dt)
+        {
+            var p = rigRoot.position;
+            if (Hanging || p.y <= 0f) { airVy = 0f; if (p.y < 0f) { p.y = 0f; rigRoot.position = p; } return; }
+            airVy -= RopeRules.Gravity * dt;
+            p.y = Mathf.Max(0f, p.y + airVy * dt);
+            if (p.y <= 0f)
+            {
+                if (airVy < -4f) { ArenaAudio.Play(Sfx.Step, FeetPosition, 1f, 0.6f); ArenaInput.Haptic(0.5f, 0.08f); vignette = Mathf.Max(vignette, 0.4f); }
+                airVy = 0f;
+            }
+            rigRoot.position = p;
+        }
 
         public void TryDash()
         {
@@ -354,6 +393,8 @@ namespace Arena
 
         public void TeleportTo(Vector3 feet, Vector3 lookAt)
         {
+            Hanging = false; airVy = 0f;
+            if (rigRoot.position.y != 0f) { var r0 = rigRoot.position; r0.y = 0f; rigRoot.position = r0; }   // volta ao chão
             var offset = head.position - rigRoot.position; offset.y = 0;
             rigRoot.position = new Vector3(feet.x, rigRoot.position.y, feet.z) - offset;
             var dir = (lookAt - feet).Flat();
