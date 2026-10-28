@@ -9,6 +9,16 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000000000000000. NOVO — menus com o dedo, livro de magias, palma batida, bola teleguiada
+Largue os dois controles.
+- [ ] **Menus com o dedo**: pause (palma esquerda virada para você + pinça). Sai um raio de cada mão; a linha mirada acende; encoste o indicador no polegar para clicar. A pinça que abriu a pausa NÃO pode clicar sozinha em "Continuar".
+- [ ] Menu inicial e árvore (pausa → "Árvore de habilidades"; "Fechar" no fim) também pelo dedo. O raio é estável ou treme demais?
+- [ ] **Livro de magias** (pausa → "Livro de magias"): passe o dedo nas linhas e leia o passo a passo. Falta algo? Algum texto errado?
+- [ ] **Raízes**: bata uma palma, separe e jogue as duas mãos rápido para baixo (sem agachar).
+- [ ] **Kamehameha**: bata uma palma, mantenha os pulsos juntos (a esfera cresce), empurre.
+- [ ] **Bola de fogo teleguiada**: jogue na direção de um inimigo longe com outro perto do lado: tem que ir no de longe.
+- [ ] Bater palma sem querer (ex.: agarrar com as duas mãos) dispara algo?
+
 ## 00000000000000000. NOVO — teia por ganchos, embalo e mago sem controle
 Largue os dois controles (mãos livres).
 - [ ] **Ganchos**: olhe para o topo de um pilar/alto da parede: o ponto acende em ciano. Estique a mão aberta para ele e feche: sai a teia.

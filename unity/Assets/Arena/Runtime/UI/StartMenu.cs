@@ -1,4 +1,4 @@
-using System.Text;
+using System.Collections.Generic;
 using Arena.Core;
 using UnityEngine;
 
@@ -6,32 +6,26 @@ namespace Arena
 {
     // Menu inicial (o "santuário" por enquanto): escolher o personagem (continuar o salvo ou criar um novo) e o modo.
     // Arena = ondas e o Rei Goblin; Dungeon = 2 andares com salas e o chefe no fim; Treino = boneco parado, nível 10.
-    // VR: analógico direito para cima/baixo, A confirma. Desktop: setas ou W/S, Enter ou E confirma.
+    // VR: analógico direito para cima/baixo, A confirma; sem controle: aponte e faça a pinça. Desktop: setas ou W/S, Enter ou E.
     [RequireComponent(typeof(ArenaPlayer))]
     public sealed class StartMenu : MonoBehaviour
     {
         ArenaPlayer player;
-        Transform panel;
-        TextMesh text;
+        MenuPanel panel;
         int cursor = 1;
         // 0 = continuar o salvo, 1 = novo Lâmina, 2 = novo Elementalista
         int pick;
         SaveData save;
         bool confirmOverwrite;
         bool wasShown;
-        readonly StringBuilder sb = new StringBuilder();
+        readonly List<string> rows = new List<string>();
 
         const int Rows = 5;
 
         void Start()
         {
             player = GetComponent<ArenaPlayer>();
-            panel = new GameObject("MenuInicial").transform;
-            panel.SetParent(player.Head, false);
-            panel.localPosition = new Vector3(0, 0, 1.3f);
-            ArenaUtil.Prim(PrimitiveType.Quad, panel, new Vector3(0, 0, 0.01f), new Vector3(1.25f, 1.1f, 1f), ArenaUtil.Unlit(new Color(0.06f, 0.05f, 0.08f, 0.94f)));
-            text = ArenaFx.MakeText(panel, "", 0.0056f, Color.white, TextAnchor.MiddleLeft);
-            text.transform.localPosition = new Vector3(-0.57f, 0, 0);
+            panel = new MenuPanel("MenuInicial", 1.25f, 1.3f, new Color(0.06f, 0.05f, 0.08f, 0.94f));
             RefreshSave();
         }
 
@@ -45,18 +39,21 @@ namespace Arena
 
         void Update()
         {
-            if (!panel || !player || !ArenaGame.Instance) return;
+            if (panel == null || !player || !ArenaGame.Instance) return;
             bool show = ArenaGame.InMenu;
-            if (panel.gameObject.activeSelf != show) panel.gameObject.SetActive(show);
-            if (!show) { wasShown = false; return; }
+            if (!show) { panel.Hide(); wasShown = false; return; }
+            panel.Show(player);
             if (!wasShown) { RefreshSave(); wasShown = true; }
             var input = player.Input;
             if (input.MenuUp || input.MenuDown) { ArenaAudio.Play2D(Sfx.Click, 0.5f); confirmOverwrite = false; }
             if (input.MenuUp) cursor = (cursor + Rows - 1) % Rows;
             if (input.MenuDown) cursor = (cursor + 1) % Rows;
-            if (input.MenuConfirm)
+            if (panel.Hover >= 0 && panel.Hover != cursor) { cursor = panel.Hover; confirmOverwrite = false; }
+            int click = panel.TakeClick();
+            if (click >= 0) cursor = click;
+            if (input.MenuConfirm || click >= 0)
             {
-                ArenaAudio.Play2D(Sfx.Click, 0.8f, 1.3f);
+                if (click < 0) ArenaAudio.Play2D(Sfx.Click, 0.8f, 1.3f);
                 if (cursor == 0)
                 {
                     pick = (pick + 1) % 3;
@@ -85,8 +82,7 @@ namespace Arena
 
         void Draw()
         {
-            sb.Clear();
-            sb.Append("<b><size=90>ARENA VR</size></b>\n\n");
+            rows.Clear();
             string who = pick == 0 && save != null ? "Continuar: <color=#ffd36b>" + save.Summary + "</color>"
                        : "Novo personagem: <color=#ffd36b>" + ClassProfile.Get(pick == 2 ? ClassId.Elementalista : ClassId.Lamina).Name + "</color>";
             string whoDesc = pick == 0 && save != null
@@ -97,18 +93,17 @@ namespace Arena
             Row(2, "Arena", "ondas de inimigos e o Rei Goblin");
             Row(3, "Dungeon", "2 andares de salas, baús, fogueiras e o Rei Goblin no fim");
             Row(4, "Treino", "boneco parado com medidor de dano; nível 10, sem tomar dano (não salva)");
-            if (confirmOverwrite) sb.Append("<color=#ff9090>Confirme de novo para APAGAR o salvo e começar do zero</color>\n");
-            sb.Append("\n<size=40><color=#999>")
-              .Append(player.IsVr ? "Analógico direito: cima/baixo · A: escolher (na 1ª linha troca o personagem)" : "Setas ou W/S: cima/baixo · Enter ou E: escolher (na 1ª linha troca o personagem)")
-              .Append("\nNa pausa: B (ou R) volta para este menu (o progresso é salvo)</color></size>");
-            text.text = sb.ToString();
+            string footer = (confirmOverwrite ? "<color=#ff9090>Confirme de novo para APAGAR o salvo e começar do zero</color>\n" : "")
+                + "<size=40><color=#999>"
+                + (player.IsVr ? "Sem controle: aponte com a mão e encoste o indicador no polegar · Controle: analógico direito + A" : "Setas ou W/S: cima/baixo · Enter ou E: escolher")
+                + "\nNa 1ª linha troca o personagem · Na pausa: B (ou R) volta para este menu (o progresso é salvo)</color></size>";
+            panel.Render("<b><size=90>ARENA VR</size></b>", rows, cursor, footer);
         }
 
         void Row(int i, string title, string desc)
         {
             bool sel = cursor == i;
-            sb.Append(sel ? "<color=#9fd0ff>> " : "   ").Append(title).Append(sel ? "</color>" : "")
-              .Append("\n      <size=46><color=#bbb>").Append(desc).Append("</color></size>\n\n");
+            rows.Add((sel ? "<color=#9fd0ff>" : "") + title + (sel ? "</color>" : "") + "\n   <size=46><color=#bbb>" + desc + "</color></size>");
         }
     }
 }

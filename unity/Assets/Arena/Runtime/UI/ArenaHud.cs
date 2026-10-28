@@ -128,6 +128,9 @@ namespace Arena
             if (!player || !pausePanel || player.State == null) return;
             pausePanel.gameObject.SetActive(false);   // a pausa agora é o PauseMenu (com opções)
             PlaceHud();
+            // Com um menu aberto o HUD some (ficava por cima dos painéis).
+            bool menu = MenuPanel.Visible.Count > 0;
+            if (root.gameObject.activeSelf == menu) root.gameObject.SetActive(!menu);
             var s = player.State;
             SetFill(hp, s.Hp.Fraction);
             SetFill(sta, s.Stamina.Fraction);

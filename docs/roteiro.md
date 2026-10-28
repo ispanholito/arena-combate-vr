@@ -2,6 +2,11 @@
 
 Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do MVP · **D** = futuro distante.
 
+## Próxima prioridade (decisão do Pablo, 2026-10-28): VISUAL, depois balanceamento
+- Habilidades "completinhas por agora"; a mecânica da teia com gravidade aprovada ("ficou bem maneiro").
+- Proposta: 1º uma **fatia vertical** (1 sala da dungeon + goblin com modelo real + mãos com pele) medindo FPS no Quest 2 antes de trocar tudo; escolher UM estilo coerente (pacote low-poly dark fantasy) e um orçamento (triângulos, draw calls, 1 luz real por sala, luz assada). Inimigos físicos pedem modelos separados por membro (plano, fase C).
+- Balanceamento depois do visual, jogando.
+
 ## Validar no Quest (pendente de teste seu)
 - **A** **Siga `docs/teste-quest.md`** (lista completa de tudo desde o último teste, na ordem de uma sessão).
 - **A** 2026-10-28: teia por ganchos (olhar acende, mão aberta → fechar), embalo no ar, mago sem controle (raízes com as duas mãos no chão, Kamehameha, bola de fogo na palma). **Decidir**: esses poderes ficam para todas as classes ou viram a classe de mãos (Monge/luvas)?

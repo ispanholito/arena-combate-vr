@@ -6,12 +6,13 @@ using UnityEngine.XR.Hands;
 namespace Arena
 {
     // Mago sem controle (pedido do Pablo, 2026-10-28), com as mãos LIVRES (rastreadas):
-    //   - RAÍZES: as duas mãos juntas encostadas no chão (agachado) 0,3 s → raízes prendem os inimigos num círculo de
-    //     4 m à frente por 3 s.
-    //   - KAMEHAMEHA: pulsos juntos, mãos abertas na altura do tronco → carrega uma esfera azul entre as palmas;
+    //   As magias de duas mãos começam com uma PALMA BATIDA (abre uma janela de 1,5 s):
+    //   - RAÍZES: depois da palma, separe e jogue as duas mãos rápido para baixo → raízes prendem os inimigos num
+    //     círculo de 4 m à frente por 3 s.
+    //   - KAMEHAMEHA: depois da palma, mantenha os pulsos juntos na altura do tronco → carrega uma esfera azul;
     //     empurrar as duas mãos para frente com força solta um raio grosso que atravessa todos.
     //   - BOLA DE FOGO (uma mão): punho fechado esticado para frente → abrir a mão carrega a bola na palma (cheia em
-    //     1,5 s) → jogar a mão para frente arremessa (antes de encher sai mais fraca).
+    //     1,5 s) → jogar a mão para frente arremessa. É TELEGUIADA: vai no inimigo mais perto da direção do arremesso.
     // Enquanto carrega, os poderes de uma mão daquela mão ficam desligados (o empurrão não vira corte da palma).
     [RequireComponent(typeof(ArenaPlayer))]
     public sealed class HandMagic : MonoBehaviour
@@ -35,12 +36,12 @@ namespace Arena
         }
         readonly HandData[] h = { new HandData(), new HandData() };
 
-        float rootsT, rootsCd, kameT, kameCd, fireCd;
+        float rootsCd, kameT, kameCd, fireCd, clapWindow, clapCd, prevPalmsApart = 1f;
         bool kameCharging;
         Transform kameOrb;
 
         // Mão ocupada com magia (carregando bola de fogo ou Kamehameha): os poderes de uma mão ficam desligados.
-        public static bool IsBusy(int side) => Instance && (Instance.kameCharging || Instance.h[side].Armed || Instance.h[side].Charging);
+        public static bool IsBusy(int side) => Instance && (Instance.kameCharging || Instance.clapWindow > 0f || Instance.h[side].Armed || Instance.h[side].Charging);
 
         void Awake() { player = GetComponent<ArenaPlayer>(); Instance = this; }
         void OnDestroy() { if (Instance == this) Instance = null; }
@@ -84,15 +85,26 @@ namespace Arena
         {
             var L = h[0]; var R = h[1];
             float palmsApart = Vector3.Distance(L.Palm, R.Palm), wristsApart = Vector3.Distance(L.Wrist, R.Wrist);
-            float floor = player.FeetPosition.y;
-            // Raízes: mãos juntas no chão.
-            if (HandMagicRules.RootsPose(palmsApart, Mathf.Min(L.Palm.y, R.Palm.y) - floor, Mathf.Max(L.Palm.y, R.Palm.y) - floor))
+            float closing = dt > 0f ? (prevPalmsApart - palmsApart) / dt : 0f;
+            prevPalmsApart = palmsApart;
+            clapWindow -= dt; clapCd -= dt;
+            // Palma batida: abre a janela das magias de duas mãos.
+            if (clapCd <= 0f && HandMagicRules.IsClap(palmsApart, closing))
             {
-                rootsT += dt;
-                if (rootsT >= HandMagicRules.RootsHold && rootsCd <= 0f) { CastRoots(); rootsT = -1f; }
+                clapWindow = HandMagicRules.ClapWindow; clapCd = HandMagicRules.ClapCooldown;
+                var at = (L.Palm + R.Palm) * 0.5f;
+                ArenaAudio.Play(Sfx.Block, at, 0.5f, 1.8f);
+                ArenaFx.Burst(at, new Color(0.8f, 0.95f, 1f), 8, 1.2f, 0.4f);
+                ArenaInput.Haptic(0.3f, 0.05f);
+            }
+            if (clapWindow <= 0f && !kameCharging) return false;
+            // Raízes: separou e jogou as duas mãos para baixo.
+            if (!kameCharging && HandMagicRules.RootsSlam(palmsApart, L.Vel.y, R.Vel.y))
+            {
+                if (rootsCd <= 0f) CastRoots(); else ArenaGame.Instance?.Message("Raízes em recarga", 0.6f);
+                clapWindow = 0f;
                 return true;
             }
-            rootsT = 0f;
             // Kamehameha: pulsos juntos, mãos abertas na altura do tronco.
             bool openish = L.Shape != HandShape.Punho && R.Shape != HandShape.Punho && L.Shape != HandShape.Apontar && R.Shape != HandShape.Apontar;
             float belowHead = player.HeadPosition.y - (L.Palm.y + R.Palm.y) * 0.5f;
@@ -101,6 +113,7 @@ namespace Arena
             if (pose && kameCd <= 0f)
             {
                 kameCharging = true;
+                clapWindow = Mathf.Max(clapWindow, 0.3f);
                 kameT += dt;
                 float c = HandMagicRules.Charge01(kameT, HandMagicRules.KameMinCharge, HandMagicRules.KameFullCharge);
                 ShowKameOrb(mid, c);
@@ -282,7 +295,28 @@ namespace Arena
             float radius = Combat.FireballRadius(power, ps.Has(SkillIds.Combustao));
             float dmg = Combat.FireballDamage(power);
             p.OnEnd = pr => SkillCaster.Explode(new Vector3(pr.transform.position.x, Mathf.Max(0.3f, pr.transform.position.y), pr.transform.position.z), radius, dmg);
+            // Teleguiada: o inimigo mais perto da DIREÇÃO do arremesso (um arqueiro longe na mira vence o goblin do lado).
+            var target = PickHomingTarget(from, dir);
+            if (target)
+            {
+                p.Gravity = 0f; p.Life = 4f;
+                vis.AddComponent<HomingProjectile>().Init(p, target);
+            }
             ArenaAudio.Play(Sfx.FireCast, from, 0.9f);
+        }
+
+        public static ArenaEnemy PickHomingTarget(Vector3 from, Vector3 dir)
+        {
+            var list = new List<ArenaEnemy>();
+            foreach (var e in ArenaEnemy.All) if (e && !e.Dead) list.Add(e);
+            var angles = new float[list.Count]; var dists = new float[list.Count];
+            for (int i = 0; i < list.Count; i++)
+            {
+                var to = HomingProjectile.AimPoint(list[i]) - from;
+                angles[i] = Vector3.Angle(dir, to); dists[i] = to.magnitude;
+            }
+            int k = HandMagicRules.PickHomingTarget(angles, dists);
+            return k >= 0 ? list[k] : null;
         }
 
         void CancelFire(int side)
@@ -295,7 +329,7 @@ namespace Arena
         void CancelAll()
         {
             CancelFire(0); CancelFire(1);
-            kameCharging = false; kameT = 0f; rootsT = 0f;
+            kameCharging = false; kameT = 0f; clapWindow = 0f;
             HideKameOrb();
         }
 
@@ -322,6 +356,22 @@ namespace Arena
             var l = Extended(hd, XRHandJointID.LittleProximal, XRHandJointID.LittleTip);
             if (i == null || m == null || r == null || l == null) return HandShape.Nenhuma;
             return HandSigns.Classify(i.Value, m.Value, r.Value, l.Value);
+        }
+    }
+
+    // Vira a velocidade do projétil em direção ao alvo (até HomingTurn graus/s). Alvo morto: segue reto.
+    public sealed class HomingProjectile : MonoBehaviour
+    {
+        Projectile p; ArenaEnemy target;
+        public void Init(Projectile projectile, ArenaEnemy enemy) { p = projectile; target = enemy; }
+        public static Vector3 AimPoint(ArenaEnemy e) { e.BodyAxis(out var a, out var b); return (a + b) * 0.5f; }
+        void Update()
+        {
+            if (!p || !target || target.Dead) { enabled = false; return; }
+            var want = AimPoint(target) - transform.position;
+            float speed = p.Velocity.magnitude;
+            var dir = Vector3.RotateTowards(p.Velocity.normalized, want.normalized, HandMagicRules.HomingTurn * Mathf.Deg2Rad * Time.deltaTime, 0f);
+            p.Velocity = dir * speed;
         }
     }
 

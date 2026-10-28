@@ -3,19 +3,47 @@ using System;
 namespace Arena.Core
 {
     // Mago sem controle (pedido do Pablo, 2026-10-28): poderes de mão vazia com gestos das DUAS mãos ou de uma.
-    //   - Raízes: as duas mãos juntas encostadas no chão → raízes prendem os inimigos num círculo à frente.
-    //   - Kamehameha: pulsos juntos, mãos abertas em concha na altura do tronco (carrega) → empurrar as duas mãos para frente.
+    //   - Tudo das duas mãos começa com uma PALMA BATIDA (2026-10-28, depois do 1º teste):
+    //     - Raízes: bateu a palma, separa e joga as duas mãos rápido para baixo → raízes prendem os inimigos à frente.
+    //     - Kamehameha: bateu a palma e mantém os pulsos juntos (carrega) → empurrar as duas mãos para frente.
     //   - Bola de fogo: punho fechado esticado para frente → abrir a mão carrega a bola na palma → jogar a mão para frente.
     public static class HandMagicRules
     {
         // ---------- Raízes ----------
-        public const float RootsHandsApart = 0.3f;     // palmas a até 30 cm uma da outra
-        public const float RootsHandHeight = 0.4f;     // palmas a até 40 cm acima do chão (agachado)
-        public const float RootsHold = 0.3f;
+        // ---------- Palma batida (abre a janela das magias de duas mãos) ----------
+        public const float ClapDistance = 0.1f;        // palmas a até 10 cm
+        public const float ClapCloseSpeed = 0.6f;      // m/s com que as palmas se aproximam
+        public const float ClapWindow = 1.5f, ClapCooldown = 0.4f;
+
+        public static bool IsClap(float palmsApart, float closingSpeed) => palmsApart <= ClapDistance && closingSpeed >= ClapCloseSpeed;
+
+        // ---------- Raízes: depois da palma, separar e jogar as duas mãos para baixo ----------
+        public const float RootsSplit = 0.2f;          // palmas a mais de 20 cm (separou)
+        public const float RootsDownSpeed = 1.6f;      // m/s para baixo, as duas mãos (relativo ao corpo)
         public const float RootsDistance = 3.5f, RootsRadius = 4f, RootsSeconds = 3f, RootsMana = 25f, RootsCooldown = 6f;
 
-        public static bool RootsPose(float palmsApart, float lowestPalmAboveFloor, float highestPalmAboveFloor) =>
-            palmsApart <= RootsHandsApart && highestPalmAboveFloor <= RootsHandHeight;
+        public static bool RootsSlam(float palmsApart, float leftVy, float rightVy) =>
+            palmsApart >= RootsSplit && leftVy <= -RootsDownSpeed && rightVy <= -RootsDownSpeed;
+
+        // ---------- Bola de fogo teleguiada: o alvo é o inimigo mais perto da DIREÇÃO do arremesso (não o mais perto de você) ----------
+        public const float HomingCone = 30f;           // graus em volta da direção
+        public const float HomingRange = 35f;
+        public const float HomingTurn = 240f;          // graus/s que a bola consegue virar
+
+        // Ângulos (graus) e distâncias de cada inimigo em relação ao arremesso; devolve o índice do alvo ou -1.
+        // Menor ângulo vence; só em empate (menos de 4° de diferença) o mais perto ganha.
+        public static int PickHomingTarget(float[] anglesDeg, float[] distances)
+        {
+            int best = -1;
+            for (int i = 0; i < anglesDeg.Length; i++)
+            {
+                if (anglesDeg[i] > HomingCone || distances[i] > HomingRange) continue;
+                if (best < 0) { best = i; continue; }
+                float da = anglesDeg[i] - anglesDeg[best];
+                if (da < -4f || (Math.Abs(da) <= 4f && distances[i] < distances[best])) best = i;
+            }
+            return best;
+        }
 
         // ---------- Kamehameha ----------
         public const float KameWristsTogether = 0.16f, KamePalmsTogether = 0.25f;
