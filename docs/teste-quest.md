@@ -18,6 +18,7 @@ Largue os dois controles.
 - [ ] **Kamehameha**: bata uma palma, mantenha os pulsos juntos (a esfera cresce), empurre.
 - [ ] **Bola de fogo teleguiada**: jogue na direção de um inimigo longe com outro perto do lado: tem que ir no de longe.
 - [ ] Bater palma sem querer (ex.: agarrar com as duas mãos) dispara algo?
+- [ ] **Treino**: o goblin morre com magia/raio/soco (não só espada) e outro nasce em 3 s; estamina e mana nunca acabam.
 
 ## 00000000000000000. NOVO — teia por ganchos, embalo e mago sem controle
 Largue os dois controles (mãos livres).

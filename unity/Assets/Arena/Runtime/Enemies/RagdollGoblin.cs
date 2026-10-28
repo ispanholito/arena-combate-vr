@@ -1008,29 +1008,42 @@ namespace Arena
     public sealed class RagdollGoblinSpawner : MonoBehaviour
     {
         public Vector3 Point, LookAt;
-        readonly List<RagdollGoblin> current = new List<RagdollGoblin>();
+        // Criados pelo ArenaGame.Spawn (com o representante invisível): morrem para qualquer coisa — magia, raio, soco,
+        // espinhos — e não só para a arma. Morreu: o corpo fica 3 s e outro nasce no lugar.
+        readonly List<ArenaEnemy> current = new List<ArenaEnemy>();
+        readonly List<RagdollGoblin> bodies = new List<RagdollGoblin>();
         readonly List<float> wait = new List<float>();
 
         void Update()
         {
             int n = SaveSystem.Options.TrainingGoblins;
-            while (current.Count < n) { current.Add(null); wait.Add(0.3f + current.Count * 0.2f); }
+            var game = ArenaGame.Instance;
+            if (!game) return;
+            while (current.Count < n) { current.Add(null); bodies.Add(null); wait.Add(0.3f + current.Count * 0.2f); }
             for (int i = current.Count - 1; i >= n; i--)
             {
                 if (current[i]) Destroy(current[i].gameObject);
-                current.RemoveAt(i); wait.RemoveAt(i);
+                if (bodies[i]) Destroy(bodies[i].gameObject);
+                current.RemoveAt(i); bodies.RemoveAt(i); wait.RemoveAt(i);
             }
             for (int i = 0; i < n; i++)
             {
-                if (current[i] && !current[i].Dead) { wait[i] = 3f; continue; }
+                if (current[i] && !current[i].Dead)
+                {
+                    if (current[i] is PhysicalGoblinEnemy pg && pg.Body) bodies[i] = pg.Body;
+                    wait[i] = 3f; continue;
+                }
                 wait[i] -= Time.deltaTime;
                 if (wait[i] > 0f) continue;
+                if (bodies[i]) Destroy(bodies[i].gameObject);   // tira o corpo antigo antes de nascer outro
+                if (current[i]) Destroy(current[i].gameObject);
                 // Em leque a partir do ponto (1 m entre eles).
                 var dir = (LookAt - Point); dir.y = 0f; dir = dir.sqrMagnitude > 1e-4f ? dir.normalized : Vector3.forward;
                 var side = Vector3.Cross(Vector3.up, dir);
                 float off = (i - (n - 1) * 0.5f) * 1.1f;
                 var def = (i % 3) switch { 1 => EnemyDef.Esqueleto, 2 => EnemyDef.Orc, _ => EnemyDef.Goblin };
-                current[i] = RagdollGoblin.Spawn(ArenaUtil.ClampToArena(Point + side * off - dir * Mathf.Abs(off) * 0.3f), LookAt, new EnemyState(def));
+                current[i] = game.Spawn(def, Point + side * off - dir * Mathf.Abs(off) * 0.3f, false, forcePhysical: true);
+                bodies[i] = null;
                 wait[i] = 3f;
             }
         }

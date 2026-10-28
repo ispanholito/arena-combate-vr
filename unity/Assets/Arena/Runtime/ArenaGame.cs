@@ -159,7 +159,7 @@ namespace Arena
                 player.ResetCharacter(character.Class.Id);
                 spawnWaves = false;
                 player.TeleportTo(BonfireStandPoint, Vector3.zero);
-                // Treino: nível máximo do MVP com os pontos livres, sem tomar dano, recursos voltam rápido.
+                // Treino: nível máximo do MVP com os pontos livres, sem tomar dano, estamina e mana infinitas.
                 var p = player.State.Progression;
                 p.GainXp(1000000);
                 Spawn(EnemyDef.Boneco, new Vector3(0f, 0f, 0f), false);
@@ -261,8 +261,8 @@ namespace Arena
             if (Mode == GameMode.Treino)
             {
                 player.State.SetInvulnerable(1f);
-                player.State.Stamina.Restore(60f * dt);
-                player.State.Mana.Restore(40f * dt);
+                player.State.Stamina.Fill();   // infinitas no Treino (pedido do Pablo, 2026-10-28)
+                player.State.Mana.Fill();
             }
             if (Mode == GameMode.Arena && spawnWaves && !player.TreeOpen)
             {
@@ -305,7 +305,8 @@ namespace Arena
             ArenaFx.Burst(best.position + Vector3.up * 0.5f, new Color(0.6f, 0.42f, 1f), 14, 2.5f);
         }
 
-        public ArenaEnemy Spawn(EnemyDef def, Vector3 pos, bool fromDirector)
+        // forcePhysical: corpo físico mesmo com a opção beta desligada (goblins do Treino).
+        public ArenaEnemy Spawn(EnemyDef def, Vector3 pos, bool fromDirector, bool forcePhysical = false)
         {
             var diff = SaveSystem.Options.Difficulty;
             if (def.Kind != EnemyKind.Boneco) def = def.Scaled(DifficultyRules.EnemyHp(diff) * ArcadeRules.HpMultiplier(CurrentTier), DifficultyRules.WindupMultiplier(diff));
@@ -313,7 +314,7 @@ namespace Arena
             go.transform.SetParent(enemyRoot, false);
             go.transform.position = ArenaUtil.ClampToArena(new Vector3(pos.x, 0, pos.z));
             // Opção beta: goblin, esqueleto e orc com corpo físico (ragdoll ativo).
-            ArenaEnemy e = SaveSystem.Options.physicalGoblins && RagdollSpec.HasPhysicalBody(def.Kind) ? go.AddComponent<PhysicalGoblinEnemy>() : def.Kind switch
+            ArenaEnemy e = (forcePhysical || SaveSystem.Options.physicalGoblins) && RagdollSpec.HasPhysicalBody(def.Kind) ? go.AddComponent<PhysicalGoblinEnemy>() : def.Kind switch
             {
                 EnemyKind.Slime => go.AddComponent<SlimeEnemy>(),
                 EnemyKind.Goblin => go.AddComponent<GoblinEnemy>(),
