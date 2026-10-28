@@ -214,7 +214,7 @@ namespace Arena
             ArenaAudio.Play(Sfx.FireCast, start, 0.8f);
         }
 
-        static void Explode(Vector3 pos, float radius, float dmg)
+        public static void Explode(Vector3 pos, float radius, float dmg)
         {
             ArenaAudio.Play(Sfx.Explosion, pos, 1f);
             ArenaFx.Ring(pos, new Color(1f, 0.48f, 0.13f), radius);

@@ -9,6 +9,16 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000000000000000. NOVO — teia por ganchos, embalo e mago sem controle
+Largue os dois controles (mãos livres).
+- [ ] **Ganchos**: olhe para o topo de um pilar/alto da parede: o ponto acende em ciano. Estique a mão aberta para ele e feche: sai a teia.
+- [ ] Puxe a mão fechada para o peito: você voa até o ponto. **Pare de puxar ou abra a mão: continua voando em arco e cai** (antes parava no lugar). Enjoa?
+- [ ] Dungeon: ganchos nos cantos e no centro de cada sala.
+- [ ] **Raízes**: junte as duas mãos e encoste no chão (agache): raízes prendem os inimigos à sua frente (círculo de 4 m).
+- [ ] **Kamehameha**: pulsos juntos, mãos abertas na altura da barriga — a esfera azul cresce; empurre as duas mãos para frente com força: raio azul grosso.
+- [ ] **Bola de Fogo**: estique o punho fechado para frente, abra a mão: a bola cresce na palma (cheia em 1,5 s); jogue a mão para frente.
+- [ ] Algum gesto dispara sem querer (ex.: Kamehameha quando junta as mãos para outra coisa)? O corte da palma dispara junto com o arremesso?
+
 ## 0000000000000000. NOVO — jogo mais dinâmico (arena maior, mais inimigos, recargas curtas)
 - [ ] Arena bem maior (26 m) com 8 pilares; até 9 inimigos ao mesmo tempo; o chefe vem com 18 abates. Ficou divertido ou virou bagunça?
 - [ ] Estamina/mana duram mais e voltam rápido; habilidades recarregam bem mais rápido. Dá para spammar demais (fácil demais)?

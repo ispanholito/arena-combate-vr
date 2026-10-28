@@ -114,7 +114,27 @@ namespace Arena
             else GoToSanctuary();
         }
 
-        void Start() => ReturnToMenu();
+        void Start()
+        {
+            SpawnArenaGrapples();
+            ReturnToMenu();
+        }
+
+        // Pontos de gancho da teia na arena (filhos da geometria: somem junto na dungeon): topo das pilastras e alto das paredes.
+        void SpawnArenaGrapples()
+        {
+            if (!arenaWorld) return;
+            foreach (Transform t in arenaWorld)
+                if (t.name == "Pilar") GrapplePoint.Spawn(arenaWorld, t.position + Vector3.up * (t.localScale.y + 0.2f));
+            float h = Combat.ArenaHalfSize;
+            foreach (float s in new[] { -6f, 6f })
+            {
+                GrapplePoint.Spawn(arenaWorld, new Vector3(s, 4.6f, -h));
+                GrapplePoint.Spawn(arenaWorld, new Vector3(s, 4.6f, h));
+                GrapplePoint.Spawn(arenaWorld, new Vector3(-h, 4.6f, s));
+                GrapplePoint.Spawn(arenaWorld, new Vector3(h, 4.6f, s));
+            }
+        }
 
         public void ReturnToMenu()
         {

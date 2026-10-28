@@ -105,7 +105,8 @@ namespace Arena
             if (!GetComponent<DungeonMap>()) gameObject.AddComponent<DungeonMap>();
             if (!GetComponent<HandVisual>()) gameObject.AddComponent<HandVisual>();   // mãos rastreadas visíveis
             if (!GetComponent<EnemyGrabber>()) gameObject.AddComponent<EnemyGrabber>();   // agarrar inimigos com a mão vazia
-            if (!GetComponent<SpiderLocomotion>()) gameObject.AddComponent<SpiderLocomotion>();   // sinal do Homem-Aranha: dash e teia
+            if (!GetComponent<SpiderLocomotion>()) gameObject.AddComponent<SpiderLocomotion>();   // teia por pontos de gancho + dash (sinal do Homem-Aranha)
+            if (!GetComponent<HandMagic>()) gameObject.AddComponent<HandMagic>();   // mago sem controle: raízes, Kamehameha, bola de fogo
             ResetCharacter(startClass);
             yaw = rigRoot.eulerAngles.y;
         }
@@ -294,7 +295,7 @@ namespace Arena
             var hp = head.position;
             var clamped = ArenaUtil.ClampToArena(hp);
             rigRoot.position += new Vector3(clamped.x - hp.x, 0, clamped.z - hp.z);
-            Gravity(dt);
+            AirPhysics(dt);
         }
 
         // Empurrão no jogador (onda de choque do chefe): somado ao movimento e amortecido.
@@ -302,9 +303,11 @@ namespace Arena
         public void Push(Vector3 velocity) => pushVel = velocity.Flat();
 
         // ---------- Sem controle: dash para trás e teia (SpiderLocomotion) ----------
-        // Segurando a teia: sem gravidade. Solto no alto: cai.
+        // Segurando a teia: sem gravidade. Solto: continua com o embalo e cai em arco (2026-10-28: antes parava no lugar).
         public bool Hanging { get; set; }
-        float airVy;
+        public bool Coasting { get; set; }   // acabou de puxar a teia: ainda não freia
+        Vector3 airVel;
+        public Vector3 AirVelocity { get => airVel; set => airVel = Vector3.ClampMagnitude(value, HandMagicRules.MaxAirSpeed); }
 
         public void DashBack()
         {
@@ -321,21 +324,31 @@ namespace Arena
             var p = rigRoot.position + delta;
             p.y = Mathf.Clamp(p.y, 0f, RopeRules.MaxHeight);
             rigRoot.position = p;
-            airVy = 0f;
         }
 
-        void Gravity(float dt)
+        // Física do corpo no ar: velocidade (embalo da teia) + gravidade; no chão o embalo some rápido.
+        void AirPhysics(float dt)
         {
             var p = rigRoot.position;
-            if (Hanging || p.y <= 0f) { airVy = 0f; if (p.y < 0f) { p.y = 0f; rigRoot.position = p; } return; }
-            airVy -= RopeRules.Gravity * dt;
-            p.y = Mathf.Max(0f, p.y + airVy * dt);
+            bool onGround = p.y <= 0.001f && !Hanging;
+            if (onGround && airVel.sqrMagnitude < 1e-4f) { airVel = Vector3.zero; return; }
+            var (vx, vy, vz) = HandMagicRules.AirStep(airVel.x, airVel.y, airVel.z, Hanging, Coasting, onGround, dt);
+            airVel = new Vector3(vx, vy, vz);
+            p += airVel * dt;
             if (p.y <= 0f)
             {
-                if (airVy < -4f) { ArenaAudio.Play(Sfx.Step, FeetPosition, 1f, 0.6f); ArenaInput.Haptic(0.5f, 0.08f); vignette = Mathf.Max(vignette, 0.4f); }
-                airVy = 0f;
+                if (airVel.y < -4f) { ArenaAudio.Play(Sfx.Step, FeetPosition, 1f, 0.6f); ArenaInput.Haptic(0.5f, 0.08f); vignette = Mathf.Max(vignette, 0.4f); }
+                p.y = 0f; airVel.y = 0f;
             }
+            if (p.y > RopeRules.MaxHeight) { p.y = RopeRules.MaxHeight; airVel.y = Mathf.Min(0f, airVel.y); }
             rigRoot.position = p;
+            // Paredes: para o embalo na direção da parede.
+            var hp = head.position;
+            var c = ArenaUtil.ClampToArena(hp);
+            if (!Mathf.Approximately(c.x, hp.x)) airVel.x = 0f;
+            if (!Mathf.Approximately(c.z, hp.z)) airVel.z = 0f;
+            rigRoot.position += new Vector3(c.x - hp.x, 0f, c.z - hp.z);
+            if (airVel.sqrMagnitude > 9f && SaveSystem.Options.moveVignette) vignette = Mathf.Max(vignette, GameOptions.MoveVignetteLevel);
         }
 
         public void TryDash()
@@ -393,7 +406,7 @@ namespace Arena
 
         public void TeleportTo(Vector3 feet, Vector3 lookAt)
         {
-            Hanging = false; airVy = 0f;
+            Hanging = false; airVel = Vector3.zero;
             if (rigRoot.position.y != 0f) { var r0 = rigRoot.position; r0.y = 0f; rigRoot.position = r0; }   // volta ao chão
             var offset = head.position - rigRoot.position; offset.y = 0;
             rigRoot.position = new Vector3(feet.x, rigRoot.position.y, feet.z) - offset;

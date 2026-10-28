@@ -4,6 +4,7 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 
 ## Validar no Quest (pendente de teste seu)
 - **A** **Siga `docs/teste-quest.md`** (lista completa de tudo desde o último teste, na ordem de uma sessão).
+- **A** 2026-10-28: teia por ganchos (olhar acende, mão aberta → fechar), embalo no ar, mago sem controle (raízes com as duas mãos no chão, Kamehameha, bola de fogo na palma). **Decidir**: esses poderes ficam para todas as classes ou viram a classe de mãos (Monge/luvas)?
 - **A** Novidades de 2026-10-16 (feitas sem headset): som, esqueleto, armas novas (maça, lança, adaga) e o loot no chão (grip direito pega), ferreiro, salvar/continuar, dungeon de 2 andares. Conferir desempenho da dungeon no Quest 2 (1 luz por sala).
 - **A** 2ª leva de 2026-10-16: habilidade da arma (erguer a arma acima da cabeça e golpear — ver se dispara sem querer ao aparar golpe de cima), portas da emboscada e baús, santuário com bigorna e portais, menu de opções na pausa (giro suave, sentado), armas esquecidas voltando no santuário.
 - **A** 3ª leva de 2026-10-16: espinhos (o aviso dá tempo de sair?), mímico (o bote é justo?), Goblin Arqueiro (rebater a flecha com a espada é possível no VR?), goblins cercando, HUD no pulso (posição/legibilidade).

@@ -120,7 +120,7 @@ namespace Arena
         {
             var grabber = EnemyGrabber.Instance;
             int side = h.IsRight ? 1 : 0;
-            if (SpiderLocomotion.IsBusy(side)) { h.BeamCharge = 0f; ChargeDot(h, Vector3.zero, -1f); return; }   // segurando a teia
+            if (SpiderLocomotion.IsBusy(side) || HandMagic.IsBusy(side)) { h.BeamCharge = 0f; ChargeDot(h, Vector3.zero, -1f); return; }   // segurando a teia / carregando magia
             if (!free || !h.Tracked)
             {
                 h.BeamCharge = 0f; ChargeDot(h, Vector3.zero, -1f);

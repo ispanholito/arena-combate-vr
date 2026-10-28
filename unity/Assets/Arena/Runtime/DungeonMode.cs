@@ -83,6 +83,11 @@ namespace Arena
                 l.color = room.Kind == RoomKind.Chefe ? new Color(1f, 0.35f, 0.25f) : new Color(1f, 0.6f, 0.3f);
                 if (room.Kind == RoomKind.Inicio || room.Kind == RoomKind.Fogueira) bonfires.Add(Bonfire(c + Vector3.back * 1.5f, room.Index));
                 if (room.Kind == RoomKind.Escada) SpawnPortal(c, home: false);
+                // Pontos de gancho da teia: cantos no alto das paredes e o centro do "teto".
+                var rr = room.Rect.Shrink(0.7f);
+                foreach (var (gx, gz) in new[] { (rr.MinX, rr.MinZ), (rr.MaxX, rr.MinZ), (rr.MinX, rr.MaxZ), (rr.MaxX, rr.MaxZ) })
+                    GrapplePoint.Spawn(root, new Vector3(gx, 3.6f, gz));
+                GrapplePoint.Spawn(root, c + Vector3.up * 4.6f);
             }
             for (int i = 0; i < f.Traps.Count; i++)
                 SpikeTrap.Spawn(new Vector3(f.Traps[i].x, 0f, f.Traps[i].z), root, i * 0.9f);   // ciclos defasados
