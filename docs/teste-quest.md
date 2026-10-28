@@ -9,6 +9,13 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000000000. NOVO — jogo mais dinâmico (arena maior, mais inimigos, recargas curtas)
+- [ ] Arena bem maior (26 m) com 8 pilares; até 9 inimigos ao mesmo tempo; o chefe vem com 18 abates. Ficou divertido ou virou bagunça?
+- [ ] Estamina/mana duram mais e voltam rápido; habilidades recarregam bem mais rápido. Dá para spammar demais (fácil demais)?
+- [ ] Andar mais rápido (3,2 m/s): enjoa?
+- [ ] **FPS** com 9 inimigos (pausa → Mostrar FPS), com e sem "Inimigos físicos (beta)".
+- [ ] Dungeon: salas maiores e com mais inimigos.
+
 ## 000000000000000. NOVO — andar sem controle (sinal do Homem-Aranha)
 Largue um ou os dois controles (a mão precisa estar livre).
 - [ ] **Dash para trás**: faça o sinal do Homem-Aranha (indicador + mindinho esticados, médio e anelar dobrados) duas vezes seguidas, rápido.
