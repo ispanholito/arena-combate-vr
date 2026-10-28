@@ -316,6 +316,7 @@ namespace Arena
             if (dashT > 0f || chargeT > 0f || !State.TryDash()) return;
             dashT = Combat.DashDuration;
             dashDir = -HeadForward;
+            TutorialEvents.Raise("dash_tras");
             vignette = 1f;
             ArenaAudio.Play2D(Sfx.Dash, 0.6f);
         }

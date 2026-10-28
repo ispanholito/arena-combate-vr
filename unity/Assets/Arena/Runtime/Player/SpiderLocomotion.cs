@@ -108,6 +108,7 @@ namespace Arena
         public void Shoot(int side, Vector3 handPos, Vector3 point)
         {
             anchor = point;
+            TutorialEvents.Raise("teia");
             ropeActive = true; ropeSide = side; ropeT = 0f; openT = 0f; grabbedOnce = true; sincePull = 99f;
             lastHandLocal = player.trackingSpace.InverseTransformPoint(handPos);
             if (!line)
@@ -160,6 +161,7 @@ namespace Arena
         {
             var toAnchor = anchor - player.HeadPosition;
             float dist = toAnchor.magnitude;
+            if (sincePull > 0.5f) TutorialEvents.Raise("puxar");
             sincePull = 0f;
             player.Hanging = true; player.Coasting = true;
             if (dist < RopeRules.ArriveDistance) { player.AirVelocity = Vector3.zero; return; }   // chegou: fica pendurado

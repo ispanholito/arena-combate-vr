@@ -846,6 +846,7 @@ namespace Arena
                 if (Thrown) mult *= DamageTypes.ThrownMultiplier(Def.Kind, DamageTypes.Classify(Def.Kind, edge, thrust));   // adaga arremessada x3
                 if (e.TakeMeleeHit(speed, edge, strikeVel, Def, player.State, mult, height, thrust))
                 {
+                    TutorialEvents.Raise("golpe");
                     // Ponto do acerto na lâmina (para o esqueleto saber qual parte foi cortada).
                     float s = Geometry.ClosestParamOnSecond(a.ToN(), b.ToN(), strikeA.ToN(), strikeB.ToN());
                     e.OnMeleeHitAt(Vector3.Lerp(strikeA, strikeB, s), speed, edge, strikeVel, Def);

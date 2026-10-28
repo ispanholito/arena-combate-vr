@@ -66,6 +66,7 @@ namespace Arena
             Portal(new Vector3(-4.5f, 0, 6f), ArenaGame.GameMode.Arena, "ARENA", "ondas e o Rei Goblin", new Color(1f, 0.45f, 0.3f));
             Portal(new Vector3(0f, 0, 6.5f), ArenaGame.GameMode.Dungeon, "DUNGEON", "2 andares, baús e o chefe", new Color(0.55f, 0.35f, 1f));
             Portal(new Vector3(4.5f, 0, 6f), ArenaGame.GameMode.Treino, "TREINO", "boneco; nível 10 (não salva)", new Color(0.4f, 0.9f, 0.5f));
+            Portal(new Vector3(4.5f, 0, -5.5f), ArenaGame.GameMode.Menu, "TUTORIAL", "aprenda os gestos e poderes", new Color(1f, 0.85f, 0.4f));   // Menu = marcador do tutorial
             ResetStone(new Vector3(-2.7f, 0, 5.2f), ArenaGame.GameMode.Arena);
             ResetStone(new Vector3(1.8f, 0, 5.4f), ArenaGame.GameMode.Dungeon);
 
@@ -204,7 +205,8 @@ namespace Arena
                     if (t && (t.position - feet).Flat().magnitude < PortalRange)
                     {
                         ArenaAudio.Play2D(Sfx.Skill, 0.8f, 0.6f);
-                        game.EnterFromSanctuary(mode);
+                        if (mode == ArenaGame.GameMode.Menu) { game.SaveNow(); game.StartTutorial(); }
+                        else game.EnterFromSanctuary(mode);
                         return;
                     }
             UpdateAnvilText();

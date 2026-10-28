@@ -9,6 +9,11 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000000000000000000000. NOVO — tutorial e arte na arena/dungeon
+- [ ] **Tutorial**: na 1ª entrada no santuário ele começa sozinho (ou portal TUTORIAL / menu inicial). O quadro dá para ler? Cada passo avança quando você faz o gesto? Algum passo trava (use pausa → Pular)?
+- [ ] **Arena** e **menu inicial** com a sala do Treino (muralha, pilares, tochas).
+- [ ] **Dungeon** com piso, paredes e tochas do KayKit: alguma parede faltando, peça flutuando ou buraco nas emendas? **FPS** numa sala grande com 6–9 inimigos.
+
 ## 0000000000000000000000. NOVO — IA em grupo
 - [ ] Treino com 6 (ou Arena com inimigos físicos): eles se espalham na sua FRENTE em vez de empilhar? Algum ataca pelas costas?
 - [ ] Perto dos pilares: eles contornam em vez de tropeçar e cair sozinhos?

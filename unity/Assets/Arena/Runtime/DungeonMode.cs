@@ -58,8 +58,15 @@ namespace Arena
             var f = Run.Floor;
             ArenaUtil.Area = f.Area;
 
+            // Arte do KayKit por cima das caixas simples (que continuam como colisão, invisíveis). Sem a arte, fica como era.
+            bool art = KayKitArt.Model("Dungeon/wall");
+            var artRoot = new GameObject("Arte").transform; artRoot.SetParent(root, false);
+            var rng = new System.Random(Run.Floor.Number * 7919 + f.Rooms.Count);
             foreach (var r in f.Area.Rects)
-                Box("Chao", new Vector3(r.CenterX, -0.05f, r.CenterZ), new Vector3(r.Width, 0.1f, r.Depth), stone);
+            {
+                var floor = Box("Chao", new Vector3(r.CenterX, -0.05f, r.CenterZ), new Vector3(r.Width, 0.1f, r.Depth), stone);
+                if (art) { floor.GetComponent<Renderer>().enabled = false; FloorTiles(artRoot, r.MinX, r.MinZ, r.MaxX, r.MaxZ, rng); }
+            }
             foreach (var (x0, z0, x1, z1) in f.Area.WallSegments())
             {
                 bool alongX = Mathf.Approximately(z0, z1);
@@ -67,8 +74,9 @@ namespace Arena
                 // A parede fica do lado de fora da borda (0,15 m), para não roubar espaço de andar.
                 var center = new Vector3((x0 + x1) * 0.5f, 2f, (z0 + z1) * 0.5f);
                 center += OutsideNormal(f.Area, x0, z0, x1, z1) * 0.15f;
-                Box("Parede", center, alongX ? new Vector3(len + 0.3f, 4f, 0.3f) : new Vector3(0.3f, 4f, len + 0.3f), wall);
-                Torches(f.Area, x0, z0, x1, z1, alongX, len);
+                var wallBox = Box("Parede", center, alongX ? new Vector3(len + 0.3f, 4f, 0.3f) : new Vector3(0.3f, 4f, len + 0.3f), wall);
+                if (art) { wallBox.GetComponent<Renderer>().enabled = false; WallPieces(artRoot, f.Area, x0, z0, x1, z1, alongX, len, rng); }
+                else Torches(f.Area, x0, z0, x1, z1, alongX, len);
             }
             foreach (var room in f.Rooms)
             {
@@ -88,11 +96,60 @@ namespace Arena
                 foreach (var (gx, gz) in new[] { (rr.MinX, rr.MinZ), (rr.MaxX, rr.MinZ), (rr.MinX, rr.MaxZ), (rr.MaxX, rr.MaxZ) })
                     GrapplePoint.Spawn(root, new Vector3(gx, 3.6f, gz));
                 GrapplePoint.Spawn(root, c + Vector3.up * 4.6f);
+                if (art) CornerProps(artRoot, room.Rect, rng);
             }
+            if (art) StaticBatchingUtility.Combine(artRoot.gameObject);
             for (int i = 0; i < f.Traps.Count; i++)
                 SpikeTrap.Spawn(new Vector3(f.Traps[i].x, 0f, f.Traps[i].z), root, i * 0.9f);   // ciclos defasados
             SetCheckpoint(Run.CheckpointRoom);
             game.Player.TeleportTo(game.BonfireStandPoint, new Vector3(f.Start.Rect.CenterX, 0f, f.Start.Rect.CenterZ + 10f));
+        }
+
+        // ---------- Arte do KayKit (peças de 4 m esticadas para caber em cada tamanho) ----------
+        static readonly string[] FloorPieces = { "floor_tile_large", "floor_tile_large", "floor_tile_large", "floor_tile_large_rocks" };
+        // Sem janela nem parede quebrada: atrás da parede da dungeon é o vazio.
+        static readonly string[] WallVariants = { "wall", "wall", "wall_cracked", "wall" };
+
+        static void FloorTiles(Transform parent, float x0, float z0, float x1, float z1, System.Random rng)
+        {
+            float w = x1 - x0, d = z1 - z0;
+            int nx = Mathf.Max(1, Mathf.CeilToInt(w / 4f - 0.01f)), nz = Mathf.Max(1, Mathf.CeilToInt(d / 4f - 0.01f));
+            float sx = w / (nx * 4f), sz = d / (nz * 4f);
+            for (int i = 0; i < nx; i++)
+                for (int j = 0; j < nz; j++)
+                {
+                    var p = new Vector3(x0 + (i + 0.5f) * w / nx, 0f, z0 + (j + 0.5f) * d / nz);
+                    // Gira só de 180 em 180 quando a peça é esticada (a escala é em x/z do mundo).
+                    KayKitArt.Place(FloorPieces[rng.Next(FloorPieces.Length)], parent, p, rng.Next(2) * 180f, new Vector3(sx, 1f, sz));
+                }
+        }
+
+        void WallPieces(Transform parent, WalkArea area, float x0, float z0, float x1, float z1, bool alongX, float len, System.Random rng)
+        {
+            var inward = -OutsideNormal(area, x0, z0, x1, z1);
+            float yaw = Quaternion.LookRotation(inward).eulerAngles.y;   // a face decorada olha para dentro da sala
+            int n = Mathf.Max(1, Mathf.RoundToInt(len / 4f));
+            float scale = len / (n * 4f);
+            for (int i = 0; i < n; i++)
+            {
+                float s = (i + 0.5f) / n;
+                var edge = new Vector3(Mathf.Lerp(x0, x1, s), 0f, Mathf.Lerp(z0, z1, s));
+                string piece = len < 3f ? "wall" : WallVariants[rng.Next(WallVariants.Length)];
+                KayKitArt.Place(piece, parent, edge - inward * 0.5f, yaw, new Vector3(scale, 1f, 1f));
+                // Tocha de parede a cada duas peças (só a chama; a luz de verdade é 1 por sala).
+                if (len >= 5f && i % 2 == 0) KayKitArt.Place("torch_mounted", parent, edge + Vector3.up * 1.7f, yaw);
+            }
+        }
+
+        static readonly string[] Props = { "barrel_large", "barrel_small_stack", "crates_stacked", "box_large", "barrel_large_decorated", "box_stacked", "keg", "trunk_medium_A" };
+
+        static void CornerProps(Transform parent, Rect2 r, System.Random rng)
+        {
+            // 2 cantos sorteados com um objeto (longe das aberturas, que ficam no meio das paredes).
+            var corners = new[] { (r.MinX + 1f, r.MinZ + 1f), (r.MaxX - 1f, r.MinZ + 1f), (r.MinX + 1f, r.MaxZ - 1f), (r.MaxX - 1f, r.MaxZ - 1f) };
+            int a = rng.Next(4), b = (a + 1 + rng.Next(3)) % 4;
+            foreach (int k in new[] { a, b })
+                KayKitArt.Place(Props[rng.Next(Props.Length)], parent, new Vector3(corners[k].Item1, 0f, corners[k].Item2), rng.Next(360));
         }
 
         // Tochas nas paredes a cada ~7 m (só a chama emissiva; luz de verdade é 1 por sala, pelo desempenho no Quest).

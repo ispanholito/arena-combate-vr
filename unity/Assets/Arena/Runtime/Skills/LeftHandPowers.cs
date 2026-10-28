@@ -210,6 +210,7 @@ namespace Arena
             if (h.GunCooldown > 0f) return;
             if (!player.State.TryBeam()) { ArenaGame.Instance?.Message("Sem mana", 0.6f); return; }
             h.GunCooldown = HandPowers.BeamInterval;
+            TutorialEvents.Raise("raio");
             dir.Normalize();
             // Até onde vai: parede ou chão.
             float len = 0f;
@@ -273,6 +274,7 @@ namespace Arena
             }
             if (!target) return false;   // socar o ar não gasta nada
             if (player.State.TryHandPower(HandPowers.Punch, rightHand ? 1 : 0) != SkillCastResult.Ok) return false;
+            TutorialEvents.Raise("soco");
             var at = target.Center - dir * target.Radius * 0.8f;
             target.ApplyDamage(HandPowers.PunchDamage, HandPowers.PunchPosture, dir, HandPowers.PunchKnock, new Color(1f, 0.82f, 0.56f));
             target.PhysicalImpact(12f, dir);
@@ -309,6 +311,7 @@ namespace Arena
         bool Palm(Vector3 pos, Vector3 sweep, int hand = 0)
         {
             if (player.State.TryHandPower(HandPowers.Palm, hand) != SkillCastResult.Ok) return false;
+            TutorialEvents.Raise("palma");
             SkillCaster.LaunchSlash(pos + player.HeadForward * 0.3f, player.HeadForward, sweep, HandPowers.PalmDamage, new Color(1f, 0.9f, 0.66f));
             return true;
         }

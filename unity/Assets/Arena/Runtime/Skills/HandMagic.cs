@@ -97,6 +97,7 @@ namespace Arena
                 ArenaAudio.Play(Sfx.Block, at, 0.5f, 1.8f);
                 ArenaFx.Burst(at, new Color(0.8f, 0.95f, 1f), 8, 1.2f, 0.4f);
                 ArenaInput.Haptic(0.3f, 0.05f);
+                TutorialEvents.Raise("palma_batida");
             }
             if (clapWindow <= 0f && !kameCharging) return false;
             HandLock.HoldBoth("duas");   // palma batida: as duas mãos ficam com as magias de duas mãos
@@ -150,6 +151,7 @@ namespace Arena
         {
             var ps = player.State;
             if (!ps.Mana.TrySpend(HandMagicRules.RootsMana, 0.6f)) { ArenaGame.Instance?.Message("Sem mana", 0.6f); return; }
+            TutorialEvents.Raise("raizes");
             rootsCd = HandMagicRules.RootsCooldown;
             var center = player.FeetPosition + player.HeadForward * HandMagicRules.RootsDistance;
             center = ArenaUtil.ClampToArena(center); center.y = player.FeetPosition.y;
@@ -196,6 +198,7 @@ namespace Arena
             HideKameOrb();
             var ps = player.State;
             if (!ps.Mana.TrySpend(HandMagicRules.KameMana, 0.6f)) { ArenaGame.Instance?.Message("Sem mana", 0.6f); return; }
+            TutorialEvents.Raise("kame");
             kameCd = HandMagicRules.KameCooldown;
             // Sem desvio para cima/baixo demais: mistura a direção das mãos com o olhar.
             dir = (dir + player.Head.forward).normalized;
@@ -291,6 +294,7 @@ namespace Arena
         {
             var ps = player.State;
             if (!ps.Mana.TrySpend(HandMagicRules.FireMana, 0.6f)) return;
+            TutorialEvents.Raise("bola");
             fireCd = HandMagicRules.FireCooldown;
             var dir = handVel.sqrMagnitude > 0.01f ? handVel.normalized : player.Head.forward;
             var vel = dir * Mathf.Max(12f, handVel.magnitude * 2.2f);

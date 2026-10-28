@@ -45,7 +45,7 @@ namespace Arena
             if (paused == value) return;
             paused = value;
             Time.timeScale = value ? 0f : 1f;
-            if (value) player.TreeOpen = false;
+            if (value) { player.TreeOpen = false; TutorialEvents.Raise("pausa"); }
         }
 
         void PauseFromSystem() => SetPaused(true);   // tirou o headset ou abriu o menu do sistema
@@ -121,6 +121,25 @@ namespace Arena
             ReturnToMenu();
         }
 
+        // ---------- Tutorial dos gestos (TutorialMode) ----------
+        // Roda dentro do Treino (sem dano, mana infinita, sala KayKit) só com o boneco. Sair/terminar volta ao santuário.
+        public bool InTutorial => TutorialMode.Instance;
+
+        public void StartTutorial(PlayerState character = null)
+        {
+            StartMode(GameMode.Treino, character ?? player.State);
+            if (ragdollSpawner) Destroy(ragdollSpawner.gameObject);
+            new GameObject("Tutorial").AddComponent<TutorialMode>();
+        }
+
+        public void FinishTutorial()
+        {
+            SaveSystem.Options.tutorialSeen = true;
+            SaveSystem.SaveOptions();
+            SetPaused(false);
+            BackFromPause();   // do Treino volta ao santuário com o personagem salvo
+        }
+
         // 1º teste do visual (2026-10-28): no Treino a arena ganha a arte do KayKit. As formas simples continuam (colisão,
         // ganchos da teia, luzes); só o desenho delas some enquanto a sala KayKit aparece.
         Transform trainingHall;
@@ -170,7 +189,8 @@ namespace Arena
             if (Persistent) SaveNow();
             LeaveDungeon();
             Mode = GameMode.Menu;
-            SetTrainingHall(false);
+            if (TutorialMode.Instance) Destroy(TutorialMode.Instance.gameObject);
+            SetTrainingHall(true);   // fundo do menu inicial com a arte
             spawnWaves = false;
             player.TreeOpen = false;
             player.TeleportTo(BonfireStandPoint, Vector3.zero);
@@ -181,8 +201,9 @@ namespace Arena
         {
             ClearEnemies();
             LeaveDungeon();
+            if (TutorialMode.Instance) Destroy(TutorialMode.Instance.gameObject);
             Mode = mode;
-            SetTrainingHall(mode == GameMode.Treino);
+            SetTrainingHall(mode == GameMode.Treino || mode == GameMode.Arena);
             NavObstacles.SetFromArena(arenaWorld, mode == GameMode.Arena || mode == GameMode.Treino);
             if (mode == GameMode.Treino)
             {
@@ -209,6 +230,7 @@ namespace Arena
                 if (arenaWorld) arenaWorld.gameObject.SetActive(false);
                 Message("Santuário: escolha um portal. Fogueira cura e abre a árvore.", 3f);
                 sanctuary.Begin();   // depois da mensagem geral (ela avisa das armas esquecidas)
+                if (!SaveSystem.Options.tutorialSeen && player.IsVr) StartTutorial();   // 1ª vez: ensina os gestos
                 return;
             }
             if (mode == GameMode.Arena)
