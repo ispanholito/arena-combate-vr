@@ -29,17 +29,17 @@ namespace Arena.Core
         public const string CooldownId = "arma";
 
         public static readonly WeaponAbilityDef CorteAmplo = new WeaponAbilityDef(WeaponAbilityKind.CorteAmplo, "Corte Amplo",
-            "o golpe acerta todos à frente (2,8 m)", 8f, 25f, ResourceKind.Stamina);
+            "o golpe acerta todos à frente (2,8 m)", 5f, 20f, ResourceKind.Stamina);
         public static readonly WeaponAbilityDef FendaNoChao = new WeaponAbilityDef(WeaponAbilityKind.FendaNoChao, "Fenda no Chão",
-            "onda em linha de 6 m que derruba a postura", 10f, 30f, ResourceKind.Stamina);
+            "onda em linha de 6 m que derruba a postura", 6f, 25f, ResourceKind.Stamina);
         public static readonly WeaponAbilityDef Terremoto = new WeaponAbilityDef(WeaponAbilityKind.Terremoto, "Terremoto",
-            "atordoa todos num raio de 3 m e esmaga a postura", 12f, 30f, ResourceKind.Stamina);
+            "atordoa todos num raio de 3 m e esmaga a postura", 7f, 25f, ResourceKind.Stamina);
         public static readonly WeaponAbilityDef ArremessoPerfurante = new WeaponAbilityDef(WeaponAbilityKind.ArremessoPerfurante, "Lança Espectral",
-            "dispara uma lança fantasma que atravessa até 5", 8f, 20f, ResourceKind.Stamina);
+            "dispara uma lança fantasma que atravessa até 5", 5f, 15f, ResourceKind.Stamina);
         public static readonly WeaponAbilityDef PassoSombrio = new WeaponAbilityDef(WeaponAbilityKind.PassoSombrio, "Passo Sombrio",
-            "surge atrás do inimigo mais próximo; o próximo golpe é crítico", 9f, 20f, ResourceKind.Stamina);
+            "surge atrás do inimigo mais próximo; o próximo golpe é crítico", 5f, 15f, ResourceKind.Stamina);
         public static readonly WeaponAbilityDef PulsoArcano = new WeaponAbilityDef(WeaponAbilityKind.PulsoArcano, "Pulso Arcano",
-            "explosão em volta que afasta todos (3 m)", 10f, 20f, ResourceKind.Mana);
+            "explosão em volta que afasta todos (3 m)", 6f, 15f, ResourceKind.Mana);
 
         public static WeaponAbilityDef For(WeaponKind k) => k switch
         {

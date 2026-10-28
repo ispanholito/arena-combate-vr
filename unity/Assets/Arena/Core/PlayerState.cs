@@ -10,8 +10,10 @@ namespace Arena.Core
         public Progression Progression { get; }
         public SkillTree Tree { get; private set; }
         public ResourcePool Hp { get; } = new ResourcePool(ClassProfile.BaseHp);
-        public ResourcePool Stamina { get; } = new ResourcePool(ClassProfile.BaseStamina, 30f);
-        public ResourcePool Mana { get; } = new ResourcePool(ClassProfile.BaseMana, 7f);
+        // Regeneração mais rápida (2026-10-28, mais dinâmico): estamina 45/s (era 30), mana 12/s (era 7).
+        public const float StaminaRegen = 45f, ManaRegen = 12f, ManaRegenFonte = 24f, SwingStaminaScale = 0.7f;
+        public ResourcePool Stamina { get; } = new ResourcePool(ClassProfile.BaseStamina, StaminaRegen);
+        public ResourcePool Mana { get; } = new ResourcePool(ClassProfile.BaseMana, ManaRegen);
 
         public float Invulnerable { get; private set; }
         public float HurtCooldown { get; private set; }
@@ -234,7 +236,7 @@ namespace Arena.Core
             if (Invulnerable > 0f || HurtCooldown > 0f || amount <= 0f) return false;
             Hp.Drain(amount);
             HurtCooldown = 0.4f;
-            Stamina.DelayRegen(3f);
+            Stamina.DelayRegen(1.5f);   // levar dano trava a estamina menos tempo (era 3 s)
             Hurt?.Invoke(amount);
             if (Hp.IsEmpty) Die();
             return true;
@@ -353,7 +355,7 @@ namespace Arena.Core
         }
 
         // Estamina gasta por golpe acertado. Retorna se havia estamina (golpe cansado causa menos dano).
-        public bool SpendSwingStamina(WeaponDef w) => Stamina.TrySpend(w.StaminaPerHit, 0.6f);
+        public bool SpendSwingStamina(WeaponDef w) => Stamina.TrySpend(w.StaminaPerHit * SwingStaminaScale, 0.4f);   // golpe 30% mais barato
 
         public void Tick(float dt)
         {
@@ -362,7 +364,7 @@ namespace Arena.Core
             HurtCooldown = Math.Max(0f, HurtCooldown - dt);
             CounterStance = Math.Max(0f, CounterStance - dt);
             BackstabReady = Math.Max(0f, BackstabReady - dt);
-            Mana.RegenPerSecond = Has(SkillIds.FonteArcana) ? 14f : 7f;
+            Mana.RegenPerSecond = Has(SkillIds.FonteArcana) ? ManaRegenFonte : ManaRegen;
             Hp.Tick(dt); Stamina.Tick(dt); Mana.Tick(dt);
             if (cooldowns.Count == 0) return;
             var keys = new List<string>(cooldowns.Keys);

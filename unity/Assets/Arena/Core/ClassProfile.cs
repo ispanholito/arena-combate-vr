@@ -13,7 +13,7 @@ namespace Arena.Core
         public float StaminaPerLevel { get; }
         public float ManaPerLevel { get; }
 
-        public const float BaseHp = 100f, BaseStamina = 100f, BaseMana = 100f;
+        public const float BaseHp = 100f, BaseStamina = 130f, BaseMana = 130f;   // 2026-10-28 (Pablo): jogo para adolescentes, mais dinâmico (estamina/mana eram 100)
 
         public ClassProfile(ClassId id, string name, float strBase, float strPerLevel, float hpPerLevel, float staPerLevel, float manaPerLevel)
         {

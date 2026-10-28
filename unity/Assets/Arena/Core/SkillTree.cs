@@ -98,9 +98,9 @@ namespace Arena.Core
 
         public static readonly SkillNode[] LaminaTree =
         {
-            new SkillNode(Investida, "Investida Perfurante", "Aponte a espada para frente + A: avança ~4,5 m atravessando inimigos", 1, null, true, 5f, 25f),
-            new SkillNode(Contra, "Postura de Contra", "Gatilho: por 2 s o próximo aparo/bloqueio (espada ou escudo) vira um contra-ataque de dano alto", 2, new[] { Investida }, true, 6f, 20f),
-            new SkillNode(VentoLamina, "Lâmina de Vento", "Botão B: os próximos 2 golpes lançam cortes de vento", 4, new[] { Contra }, true, 3f, 20f),
+            new SkillNode(Investida, "Investida Perfurante", "Aponte a espada para frente + A: avança ~4,5 m atravessando inimigos", 1, null, true, 3f, 20f),
+            new SkillNode(Contra, "Postura de Contra", "Gatilho: por 2 s o próximo aparo/bloqueio (espada ou escudo) vira um contra-ataque de dano alto", 2, new[] { Investida }, true, 4f, 15f),
+            new SkillNode(VentoLamina, "Lâmina de Vento", "Botão B: os próximos 2 golpes lançam cortes de vento", 4, new[] { Contra }, true, 2f, 15f),
             new SkillNode(FioAfiado, "Fio Afiado", "+25% de dano corpo a corpo", 2, new[] { Investida }),
             new SkillNode(PassoLeve, "Passo Leve", "Esquiva custa 40% menos estamina", 3, new[] { FioAfiado }),
             new SkillNode(InvestidaCadeia, "Investida em Cadeia", "Investida recarrega 2x mais rápido e vai 40% mais longe", 5, new[] { PassoLeve }),
@@ -108,9 +108,9 @@ namespace Arena.Core
 
         public static readonly SkillNode[] ElementalistaTree =
         {
-            new SkillNode(BolaFogo, "Bola de Fogo", "Segure o gatilho e arremesse: explode em área", 1, null, true, 1f, 20f, ResourceKind.Mana),
-            new SkillNode(LancaGelo, "Lança de Gelo", "Aponte o cajado + A: perfura até 3 e deixa lento", 2, new[] { BolaFogo }, true, 1.8f, 15f, ResourceKind.Mana),
-            new SkillNode(Raizes, "Raízes", "Segure B, mire no chão e solte: prende inimigos por 3 s", 4, new[] { LancaGelo }, true, 7f, 25f, ResourceKind.Mana),
+            new SkillNode(BolaFogo, "Bola de Fogo", "Segure o gatilho e arremesse: explode em área", 1, null, true, 0.6f, 15f, ResourceKind.Mana),
+            new SkillNode(LancaGelo, "Lança de Gelo", "Aponte o cajado + A: perfura até 3 e deixa lento", 2, new[] { BolaFogo }, true, 1.2f, 12f, ResourceKind.Mana),
+            new SkillNode(Raizes, "Raízes", "Segure B, mire no chão e solte: prende inimigos por 3 s", 4, new[] { LancaGelo }, true, 4.5f, 20f, ResourceKind.Mana),
             new SkillNode(Combustao, "Combustão", "Explosão da Bola de Fogo 60% maior", 2, new[] { BolaFogo }),
             new SkillNode(FonteArcana, "Fonte Arcana", "Mana regenera 2x mais rápido", 3, new[] { Combustao }),
             new SkillNode(GeloProfundo, "Gelo Profundo", "Lança de Gelo congela totalmente por 1,5 s", 5, new[] { FonteArcana }),

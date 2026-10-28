@@ -27,7 +27,7 @@ public static class ArenaSceneBuilder
         RenderSettings.fog = true;
         RenderSettings.fogColor = new Color(0.05f, 0.04f, 0.07f);
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 8f; RenderSettings.fogEndDistance = 30f;
+        RenderSettings.fogStartDistance = 10f; RenderSettings.fogEndDistance = 38f;
         var sun = new GameObject("Luz da Lua").AddComponent<Light>();
         sun.type = LightType.Directional; sun.intensity = 0.25f; sun.color = new Color(0.6f, 0.65f, 0.9f);
         sun.transform.rotation = Quaternion.Euler(55f, -30f, 0f);
@@ -39,19 +39,23 @@ public static class ArenaSceneBuilder
         var wood = SaveMat("Madeira", new Color(0.3f, 0.19f, 0.1f));
         var fire = SaveMat("Fogo", new Color(1f, 0.48f, 0.1f), new Color(1.5f, 0.6f, 0.1f));
 
-        Box(world, "Chao", new Vector3(0, -0.05f, 0), new Vector3(18, 0.1f, 18), stone);
-        Box(world, "Parede N", new Vector3(0, 2.5f, -9.1f), new Vector3(18.4f, 5, 0.2f), wallMat);
-        Box(world, "Parede S", new Vector3(0, 2.5f, 9.1f), new Vector3(18.4f, 5, 0.2f), wallMat);
-        Box(world, "Parede L", new Vector3(9.1f, 2.5f, 0), new Vector3(0.2f, 5, 18.4f), wallMat);
-        Box(world, "Parede O", new Vector3(-9.1f, 2.5f, 0), new Vector3(0.2f, 5, 18.4f), wallMat);
-        foreach (var p in new[] { new Vector3(-6, 0, -6), new Vector3(6, 0, -6), new Vector3(-6, 0, 6), new Vector3(6, 0, 6) })
+        // Arena 26×26 m (2026-10-28, mais espaço; era 18×18). H = meia largura.
+        const float H = 13f;
+        Box(world, "Chao", new Vector3(0, -0.05f, 0), new Vector3(H * 2, 0.1f, H * 2), stone);
+        Box(world, "Parede N", new Vector3(0, 2.5f, -H - 0.1f), new Vector3(H * 2 + 0.4f, 5, 0.2f), wallMat);
+        Box(world, "Parede S", new Vector3(0, 2.5f, H + 0.1f), new Vector3(H * 2 + 0.4f, 5, 0.2f), wallMat);
+        Box(world, "Parede L", new Vector3(H + 0.1f, 2.5f, 0), new Vector3(0.2f, 5, H * 2 + 0.4f), wallMat);
+        Box(world, "Parede O", new Vector3(-H - 0.1f, 2.5f, 0), new Vector3(0.2f, 5, H * 2 + 0.4f), wallMat);
+        // Pilares: 4 nos cantos internos + 4 no meio dos lados (cobertura e âncora para a teia).
+        foreach (var p in new[] { new Vector3(-8, 0, -8), new Vector3(8, 0, -8), new Vector3(-8, 0, 8), new Vector3(8, 0, 8),
+                                  new Vector3(0, 0, -9), new Vector3(-9, 0, 0), new Vector3(9, 0, 0), new Vector3(0, 0, 10.5f) })
         {
             var pil = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             pil.name = "Pilar"; pil.transform.SetParent(world, false);
-            pil.transform.position = p + Vector3.up * 2.5f; pil.transform.localScale = new Vector3(0.9f, 2.5f, 0.9f);
+            pil.transform.position = p + Vector3.up * 2.5f; pil.transform.localScale = new Vector3(1.1f, 2.5f, 1.1f);
             pil.GetComponent<Renderer>().sharedMaterial = pillarMat;
         }
-        foreach (var p in new[] { new Vector3(-8.8f, 2.6f, -4), new Vector3(8.8f, 2.6f, -4), new Vector3(-8.8f, 2.6f, 4), new Vector3(8.8f, 2.6f, 4), new Vector3(0, 2.6f, -8.8f) })
+        foreach (var p in new[] { new Vector3(-H + 0.2f, 2.6f, -6), new Vector3(H - 0.2f, 2.6f, -6), new Vector3(-H + 0.2f, 2.6f, 6), new Vector3(H - 0.2f, 2.6f, 6), new Vector3(0, 2.6f, -H + 0.2f), new Vector3(-6, 2.6f, H - 0.2f), new Vector3(6, 2.6f, H - 0.2f) })
         {
             var t = new GameObject("Tocha").transform; t.SetParent(world, false); t.position = p;
             var l = t.gameObject.AddComponent<Light>(); l.type = LightType.Point; l.color = new Color(1f, 0.54f, 0.23f); l.range = 9f; l.intensity = 2.2f;
@@ -75,9 +79,9 @@ public static class ArenaSceneBuilder
         fl.type = LightType.Point; fl.color = new Color(1f, 0.48f, 0.16f); fl.range = 8f; fl.intensity = 3f;
 
         var spawns = new GameObject("PontosDeSpawn").transform;
-        var spawnPts = new[] { new Vector3(-7.5f, 0, -7.5f), new Vector3(7.5f, 0, -7.5f), new Vector3(-7.5f, 0, 0), new Vector3(7.5f, 0, 0), new Vector3(0, 0, -8f) }
+        var spawnPts = new[] { new Vector3(-11.5f, 0, -11.5f), new Vector3(11.5f, 0, -11.5f), new Vector3(-11.5f, 0, 0), new Vector3(11.5f, 0, 0), new Vector3(0, 0, -11.5f), new Vector3(-11.5f, 0, 11.5f), new Vector3(11.5f, 0, 11.5f) }
             .Select((p, i) => { var t = new GameObject("Spawn" + i).transform; t.SetParent(spawns, false); t.position = p; return t; }).ToArray();
-        var bossSpawn = new GameObject("SpawnChefe").transform; bossSpawn.SetParent(spawns, false); bossSpawn.position = new Vector3(0, 0, -7f);
+        var bossSpawn = new GameObject("SpawnChefe").transform; bossSpawn.SetParent(spawns, false); bossSpawn.position = new Vector3(0, 0, -10f);
 
         // Jogador: OVRCameraRig + componentes da arena
         var guid = AssetDatabase.FindAssets("OVRCameraRig t:Prefab").FirstOrDefault();

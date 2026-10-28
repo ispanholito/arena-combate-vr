@@ -56,9 +56,9 @@ namespace Arena.Core.Tests
         {
             var p = new PlayerState(ClassId.Lamina);
             Assert.AreEqual(SkillCastResult.Ok, p.TryCast(SkillIds.Investida));
-            Assert.AreEqual(75f, p.Stamina.Current, 1e-3);
+            Assert.AreEqual(ClassProfile.BaseStamina - 20f, p.Stamina.Current, 1e-3);   // Investida custa 20 (2026-10-28)
             Assert.AreEqual(SkillCastResult.Cooldown, p.TryCast(SkillIds.Investida));
-            p.Tick(5.01f);
+            p.Tick(3.01f);
             Assert.AreEqual(SkillCastResult.Ok, p.CanCast(SkillIds.Investida));
         }
 
@@ -77,7 +77,7 @@ namespace Arena.Core.Tests
             p.Progression.GainXp(10000);
             p.Tree.Unlock(SkillIds.FioAfiado); p.Tree.Unlock(SkillIds.PassoLeve); p.Tree.Unlock(SkillIds.InvestidaCadeia);
             p.TryCast(SkillIds.Investida);
-            Assert.AreEqual(2.5f, p.CooldownLeft(SkillIds.Investida), 1e-3);
+            Assert.AreEqual(1.5f, p.CooldownLeft(SkillIds.Investida), 1e-3);   // recarga 3 s pela metade
         }
 
         [Test]
@@ -120,9 +120,9 @@ namespace Arena.Core.Tests
         {
             var p = new PlayerState(ClassId.Lamina);
             p.TryDash();
-            Assert.AreEqual(75f, p.Stamina.Current, 1e-3);
+            Assert.AreEqual(ClassProfile.BaseStamina - Combat.DashCost(false), p.Stamina.Current, 1e-3);
             Assert.Greater(p.Invulnerable, 0f);
-            Assert.AreEqual(15f, Combat.DashCost(true));
+            Assert.Less(Combat.DashCost(true), Combat.DashCost(false));
         }
 
         [Test]
@@ -130,7 +130,7 @@ namespace Arena.Core.Tests
         {
             var p = new PlayerState(ClassId.Lamina);
             Assert.AreEqual(SkillCastResult.Ok, p.TryHandPower(HandPowers.Punch));
-            Assert.AreEqual(100f - HandPowers.PunchCost, p.Mana.Current, 1e-3);
+            Assert.AreEqual(ClassProfile.BaseMana - HandPowers.PunchCost, p.Mana.Current, 1e-3);
             Assert.AreEqual(SkillCastResult.Cooldown, p.TryHandPower(HandPowers.Punch));
             p.Tick(HandPowers.PunchCooldown + 0.05f);
             Assert.AreEqual(SkillCastResult.Ok, p.TryHandPower(HandPowers.Punch));   // recarga baixa

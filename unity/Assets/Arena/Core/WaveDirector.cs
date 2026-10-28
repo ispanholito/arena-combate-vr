@@ -5,11 +5,11 @@ namespace Arena.Core
     // Decide quantos e quais inimigos aparecem na arena e quando o chefe chega.
     public sealed class WaveDirector
     {
-        public const int KillsForBoss = 12;
+        public const int KillsForBoss = 18;   // mais inimigos por vez: o chefe vem com mais abates (era 12)
         public const int SkeletonMinLevel = 2;
         public const int ArcherMinLevel = 3;
         public const int OrcMinLevel = 5;
-        public float SpawnInterval = 1.6f;
+        public float SpawnInterval = 1.0f;   // 2026-10-28 (Pablo): jogo para adolescentes, mais dinâmico (era 1,6 s)
 
         readonly Random rng;
         float timer = 1f;
@@ -21,9 +21,9 @@ namespace Arena.Core
         public WaveDirector(int seed = 0) { rng = seed == 0 ? new Random() : new Random(seed); }
 
         public int TargetCount(int playerLevel) =>
-            BossAlive ? 0 : Math.Min(6, 2 + playerLevel / 2);   // chefe estilo Souls: luta sozinho, sem ondas junto
+            BossAlive ? 0 : Math.Min(9, 4 + playerLevel / 2);   // chefe estilo Souls: luta sozinho, sem ondas junto (era 2-6, agora 4-9)
 
-        public int MaxGoblins(int playerLevel) => 1 + playerLevel / 3;
+        public int MaxGoblins(int playerLevel) => 2 + playerLevel / 2;
 
         // Chamado a cada frame. Retorna o que nascer agora (ou null).
         public EnemyDef Tick(float dt, int aliveCount, int aliveGoblins, int playerLevel, int playerKills)

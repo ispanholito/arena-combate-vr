@@ -55,11 +55,11 @@ namespace Arena.Core
         // Postura de Contra: o contra-ataque causa dano alto direto (não quebra mais a postura).
         public const float CounterDamage = 90f;
 
-        public static float DashCost(bool passoLeve) => passoLeve ? 15f : 25f;
+        public static float DashCost(bool passoLeve) => passoLeve ? 9f : 15f;   // 2026-10-28 (Pablo): jogo para adolescentes, mais dinâmico (era 15/25)
         public static float ChargeLength(bool cadeia) => cadeia ? 6.3f : 4.5f;
         public const float ChargeDamage = 40f, ChargeDuration = 0.24f, ChargeInvulnerable = 0.4f;
-        public const float DashDuration = 0.16f, DashSpeed = 16f, MoveSpeed = 2.6f;
-        public const float ArenaHalfSize = 8.6f;
+        public const float DashDuration = 0.16f, DashSpeed = 16f, MoveSpeed = 3.2f;   // 2026-10-28 (Pablo): jogo para adolescentes, mais dinâmico (andar era 2,6)
+        public const float ArenaHalfSize = 12.6f;   // arena 26×26 m (era 18×18)
     }
 
     // Poderes da mão esquerda livre (hand tracking). Gastam mana, qualquer classe.
@@ -73,7 +73,7 @@ namespace Arena.Core
         public const int BeamPierce = 2;
         // Soco (substituiu o golpe no chão): punho fechado indo rápido para frente acerta UM inimigo um pouco além do
         // alcance do braço. Forte e de recarga baixa.
-        public const float PunchCooldown = 1f, PunchCost = 10f, PunchDamage = 30f, PunchPosture = 1.2f, PunchKnock = 4f;
+        public const float PunchCooldown = 0.6f, PunchCost = 8f, PunchDamage = 30f, PunchPosture = 1.2f, PunchKnock = 4f;
         public const float PunchMinSpeed = 2.5f, PunchReach = 1.1f, PunchWidth = 0.35f;
         // Golpe no chão (atordoar em área): GUARDADO para uma habilidade futura (pedido do Pablo) — fora do jogo por enquanto.
         public const float SlamCooldown = 6f, SlamCost = 20f, SlamRadius = 3f, SlamStun = 1.8f, SlamDamage = 12f, SlamPosture = 2.5f;
@@ -95,7 +95,7 @@ namespace Arena.Core
             Punch => (PunchCooldown, PunchCost),
             _ => (PalmCooldown, PalmCost),
         };
-        public const float PalmCooldown = 1.2f, PalmCost = 15f, PalmDamage = 20f;
+        public const float PalmCooldown = 0.8f, PalmCost = 10f, PalmDamage = 20f;
         // Gestos
         public const float SlamMinDownSpeed = 3f, SlamMaxHandHeight = 1.05f, PalmMinSpeed = 3.2f, PoseHoldSeconds = 0.12f;
         // O raio sai da palma aberta PARADA (a mesma pose do corte, que é a palma aberta RÁPIDA).
@@ -109,7 +109,7 @@ namespace Arena.Core
     // O que acontece quando o ataque de um inimigo encontra a arma do jogador.
     public static class Guard
     {
-        public const float BlockStaminaCost = 20f;
+        public const float BlockStaminaCost = 14f;   // 2026-10-28 (Pablo): jogo para adolescentes, mais dinâmico (era 20)
         public const float BlockChipFraction = 0.25f;
         public const float ParryPosture = 55f, BlockPosture = 12f, ParryStaminaRefund = 10f;
 
@@ -121,7 +121,7 @@ namespace Arena.Core
         }
 
         // Escudo (Lâmina): bloqueia sem tomar dano e gasta menos estamina; empurrar o escudo contra o golpe = aparo.
-        public const float ShieldBlockStaminaCost = 12f, ShieldBlockPosture = 18f, ShieldParrySpeed = 1.8f;
+        public const float ShieldBlockStaminaCost = 8f, ShieldBlockPosture = 18f, ShieldParrySpeed = 1.8f;
 
         public static GuardResult ResolveShield(float shieldSpeed, bool counterStance, float playerStamina)
         {

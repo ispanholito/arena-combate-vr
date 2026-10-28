@@ -164,7 +164,7 @@ namespace Arena.Core
     // retos de 4 m. Andar 1: início (fogueira) → combates → escada. Andar 2: combates → fogueira → chefe.
     public static class DungeonGenerator
     {
-        public const float Cell = 18f, CorridorWidth = 4f;   // inteiro par: bordas em metros inteiros (paredes certas)
+        public const float Cell = 24f, CorridorWidth = 5f;   // salas maiores (2026-10-28): grade 24 m (era 18), corredor 5 m (era 4)   // inteiro par: bordas em metros inteiros (paredes certas)
         public const int Floors = 2;
 
         public static DungeonFloor Generate(int seed, int floor, int tier = 1)
@@ -182,8 +182,9 @@ namespace Arena.Core
             for (int i = 0; i < kinds.Count; i++)
             {
                 var k = kinds[i];
-                int w = k == RoomKind.Chefe ? 16 : k == RoomKind.Combate ? 10 + 2 * rng.Next(0, 3) : 8;
-                int d = k == RoomKind.Chefe ? 16 : k == RoomKind.Combate ? 10 + 2 * rng.Next(0, 3) : 8;
+                // Mais espaço (2026-10-28): combate 14-20 m (era 10-14), chefe 20 m (era 16), demais 10 m (era 8).
+                int w = k == RoomKind.Chefe ? 20 : k == RoomKind.Combate ? 14 + 2 * rng.Next(0, 4) : 10;
+                int d = k == RoomKind.Chefe ? 20 : k == RoomKind.Combate ? 14 + 2 * rng.Next(0, 4) : 10;
                 var (cx, cz) = (cells[i].x * Cell, cells[i].z * Cell);
                 var room = new DungeonRoom { Index = i, Kind = k, Rect = Rect2.Centered(cx, cz, w, d), EnteredFrom = i - 1 };
                 if (k == RoomKind.Combate) room.Enemies = RollEnemies(rng, floor, i, tier);
@@ -273,7 +274,7 @@ namespace Arena.Core
         // Andar 1: slimes, goblins e alguns arqueiros. Andar 2: goblins, esqueletos, arqueiros e poucos slimes. Salas mais fundas têm mais inimigos.
         public static List<EnemyDef> RollEnemies(Random rng, int floor, int roomIndex, int tier = 1)
         {
-            int n = Math.Min(6, 2 + floor + roomIndex / 2 + rng.Next(0, 2)) + ArcadeRules.ExtraEnemies(tier);
+            int n = Math.Min(9, 4 + floor + roomIndex / 2 + rng.Next(0, 2)) + ArcadeRules.ExtraEnemies(tier);   // era 3-6, agora 4-9
             var list = new List<EnemyDef>();
             for (int i = 0; i < n; i++)
             {
