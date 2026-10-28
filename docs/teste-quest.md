@@ -9,6 +9,12 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000000000000000000. NOVO — goblin com modelo gerado por IA
+- [ ] **Goblin** (Treino e Arena com inimigos físicos): modelo novo (orelhas, rosto, ombreira, faixas). Os pedaços acompanham o corpo? Algum buraco ou peça flutuando nas juntas (ombro, quadril, pescoço)?
+- [ ] Arrancar a cabeça/braço: sai o pedaço certo do modelo?
+- [ ] De perto: rosto e mãos aguentam ou precisam de retoque?
+- [ ] FPS com 6 goblins físicos.
+
 ## 00000000000000000000. NOVO — esqueleto-goblin e trava de mão
 - [ ] **Esqueleto** (Treino com 3 ou 6 inimigos): crânio de goblin de osso, costelas, ossos finos. Os braços, pernas e cabeça balançam soltos? Ficou bom ou exagerado?
 - [ ] **Trava**: Kamehameha e bola de fogo NÃO soltam mais o corte da palma junto. Raízes também não.

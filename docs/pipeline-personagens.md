@@ -24,7 +24,12 @@ Peça 2 imagens: a de frente (principal) e uma "character turnaround sheet" (fre
 3. Gere 3–4 variações; escolha a melhor e **baixe em .glb**.
 4. Salve em `E:\projects\arena-combate-vr\arte\goblin\` e avise o Claude. **Mande cru**, sem Blender: o Claude encaixa no corpo físico e você vê no Quest se o estilo funciona de perto.
 
-## Passo 3 — Limpeza (Blender) — só depois de aprovar o estilo
+## O que usamos de verdade (2026-10-28, goblin)
+- Hunyuan3D estourou a cota grátis; **TRELLIS.2** (https://huggingface.co/spaces/microsoft/TRELLIS.2) gerou bem: Resolution 1024, Decimation Target 100000, Texture Size 2048 → Extract GLB.
+- Sem Blender: `tools/modelos/` (rodar `npm install` uma vez) → `node tools/modelos/glb2arena.js arte/goblin/goblin_trellis.glb arte/goblin/goblin 6000 1024` → na Unity, menu **Arena > 5** (ou `AiModelImport.Goblin()`). O corte por osso é por posição (pose T), sem rig/Mixamo.
+- Blender e Mixamo ficam só para retoque manual.
+
+## Passo 3 — Limpeza (Blender) — só se precisar de retoque
 1. Instale o Blender (grátis; instalador → pasta no E:).
 2. O Claude escreve o script em lote: decimate até o orçamento, escala em metros, pés em Y = 0, frente em +Z, nomes padronizados, exporta FBX.
 3. Ajuste à mão o que a IA errar (mãos, rosto).

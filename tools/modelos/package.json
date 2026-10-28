@@ -1,0 +1,9 @@
+{
+  "name": "arena-modelos",
+  "private": true,
+  "description": "Converte .glb gerado por IA (TRELLIS/Hunyuan) para o Arena VR: reduz a malha e converte a textura.",
+  "dependencies": {
+    "meshoptimizer": "^1.3.0",
+    "sharp": "^0.35.5"
+  }
+}

@@ -151,6 +151,7 @@ namespace Arena
             for (int i = 0; i < cols.Count; i++) for (int j = i + 1; j < cols.Count; j++) Physics.IgnoreCollision(cols[i], cols[j]);
             foreach (var b in boneList) totalMass += b.Rb.mass;
             if (State.Def.Kind == EnemyKind.Esqueleto) DressSkeleton();
+            else if (State.Def.Kind == EnemyKind.Goblin) DressModel("Goblin");
 
             // Bacia presa ao ponto da IA (fica em pé).
             anchorJoint = bones[RagBone.Bacia].Rb.gameObject.AddComponent<ConfigurableJoint>();
@@ -245,6 +246,34 @@ namespace Arena
                     }
                 }
                 CombineByMaterial(holder);
+            }
+        }
+
+        // Modelo gerado por IA e cortado por osso no editor (Editor/AiModelImport): esconde as formas simples e põe o
+        // pedaço do modelo em cada osso (arrancar a cabeça leva a cabeça do modelo). Sem os arquivos, fica como estava.
+        static readonly Dictionary<string, Material> modelMats = new Dictionary<string, Material>();
+
+        void DressModel(string name)
+        {
+            if (!modelMats.TryGetValue(name, out var mat))
+            {
+                var tex = Resources.Load<Texture2D>($"Models/{name}/{name}_cor");
+                mat = tex ? new Material(Shader.Find("Standard")) { mainTexture = tex, color = Color.white } : null;
+                if (mat) mat.SetFloat("_Glossiness", 0.12f);
+                modelMats[name] = mat;
+            }
+            if (!mat) return;
+            foreach (var b in boneList)
+            {
+                var mesh = Resources.Load<Mesh>($"Models/{name}/{name}_{b.Id}");
+                if (!mesh) continue;
+                foreach (var r in b.Rb.GetComponentsInChildren<Renderer>()) r.enabled = false;
+                var v = new GameObject("Modelo");
+                v.transform.SetParent(b.Rb.transform, false);
+                v.transform.SetPositionAndRotation(transform.position, transform.rotation);   // malha no espaço do corpo em repouso
+                v.transform.localScale = Vector3.one * k;
+                v.AddComponent<MeshFilter>().sharedMesh = mesh;
+                v.AddComponent<MeshRenderer>().sharedMaterial = mat;
             }
         }
 
