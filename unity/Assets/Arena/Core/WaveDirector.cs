@@ -17,11 +17,14 @@ namespace Arena.Core
         public bool BossAlive { get; private set; }
         public int BossPhase { get; set; } = 1;
         public int BossesDefeated { get; private set; }
+        public EnemyKind? LastBoss { get; private set; }   // chefe sorteado (evita repetir seguido)
+        public bool NoBoss { get; set; }        // horda infinita: sem chefe
+        public int ExtraTarget { get; set; }    // horda infinita: inimigos a mais por onda
 
         public WaveDirector(int seed = 0) { rng = seed == 0 ? new Random() : new Random(seed); }
 
         public int TargetCount(int playerLevel) =>
-            BossAlive ? 0 : Math.Min(9, 4 + playerLevel / 2);   // chefe estilo Souls: luta sozinho, sem ondas junto (era 2-6, agora 4-9)
+            BossAlive ? 0 : Math.Min(9, 4 + playerLevel / 2) + ExtraTarget;   // chefe estilo Souls: luta sozinho, sem ondas junto (era 2-6, agora 4-9)
 
         public int MaxGoblins(int playerLevel) => 2 + playerLevel / 2;
 
@@ -30,10 +33,11 @@ namespace Arena.Core
         {
             timer -= dt;
             if (timer > 0f) return null;
-            if (!BossAlive && playerKills >= KillsForBoss)
+            if (!NoBoss && !BossAlive && playerKills >= KillsForBoss)
             {
                 BossAlive = true; BossPhase = 1; timer = SpawnInterval;
-                return EnemyDef.ReiGoblin(BossesDefeated);
+                LastBoss = BossPool.Pick(rng, LastBoss);
+                return EnemyDef.Boss(LastBoss.Value, BossesDefeated);
             }
             if (aliveCount >= TargetCount(playerLevel)) { timer = 0.5f; return null; }
             timer = SpawnInterval;

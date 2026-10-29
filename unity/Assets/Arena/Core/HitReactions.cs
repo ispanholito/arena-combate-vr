@@ -26,7 +26,7 @@ namespace Arena.Core
         {
             if (kind == EnemyKind.Boneco || kind == EnemyKind.Slime) return HitReaction.Nenhuma;
             // Chefe só reage com a postura quebrada; orc é pesado (um nível a menos).
-            if (kind == EnemyKind.ReiGoblin && !postureBroken) return HitReaction.Nenhuma;
+            if (EnemyDef.IsBoss(kind) && !postureBroken) return HitReaction.Nenhuma;
             if (kind == EnemyKind.Orc) level--;
             if (headOrLegs) level++;
             if (activity == EnemyActivity.Cambaleando) level++;

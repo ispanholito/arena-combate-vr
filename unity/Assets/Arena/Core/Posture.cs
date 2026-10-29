@@ -33,6 +33,9 @@ namespace Arena.Core
             return false;
         }
 
+        // Grito de guerra do Chefe Orc: zera a postura acumulada (não tira da quebra).
+        public void Clear() { if (BrokenTime <= 0f) Value = 0f; }
+
         public void Break()
         {
             if (!Enabled) return;

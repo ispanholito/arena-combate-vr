@@ -38,6 +38,9 @@ namespace Arena.Core
             EnemyKind.Esqueleto => EnemyMaterial.Osso,
             EnemyKind.Orc => EnemyMaterial.Placa,
             EnemyKind.ReiGoblin => EnemyMaterial.Couro,
+            EnemyKind.RainhaSlime => EnemyMaterial.Gosma,
+            EnemyKind.ChefeOrc => EnemyMaterial.Placa,
+            EnemyKind.Lich => EnemyMaterial.Osso,
             EnemyKind.Slime => EnemyMaterial.Gosma,
             EnemyKind.Mimico => EnemyMaterial.Madeira,
             _ => EnemyMaterial.Carne,
@@ -96,7 +99,7 @@ namespace Arena.Core
         public const float KnockoutMinSpeed = 4.5f, KnockoutSeconds = 1.3f;
         public static bool Knocksout(EnemyKind k, DamageType t, bool head, float speed) =>
             t == DamageType.Contusao && head && speed >= KnockoutMinSpeed
-            && k != EnemyKind.ReiGoblin && k != EnemyKind.Slime && k != EnemyKind.Boneco && k != EnemyKind.Mimico;
+            && !EnemyDef.IsBoss(k) && k != EnemyKind.Slime && k != EnemyKind.Boneco && k != EnemyKind.Mimico;
 
         // Golpe fatal: estocada funda (rápida) na cabeça mata inimigo comum na hora.
         public const float FatalStabMinSpeed = 1.6f;   // estocada na cabeça (cérebro) mata goblin/arqueiro, como no B&S

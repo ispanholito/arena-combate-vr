@@ -21,7 +21,7 @@ namespace Arena.Core
         public const float BleedTick = 1f;
 
         public static StabStyle StyleFor(EnemyKind kind) =>
-            kind == EnemyKind.ReiGoblin || kind == EnemyKind.Boneco || kind == EnemyKind.Mimico || kind == EnemyKind.Orc ? StabStyle.Embed : StabStyle.Skewer;
+            EnemyDef.IsBoss(kind) || kind == EnemyKind.Boneco || kind == EnemyKind.Mimico || kind == EnemyKind.Orc ? StabStyle.Embed : StabStyle.Skewer;
 
         public static bool CanPierce(WeaponKind kind) => kind == WeaponKind.Espada || kind == WeaponKind.Lanca || kind == WeaponKind.Adaga;
 
@@ -105,7 +105,7 @@ namespace Arena.Core
         public static float ImpactDamage(float speed) => speed < MinImpactSpeed ? 0f : (speed - MinImpactSpeed * 0.5f) * ImpactDamagePerSpeed;
 
         // ---------- Cravar (chefe/boneco) ----------
-        public static float PullSeconds(EnemyKind kind) => kind == EnemyKind.ReiGoblin ? 1.5f : 0.5f;
+        public static float PullSeconds(EnemyKind kind) => EnemyDef.IsBoss(kind) ? 1.5f : 0.5f;
         public const float PullDecay = 1.5f;            // soltar o gatilho perde o progresso aos poucos
         public const float RipDamage = 15f;             // dano ao arrancar
     }

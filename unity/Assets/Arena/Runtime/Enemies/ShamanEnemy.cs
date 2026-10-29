@@ -182,7 +182,7 @@ namespace Arena
                     if (!e || e.Dead) continue;
                     float d = Vector3.Distance(e.Center, at);
                     if (d < MagicOrbRules.ReflectRadius + e.Radius)
-                        e.ApplyDamage(MagicOrbRules.ReflectedDamage * Combat.ExplosionFalloff(d, MagicOrbRules.ReflectRadius), 0.8f, e.Center - at, 3f, Col);
+                        e.ApplyDamage(MagicOrbRules.ReflectedDamage * Combat.ExplosionFalloff(d, MagicOrbRules.ReflectRadius) * (e is LichBoss ? LichRules.ReflectedOrbBonus : 1f), 0.8f, e.Center - at, 3f, Col);
                 }
             }
             Destroy(gameObject);

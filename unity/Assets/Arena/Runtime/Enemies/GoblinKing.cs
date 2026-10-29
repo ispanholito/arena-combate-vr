@@ -9,7 +9,10 @@ namespace Arena
     // - Rugido quando apanha sem parar: enche o peito 0,5 s e a onda joga o jogador LONGE.
     // - Investida quando você foge para longe; se errar, tropeça (janela de ataque).
     // - Fase 2 (menos de 50%): golpes em sequência de 2-3 com pausa longa no fim + golpe em área no chão (círculo).
-    public sealed class GoblinKing : GoblinEnemy
+    // Todo chefe (Rei Goblin, Rainha Slime, Chefe de Guerra Orc, Lich): barra no HUD, fase 2, fora das fichas de ataque.
+    public interface IBoss { int Phase { get; } }
+
+    public sealed class GoblinKing : GoblinEnemy, IBoss
     {
         public int Phase { get; private set; } = 1;
 

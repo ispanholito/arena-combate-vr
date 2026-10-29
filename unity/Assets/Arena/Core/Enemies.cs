@@ -2,7 +2,7 @@ using System;
 
 namespace Arena.Core
 {
-    public enum EnemyKind { Slime, Goblin, ReiGoblin, Boneco, Esqueleto, Mimico, Arqueiro, Orc, Xama }
+    public enum EnemyKind { Slime, Goblin, ReiGoblin, Boneco, Esqueleto, Mimico, Arqueiro, Orc, Xama, RainhaSlime, ChefeOrc, Lich }
 
     public sealed class EnemyDef
     {
@@ -57,6 +57,16 @@ namespace Arena.Core
         public static EnemyDef ReiGoblin(int timesDefeated = 0) => new EnemyDef(EnemyKind.ReiGoblin, "Rei Goblin",
             380f + 200f * timesDefeated, 220f, 220, 22f, 0.7f, 0.56f, 2.0f, 3.7f, 1.8f, 1.75f);
 
+        // Chefes (2026-10-29): sorteados por andar/arena. Todos ficam mais fortes a cada vitória.
+        public static bool IsBoss(EnemyKind k) => k == EnemyKind.ReiGoblin || k == EnemyKind.RainhaSlime || k == EnemyKind.ChefeOrc || k == EnemyKind.Lich;
+        public static EnemyDef Boss(EnemyKind k, int timesDefeated = 0) => k switch
+        {
+            EnemyKind.RainhaSlime => new EnemyDef(EnemyKind.RainhaSlime, "Rainha Slime", 420f + 200f * timesDefeated, 200f, 220, 22f, 0.8f, 1.0f, 1.6f, 6f, 2.4f, 2.6f),
+            EnemyKind.ChefeOrc => new EnemyDef(EnemyKind.ChefeOrc, "Chefe de Guerra Orc", 460f + 220f * timesDefeated, 260f, 240, 26f, 0.8f, 0.62f, 2.4f, 5f, 2.0f, 1.9f),
+            EnemyKind.Lich => new EnemyDef(EnemyKind.Lich, "Lich", 320f + 170f * timesDefeated, 180f, 240, 16f, 0.9f, 0.42f, 2.1f, 1.5f, 1.6f, 1.3f),
+            _ => ReiGoblin(timesDefeated),
+        };
+
         // Cópia com a vida multiplicada (dificuldade).
         public EnemyDef WithHp(float hpMultiplier) => Scaled(hpMultiplier, 1f);
 
@@ -93,7 +103,7 @@ namespace Arena.Core
             Def = def;
             Hp = def.MaxHp;
             Posture = new Posture(def.MaxPosture);
-            Status = new StatusEffects(DamageTypes.MaterialOf(def.Kind), def.Kind == EnemyKind.ReiGoblin);
+            Status = new StatusEffects(DamageTypes.MaterialOf(def.Kind), EnemyDef.IsBoss(def.Kind));
             Posture.Broke += () => Stun = Math.Max(Stun, Posture.BrokenSeconds);
         }
 

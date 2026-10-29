@@ -124,6 +124,7 @@ namespace Arena.Core
         public bool IsChallenge;       // sala de desafio: limpar dentro do tempo = baú raro
         public bool HasMerchant;       // mercador perdido (fogueira do andar 2)
         public bool HasCage;           // jaula com um NPC para resgatar (aparece quando a sala é limpa)
+        public bool HasStatue;         // estátua dos deuses (bênção paga com ouro)
     }
 
     // Salas especiais (inspiração Soul Knight).
@@ -142,6 +143,8 @@ namespace Arena.Core
         public List<Rect2> Corridors = new List<Rect2>();
         public List<(float x, float z)> Traps = new List<(float, float)>();   // armadilhas de espinhos (centro da placa)
         public WalkArea Area;
+        public Biome Biome;                                   // bioma do andar (Core/Biomes.cs)
+        public List<Rect2> Lava = new List<Rect2>();          // Fornalha: poças de lava
         // Sala secreta: fica FORA da lista de salas (não entra no caminho nem no mapa). A parede rachada na porta
         // (SecretDoor, na borda da sala hospedeira) quebra com golpe; aí a área de andar passa a incluir a sala.
         public DungeonRoom Secret;
@@ -199,7 +202,7 @@ namespace Arena.Core
             else kinds.Add(RoomKind.Escada);
 
             var cells = Walk(rng, kinds.Count);
-            var f = new DungeonFloor { Number = floor };
+            var f = new DungeonFloor { Number = floor, Biome = BiomeRules.For(seed, floor) };
             for (int i = 0; i < kinds.Count; i++)
             {
                 var k = kinds[i];
@@ -208,10 +211,10 @@ namespace Arena.Core
                 int d = k == RoomKind.Chefe ? 20 : k == RoomKind.Combate ? 14 + 2 * rng.Next(0, 4) : 10;
                 var (cx, cz) = (cells[i].x * Cell, cells[i].z * Cell);
                 var room = new DungeonRoom { Index = i, Kind = k, Rect = Rect2.Centered(cx, cz, w, d), EnteredFrom = i - 1 };
-                if (k == RoomKind.Combate) room.Enemies = RollEnemies(rng, floor, i, tier);
+                if (k == RoomKind.Combate) room.Enemies = RollEnemies(rng, floor, i, tier, f.Biome);
                 if (k == RoomKind.Combate) room.HasChest = rng.NextDouble() < 0.4;
                 if (room.HasChest) room.ChestIsMimic = rng.NextDouble() < MimicRules.Chance(floor);
-                if (k == RoomKind.Chefe) room.Enemies.Add(EnemyDef.ReiGoblin());   // a vida extra vem da profundidade (ArcadeRules)
+                if (k == RoomKind.Chefe) room.Enemies.Add(EnemyDef.Boss(BossPool.Pick(rng)));   // chefe sorteado; a vida extra vem da profundidade (ArcadeRules)
                 if (k == RoomKind.Inicio || k == RoomKind.Fogueira || k == RoomKind.Escada) room.Cleared = true;
                 f.Rooms.Add(room);
             }
@@ -232,9 +235,32 @@ namespace Arena.Core
             if (combatRooms.Count > 1 && rng.NextDouble() < SpecialRooms.ChallengeChance) combatRooms[1 + rng.Next(combatRooms.Count - 1)].IsChallenge = true;
             foreach (var r in f.Rooms) if (r.Kind == RoomKind.Fogueira && last && rng.NextDouble() < SpecialRooms.MerchantChance) r.HasMerchant = true;
             if (rng.NextDouble() < SpecialRooms.SecretChance) PlaceSecret(f, cells, rng);
+            if (f.Biome == Biome.Fornalha) PlaceLava(f, rng);
             if (combatRooms.Count > 1 && rng.NextDouble() < AllyRules.CageChance) combatRooms[1 + rng.Next(combatRooms.Count - 1)].HasCage = true;
+            if (combatRooms.Count > 0) combatRooms[rng.Next(combatRooms.Count)].HasStatue = true;   // 1 estátua por andar
             f.FullArea = f.Secret != null ? new WalkArea(f.Rooms.Select(r => r.Rect).Concat(f.Corridors).Append(f.Secret.Rect).Append(f.SecretCorridor)) : f.Area;
             return f;
+        }
+
+        // Fornalha: 1-2 poças de lava por sala de combate, longe do centro (baú/altar) e das bordas.
+        static void PlaceLava(DungeonFloor f, Random rng)
+        {
+            float h = BiomeRules.LavaSize / 2f;
+            foreach (var room in f.Rooms)
+            {
+                if (room.Kind != RoomKind.Combate) continue;
+                int n = 1 + rng.Next(2);
+                var r = room.Rect.Shrink(2.5f);
+                for (int i = 0; i < n; i++)
+                    for (int attempt = 0; attempt < 10; attempt++)
+                    {
+                        float x = (float)(r.MinX + rng.NextDouble() * r.Width), z = (float)(r.MinZ + rng.NextDouble() * r.Depth);
+                        if (Math.Abs(x - r.CenterX) < 3.5f && Math.Abs(z - r.CenterZ) < 3.5f) continue;
+                        if (f.Lava.Any(l => Math.Abs(l.CenterX - x) < BiomeRules.LavaSize + 1f && Math.Abs(l.CenterZ - z) < BiomeRules.LavaSize + 1f)) continue;
+                        f.Lava.Add(new Rect2(x - h, z - h, x + h, z + h));
+                        break;
+                    }
+            }
         }
 
         // Sala secreta numa célula livre ao lado de uma sala de combate, ligada por um corredor curto.
@@ -331,7 +357,7 @@ namespace Arena.Core
         }
 
         // Andar 1: slimes, goblins e alguns arqueiros. Andar 2: goblins, esqueletos, arqueiros e poucos slimes. Salas mais fundas têm mais inimigos.
-        public static List<EnemyDef> RollEnemies(Random rng, int floor, int roomIndex, int tier = 1)
+        public static List<EnemyDef> RollEnemies(Random rng, int floor, int roomIndex, int tier = 1, Biome biome = Biome.Nenhum)
         {
             int n = Math.Min(9, 4 + floor + roomIndex / 2 + rng.Next(0, 2)) + ArcadeRules.ExtraEnemies(tier);   // era 3-6, agora 4-9
             var list = new List<EnemyDef>();
@@ -341,6 +367,7 @@ namespace Arena.Core
                 if (floor <= 1) list.Add(r < 0.45 ? EnemyDef.Slime(1f) : r < 0.8 ? EnemyDef.Goblin : r < 0.93 ? EnemyDef.Arqueiro : EnemyDef.Xama);
                 else list.Add(r < 0.12 ? EnemyDef.Slime(1f) : r < 0.4 ? EnemyDef.Goblin : r < 0.68 ? EnemyDef.Esqueleto : r < 0.82 ? EnemyDef.Arqueiro : r < 0.9 ? EnemyDef.Xama : EnemyDef.Orc);
             }
+            if (biome != Biome.Nenhum) for (int i = 0; i < list.Count; i++) list[i] = BiomeRules.Swap(list[i], biome, rng);   // inimigos do bioma
             return list;
         }
     }

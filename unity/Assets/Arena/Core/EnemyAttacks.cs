@@ -37,6 +37,8 @@ namespace Arena.Core
             (EnemyKind.Orc, EnemyAttack.Passo) => false,
             (EnemyKind.ReiGoblin, EnemyAttack.Estocada) => false,
             (EnemyKind.ReiGoblin, EnemyAttack.Passo) => false,
+            (EnemyKind.ChefeOrc, EnemyAttack.Estocada) => false,
+            (EnemyKind.ChefeOrc, EnemyAttack.Passo) => false,
             _ => true,
         };
 

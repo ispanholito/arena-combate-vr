@@ -78,7 +78,7 @@ namespace Arena
             }
             foreach (var e in ArenaEnemy.All.ToArray())
             {
-                if (!e || e.Dead || hitEnemies.Contains(e) || e.Def.Kind == EnemyKind.ReiGoblin) continue;
+                if (!e || e.Dead || hitEnemies.Contains(e) || EnemyDef.IsBoss(e.Def.Kind)) continue;
                 var p = e.transform.position;
                 if (!SpikeTrapCycle.Inside(pos.x, pos.z, p.x, p.z, e.Radius * 0.5f)) continue;
                 hitEnemies.Add(e);

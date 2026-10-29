@@ -223,7 +223,7 @@ namespace Arena.Core
         public static float DropChance(EnemyKind k) => k switch
         {
             EnemyKind.Mimico => 1f,
-            EnemyKind.ReiGoblin => 1f,
+            EnemyKind.ReiGoblin or EnemyKind.RainhaSlime or EnemyKind.ChefeOrc or EnemyKind.Lich => 1f,
             _ => 0f,   // antes: slime 8%, goblin 22%, esqueleto 28%, arqueiro 20%, orc 35%
         };
 
@@ -236,11 +236,11 @@ namespace Arena.Core
             EnemyKind.Xama => 8,
             EnemyKind.Mimico => 25,
             EnemyKind.Orc => 14,
-            EnemyKind.ReiGoblin => 60,
+            EnemyKind.ReiGoblin or EnemyKind.RainhaSlime or EnemyKind.ChefeOrc or EnemyKind.Lich => 60,
             _ => 0,
         };
 
-        public static Rarity MinRarity(EnemyKind k) => k == EnemyKind.ReiGoblin ? Rarity.Raro : k == EnemyKind.Mimico ? Rarity.Incomum : Rarity.Comum;
+        public static Rarity MinRarity(EnemyKind k) => EnemyDef.IsBoss(k) ? Rarity.Raro : k == EnemyKind.Mimico ? Rarity.Incomum : Rarity.Comum;
 
         // Ouro com variação de ±30%.
         public int RollGold(EnemyKind k, int tier = 1)

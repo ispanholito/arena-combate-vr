@@ -21,7 +21,7 @@ namespace Arena
         public LootTable Loot { get; } = new LootTable();
         // Fichas de ataque: quantos inimigos corpo a corpo atacam ao mesmo tempo (pela dificuldade; ver CombatAI).
         public static readonly AttackTokenPool Tokens = new AttackTokenPool();
-        public GoblinKing Boss { get; private set; }
+        public ArenaEnemy Boss { get; private set; }   // chefe vivo (qualquer um dos 4; ver IBoss)
         public string CurrentMessage { get; private set; } = "";
         public float MessageTime { get; private set; }
 
@@ -197,10 +197,137 @@ namespace Arena
         }
 
         // character: personagem do salvo ou novo. Arena/Dungeon gravam nele; Treino usa um personagem de nível 10 à parte.
+        // ---------- Desafios (diário, horda infinita, boss rush) ----------
+        public Challenge Challenge { get; private set; }
+        float challengeT, rushRestT = -1f;
+        int rushIndex, hordeWave;
+        System.Collections.Generic.List<EnemyKind> rushOrder;
+        int? nextDungeonSeed;
+
+        public void StartChallenge(Challenge c)
+        {
+            SaveNow();
+            if (c == Challenge.Diario)
+            {
+                int seed = ChallengeRules.DailySeed(System.DateTime.Now);
+                nextDungeonSeed = seed;
+                StartMode(GameMode.Dungeon, player.State);
+                player.State.ChooseBlessing(ChallengeRules.DailyBlessing(seed));
+                var b = RunBlessings.Info(ChallengeRules.DailyBlessing(seed));
+                Message("DESAFIO DIÁRIO: mesma dungeon para todos hoje. Bênção do dia: " + b.Name, 4f);
+            }
+            else
+            {
+                StartMode(GameMode.Arena, player.State);
+                if (c == Challenge.Horda) { hordeWave = 1; Message("HORDA INFINITA: a cada " + ChallengeRules.KillsPerWave + " abates, uma onda mais forte. Sem chefe.", 4f); }
+                else
+                {
+                    spawnWaves = false;
+                    rushOrder = ChallengeRules.BossRushOrder(new System.Random());
+                    rushIndex = 0;
+                    rushRestT = ChallengeRules.BossRushFirstDelay;
+                    Message("BOSS RUSH: os 4 chefes seguidos. Descanso curto entre eles.", 4f);
+                }
+            }
+            Challenge = c;
+            challengeT = 0f;
+            Director.NoBoss = c == Challenge.Horda;
+            Director.ExtraTarget = 0;
+        }
+
+        // Linha do HUD com o andamento do desafio.
+        public string ChallengeStatus
+        {
+            get
+            {
+                var o = SaveSystem.Options;
+                switch (Challenge)
+                {
+                    case Challenge.Diario:
+                        return "DIÁRIO " + ChallengeRules.Time(challengeT) + (o.dailyDate == ChallengeRules.DailySeed(System.DateTime.Now) && o.dailyBest > 0f ? "  (recorde " + ChallengeRules.Time(o.dailyBest) + ")" : "");
+                    case Challenge.Horda:
+                        return "HORDA onda " + hordeWave + "  (recorde " + o.hordeBest + ")";
+                    case Challenge.BossRush:
+                        return "BOSS RUSH " + Mathf.Min(rushIndex + 1, 4) + "/4  " + ChallengeRules.Time(challengeT) + (o.bossRushBest > 0f ? "  (recorde " + ChallengeRules.Time(o.bossRushBest) + ")" : "");
+                    default: return null;
+                }
+            }
+        }
+
+        void TickChallenge(float dt)
+        {
+            if (Challenge == Challenge.Nenhum) return;
+            challengeT += dt;
+            if (Challenge == Challenge.Horda)
+            {
+                int w = ChallengeRules.HordeWave(player.State.Kills);
+                if (w != hordeWave)
+                {
+                    hordeWave = w;
+                    Director.ExtraTarget = ChallengeRules.HordeExtraEnemies(w);
+                    Message("ONDA " + w + "!", 2f);
+                    ArenaAudio.Play2D(Sfx.Roar, 0.6f, 1.2f);
+                }
+            }
+            if (Challenge == Challenge.BossRush && rushRestT >= 0f)
+            {
+                rushRestT -= dt;
+                if (rushRestT < 0f && rushIndex < rushOrder.Count)
+                    SpawnFromDirector(EnemyDef.Boss(rushOrder[rushIndex]));
+            }
+        }
+
+        // Chefe morto no boss rush: descanso (cura metade + altar) e o próximo; o último = vitória.
+        void OnRushBossKilled()
+        {
+            rushIndex++;
+            var st = player.State;
+            if (rushIndex >= rushOrder.Count)
+            {
+                var o = SaveSystem.Options;
+                bool record = ChallengeRules.BetterTime(challengeT, o.bossRushBest);
+                if (record) { o.bossRushBest = challengeT; SaveSystem.SaveOptions(); }
+                st.AddGold(ChallengeRules.BossRushGold);
+                var item = Loot.RollItem(Rarity.Raro, CurrentTier);
+                WeaponPickup.Spawn(item, player.FeetPosition + player.HeadForward.Flat().normalized * 1.5f + Vector3.up, Vector3.up * 2f);
+                Message("BOSS RUSH VENCIDO em " + ChallengeRules.Time(challengeT) + (record ? " — NOVO RECORDE!" : "") + "  +" + ChallengeRules.BossRushGold + " ouro", 6f);
+                ArenaAudio.Play2D(Sfx.Level, 1f, 1f);
+                Challenge = Challenge.Nenhum;
+                RequestSave();
+                return;
+            }
+            st.Hp.Restore(st.Hp.Max * ChallengeRules.BossRushHeal);
+            rushRestT = ChallengeRules.BossRushRest;
+            OfferBlessings(Vector3.zero, null);
+            Message("Descanse: próximo chefe em " + Mathf.RoundToInt(ChallengeRules.BossRushRest) + " s (" + (rushIndex + 1) + "/4)", 3f);
+        }
+
+        // Morreu num desafio: guarda o recorde e volta ao santuário.
+        bool EndChallengeOnDeath()
+        {
+            if (Challenge == Challenge.Nenhum) return false;
+            var o = SaveSystem.Options;
+            string msg = Challenge switch
+            {
+                Challenge.Horda => "Horda: você chegou à onda " + hordeWave + (hordeWave > o.hordeBest ? " — NOVO RECORDE!" : " (recorde " + o.hordeBest + ")"),
+                Challenge.BossRush => "Boss rush: caiu no chefe " + (rushIndex + 1) + "/4",
+                _ => "Desafio diário: você morreu. Tente de novo (a dungeon de hoje é a mesma)",
+            };
+            if (Challenge == Challenge.Horda && hordeWave > o.hordeBest) { o.hordeBest = hordeWave; SaveSystem.SaveOptions(); }
+            Challenge = Challenge.Nenhum;
+            if (!player.Weapon.Held) player.Weapon.Recall();
+            GoToSanctuary();
+            Message(msg, 5f);
+            return true;
+        }
+
         public void StartMode(GameMode mode, PlayerState character)
         {
+            Challenge = Challenge.Nenhum;
+            Director.NoBoss = false; Director.ExtraTarget = 0; rushRestT = -1f;
             // Trocar de modo encerra a partida: as bênçãos acabam.
             BlessingAltar.ClearAll();
+            BlessingStatue.ClearAll();
             Mercenary.Clear();
             player.State?.ClearBlessings();
             character?.ClearBlessings();
@@ -253,7 +380,8 @@ namespace Arena
                 spawnWaves = false;
                 if (arenaWorld) arenaWorld.gameObject.SetActive(false);
                 var saved = SaveSystem.Load();
-                dungeon.Begin(Random.Range(1, 1000000), player.State.DungeonTier);
+                dungeon.Begin(nextDungeonSeed ?? Random.Range(1, 1000000), player.State.DungeonTier);
+                nextDungeonSeed = null;
             }
         }
 
@@ -282,7 +410,7 @@ namespace Arena
         public int CurrentTier => player == null || player.State == null ? 1
             : Mode == GameMode.Dungeon ? player.State.DungeonTier : Mode == GameMode.Arena ? player.State.ArenaTier : 1;
 
-        public void SetBoss(GoblinKing king) => Boss = king;
+        public void SetBoss(ArenaEnemy boss) => Boss = boss;
 
         // Na arena fica de frente para o centro; na dungeon, na frente da fogueira (para onde ela "olha").
         public Vector3 BonfireStandPoint => bonfire == arenaBonfire
@@ -319,6 +447,7 @@ namespace Arena
             MessageTime -= dt;
             Tokens.Capacity = CombatAI.AttackTokens(SaveSystem.Options.Difficulty);
             RunBlessings.Current = player.State?.Blessings;   // os inimigos leem daqui o dano extra das bênçãos
+            if (!Paused) TickChallenge(dt);
             SyncPhysicsRate();
             if (Mode == GameMode.Treino)
             {
@@ -329,7 +458,7 @@ namespace Arena
             if (Mode == GameMode.Arena && spawnWaves && !player.TreeOpen)
             {
                 int alive = 0, goblins = 0;
-                foreach (var e in ArenaEnemy.All) { if (e == null || e.Dead) continue; alive++; if (e is GoblinEnemy && !(e is GoblinKing)) goblins++; }
+                foreach (var e in ArenaEnemy.All) { if (e == null || e.Dead) continue; alive++; if (e is GoblinEnemy && !(e is IBoss)) goblins++; }
                 var def = Director.Tick(dt, alive, goblins, player.State.Progression.Level, player.State.Kills);
                 if (def != null) SpawnFromDirector(def);
             }
@@ -348,12 +477,12 @@ namespace Arena
 
         void SpawnFromDirector(EnemyDef def)
         {
-            if (def.Kind == EnemyKind.ReiGoblin)
+            if (EnemyDef.IsBoss(def.Kind))
             {
                 var pos = bossSpawn ? bossSpawn.position : new Vector3(0, 0, -7);
-                Boss = Spawn(def, pos, true) as GoblinKing;
+                Boss = Spawn(def, pos, true);
                 ArenaFx.Burst(pos + Vector3.up, new Color(1f, 0.19f, 0.13f), 40, 5f, 2f);
-                Message("O Rei Goblin chegou!", 2.2f);
+                Message(def.Name + " chegou!", 2.2f);
                 return;
             }
             // Nasce no ponto mais longe do jogador (com um pouco de sorte)
@@ -375,9 +504,9 @@ namespace Arena
             var diff = SaveSystem.Options.Difficulty;
             // Elite: só na Arena e na Dungeon (Treino e chefe não).
             var elite = Mode == GameMode.Dungeon ? EliteRules.Roll(def.Kind, EliteRules.Chance(true, dungeon.Run?.Floor.Number ?? 1), eliteRng)
-                      : Mode == GameMode.Arena ? EliteRules.Roll(def.Kind, EliteRules.Chance(false, player.State.Kills), eliteRng)
+                      : Mode == GameMode.Arena ? EliteRules.Roll(def.Kind, Challenge == Challenge.Horda ? ChallengeRules.HordeEliteChance(hordeWave) : EliteRules.Chance(false, player.State.Kills), eliteRng)
                       : EliteKind.Nenhum;
-            if (def.Kind != EnemyKind.Boneco) def = def.Scaled(DifficultyRules.EnemyHp(diff) * ArcadeRules.HpMultiplier(CurrentTier) * EliteRules.HpMultiplier(elite),
+            if (def.Kind != EnemyKind.Boneco) def = def.Scaled(DifficultyRules.EnemyHp(diff) * ArcadeRules.HpMultiplier(CurrentTier) * EliteRules.HpMultiplier(elite) * (Challenge == Challenge.Horda ? ChallengeRules.HordeHpMultiplier(hordeWave) : 1f),
                                                                DifficultyRules.WindupMultiplier(diff) * EliteRules.WindupMultiplier(elite));
             var go = new GameObject(def.Name);
             go.transform.SetParent(enemyRoot, false);
@@ -393,6 +522,9 @@ namespace Arena
                 EnemyKind.Arqueiro => go.AddComponent<ArcherEnemy>(),
                 EnemyKind.Xama => go.AddComponent<ShamanEnemy>(),
                 EnemyKind.Orc => go.AddComponent<OrcEnemy>(),
+                EnemyKind.RainhaSlime => go.AddComponent<SlimeQueen>(),
+                EnemyKind.ChefeOrc => go.AddComponent<OrcWarlord>(),
+                EnemyKind.Lich => go.AddComponent<LichBoss>(),
                 _ => go.AddComponent<GoblinKing>(),
             };
             e.Init(def);
@@ -410,22 +542,32 @@ namespace Arena
             if (e.State.Elite == EliteKind.Explosivo) EliteAura.ExplodeLater(e.Center);
             player.State.OnKillPassive();
             DropLoot(e);
-            if (e is GoblinKing && Mode == GameMode.Dungeon)
+            if (e is IBoss && Challenge == Challenge.BossRush) { Boss = null; OnRushBossKilled(); }
+            else if (e is IBoss && Mode == GameMode.Dungeon)
             {
+                if (Challenge == Challenge.Diario)
+                {
+                    var o = SaveSystem.Options;
+                    int today = ChallengeRules.DailySeed(System.DateTime.Now);
+                    bool record = o.dailyDate != today || ChallengeRules.BetterTime(challengeT, o.dailyBest);
+                    if (record) { o.dailyDate = today; o.dailyBest = challengeT; SaveSystem.SaveOptions(); }
+                    Message("DESAFIO DIÁRIO VENCIDO em " + ChallengeRules.Time(challengeT) + (record ? " — RECORDE DO DIA!" : ""), 5f);
+                    Challenge = Challenge.Nenhum;
+                }
                 Boss = null;
                 dungeon.OnBossKilled(e.Center);
                 player.State.DungeonTier = ArcadeRules.Clamp(player.State.DungeonTier + 1);
-                Message("Rei Goblin derrotado! Profundidade " + player.State.DungeonTier + " liberada (mais difícil, itens mais raros)", 3.5f);
+                Message(e.Def.Name + " derrotado! Profundidade " + player.State.DungeonTier + " liberada (mais difícil, itens mais raros)", 3.5f);
                 var saved = SaveSystem.Load();
                 SaveSystem.Save(player.State, -1, (saved?.bossesDefeated ?? 0) + 1);
             }
-            else if (e is GoblinKing)
+            else if (e is IBoss)
             {
                 Director.OnBossDefeated();
                 player.State.ResetKills();
                 Boss = null;
                 player.State.ArenaTier = ArcadeRules.Clamp(player.State.ArenaTier + 1);
-                Message("Rei Goblin derrotado! Arena na profundidade " + player.State.ArenaTier, 2.5f);
+                Message(e.Def.Name + " derrotado! Arena na profundidade " + player.State.ArenaTier, 2.5f);
             }
             // Arena: altar de bênçãos a cada N abates (no centro, se não houver outro).
             if (Mode == GameMode.Arena && Boss == null && player.State.Kills > 0 && player.State.Kills % RunBlessings.ArenaKillsPerAltar == 0 && BlessingAltar.All.Count == 0)
@@ -459,7 +601,7 @@ namespace Arena
         public void OnBossPhase2()
         {
             Director.BossPhase = 2;
-            Message("O Rei Goblin entrou em fúria!", 1.8f);
+            Message((Boss ? Boss.Def.Name : "O chefe") + " entrou em fúria!", 1.8f);
         }
 
         public void OnPlayerDied(int lostXp)
@@ -477,6 +619,7 @@ namespace Arena
                 Message($"FIM DA JORNADA: {st.Class.Name} nível {st.Progression.Level} morreu (uma vida). Crie um novo personagem.", 6f);
                 return;
             }
+            if (EndChallengeOnDeath()) return;
             // Modo arcade: morrer volta à profundidade 1. Na dungeon a descida acaba e você volta ao santuário.
             if (Mode == GameMode.Dungeon)
             {
@@ -512,6 +655,7 @@ namespace Arena
                 (-h, 5f, BreakableKind.Caixa), (h, -5f, BreakableKind.Barril), (-5f, -h, BreakableKind.Barril), (5f, h, BreakableKind.Caixa),
             };
             foreach (var s in spots) SpawnArenaBreakable(new Vector3(s.x, 0f, s.z), s.k);
+            if (Mode == GameMode.Arena) BlessingStatue.Spawn(new Vector3(h - 0.6f, 0f, h - 0.6f), null, BlessingStatue.Price(CurrentTier, 0), repeat: true);   // estátua num canto
         }
 
         void SpawnArenaBreakable(Vector3 pos, BreakableKind kind)

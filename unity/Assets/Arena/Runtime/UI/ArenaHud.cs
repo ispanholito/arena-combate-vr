@@ -149,6 +149,8 @@ namespace Arena
             if (gm && (gm.Mode == ArenaGame.GameMode.Dungeon || gm.Mode == ArenaGame.GameMode.Arena))
                 sb.Append("  <color=#c8a0ff>prof. ").Append(gm.CurrentTier).Append("</color>");
             if (!player.Weapon.Held) sb.Append(" <color=#ff9090>(arremessada)</color>");
+            var ch = gm ? gm.ChallengeStatus : null;
+            if (ch != null) sb.Append("\n<color=#ffb347>").Append(ch).Append("</color>");
             int n = 1;
             foreach (var node in s.Tree.Nodes)
             {
@@ -184,7 +186,7 @@ namespace Arena
             bossRoot.gameObject.SetActive(boss);
             if (boss)
             {
-                bossName.text = g.Boss.Phase == 2 ? "Rei Goblin — Fúria" : "Rei Goblin";
+                bossName.text = BossPool.Title(g.Boss.Def.Kind, (g.Boss as IBoss)?.Phase ?? 1);
                 SetFill(bossHp, g.Boss.State.HpFraction);
                 SetFill(bossPosture, g.Boss.State.Posture.Fraction);
             }

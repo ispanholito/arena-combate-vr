@@ -21,6 +21,31 @@ namespace Arena
         Material stone, wall, wood, fire, portalMat;
 
         void Awake() => game = GetComponent<ArenaGame>();
+        float icicleT = 4f;
+
+        // Gelo: cristais nos cantos (só enfeite, dá para reconhecer o bioma).
+        void IceCrystals(Rect2 r, System.Random rng)
+        {
+            var ice = ArenaUtil.Lit(new Color(0.7f, 0.9f, 1f), new Color(0.15f, 0.3f, 0.45f));
+            foreach (var (x, z) in new[] { (r.MinX + 0.8f, r.MinZ + 0.8f), (r.MaxX - 0.8f, r.MinZ + 0.8f), (r.MinX + 0.8f, r.MaxZ - 0.8f), (r.MaxX - 0.8f, r.MaxZ - 0.8f) })
+                for (int i = 0; i < 3; i++)
+                {
+                    var c = ArenaUtil.Prim(PrimitiveType.Capsule, root, new Vector3(x + (float)(rng.NextDouble() - 0.5) * 0.8f, 0.4f, z + (float)(rng.NextDouble() - 0.5) * 0.8f),
+                                           new Vector3(0.25f, 0.5f + (float)rng.NextDouble() * 0.4f, 0.25f), ice).transform;
+                    c.rotation = Quaternion.Euler((float)(rng.NextDouble() - 0.5) * 40f, 0f, (float)(rng.NextDouble() - 0.5) * 40f);
+                }
+        }
+
+        // Gelo: estalactites caem perto do jogador durante a luta.
+        void TickIcicles(float dt)
+        {
+            if (Run.Floor.Biome != Biome.Gelo || Run.ActiveRoom == null) return;
+            icicleT -= dt;
+            if (icicleT > 0f) return;
+            icicleT = Random.Range(BiomeRules.IcicleMinInterval, BiomeRules.IcicleMaxInterval);
+            var p = game.Player.FeetPosition + new Vector3(Random.Range(-1.5f, 1.5f), 0f, Random.Range(-1.5f, 1.5f));
+            Icicle.Spawn(p, root);
+        }
         public Shop MerchantShop { get; } = new Shop();   // mercador perdido da dungeon
         DungeonRoom challengeRoom;
         float challengeT, challengeMsgT;
@@ -31,7 +56,7 @@ namespace Arena
             Run = new DungeonRun(seed, bossesDefeated);
             combatCleared = 0;
             BuildFloor();
-            game.Message("Dungeon — andar 1. Desça pela escada; o Rei Goblin espera no andar 2.", 3.5f);
+            game.Message("Andar 1: " + BiomeRules.Name(Run.Floor.Biome) + ". Desça pela escada; o chefe espera no andar 2.", 3.5f);
         }
 
         public void End()
@@ -93,7 +118,9 @@ namespace Arena
                 l.type = LightType.Point;
                 l.range = Mathf.Max(room.Rect.Width, room.Rect.Depth) * 0.95f;
                 l.intensity = room.Kind == RoomKind.Chefe ? 2.8f : 2.4f;
-                l.color = room.Kind == RoomKind.Chefe ? new Color(1f, 0.35f, 0.25f) : new Color(1f, 0.6f, 0.3f);
+                var (br, bg, bb) = BiomeRules.LightColor(f.Biome);   // cor do bioma
+                l.color = room.Kind == RoomKind.Chefe ? new Color(1f, 0.35f, 0.25f) : new Color(br, bg, bb);
+                if (f.Biome == Biome.Gelo && room.Kind == RoomKind.Combate) IceCrystals(room.Rect, rng);
                 if (room.Kind == RoomKind.Inicio || room.Kind == RoomKind.Fogueira) bonfires.Add(Bonfire(c + Vector3.back * 1.5f, room.Index));
                 if (room.Kind == RoomKind.Escada) SpawnPortal(c, home: false);
                 // Pontos de gancho da teia: cantos no alto das paredes e o centro do "teto".
@@ -104,8 +131,10 @@ namespace Arena
                 if (art) CornerProps(artRoot, room.Rect, rng);
                 if (room.Kind == RoomKind.Combate) Breakables(room.Rect, rng);
                 if (room.HasMerchant) BuildMerchant(c + Vector3.right * 2.5f);
+                if (room.HasStatue) BlessingStatue.Spawn(new Vector3(room.Rect.MaxX - 2.4f, 0f, room.Rect.MaxZ - 2.4f), root, BlessingStatue.Price(f.Number + game.CurrentTier - 1, 0), repeat: false);
             }
             if (f.Secret != null) BuildSecret(f);
+            foreach (var lava in f.Lava) LavaPool.Spawn(lava, root);
             if (art) StaticBatchingUtility.Combine(artRoot.gameObject);
             for (int i = 0; i < f.Traps.Count; i++)
                 SpikeTrap.Spawn(new Vector3(f.Traps[i].x, 0f, f.Traps[i].z), root, i * 0.9f);   // ciclos defasados
@@ -226,14 +255,15 @@ namespace Arena
         void Breakables(Rect2 r, System.Random rng)
         {
             int n = BreakableRules.CountForRoom(rng);
-            int explosive = BreakableRules.RoomHasExplosive(rng) ? rng.Next(n) : -1;
+            int explosive = BreakableRules.RoomHasExplosive(rng) || BiomeRules.ExtraExplosives(Run.Floor.Biome) ? rng.Next(n) : -1;
             for (int i = 0; i < n; i++)
             {
                 int side = rng.Next(4);
                 float t = rng.Next(2) == 0 ? (float)(0.12 + rng.NextDouble() * 0.22) : (float)(0.66 + rng.NextDouble() * 0.22);
                 float x = side < 2 ? Mathf.Lerp(r.MinX, r.MaxX, t) : (side == 2 ? r.MinX + 1.1f : r.MaxX - 1.1f);
                 float z = side >= 2 ? Mathf.Lerp(r.MinZ, r.MaxZ, t) : (side == 0 ? r.MinZ + 1.1f : r.MaxZ - 1.1f);
-                var kind = i == explosive ? BreakableKind.BarrilExplosivo : (rng.Next(2) == 0 ? BreakableKind.Caixa : BreakableKind.Barril);
+                bool fornalha = BiomeRules.ExtraExplosives(Run.Floor.Biome) && rng.NextDouble() < 0.35;   // Fornalha: mais barris vermelhos
+                var kind = i == explosive || fornalha ? BreakableKind.BarrilExplosivo : (rng.Next(2) == 0 ? BreakableKind.Caixa : BreakableKind.Barril);
                 Breakable.Spawn(kind, new Vector3(x, 0f, z), rng.Next(360), root);
             }
         }
@@ -318,6 +348,7 @@ namespace Arena
             float dt = Time.deltaTime;
             portalCd -= dt;
             TickChallenge(dt);
+            TickIcicles(dt);
             var p = game.Player.FeetPosition;
             var before = Run.CheckpointRoom;
             var room = Run.OnPlayerAt(p.x, p.z);
@@ -381,7 +412,7 @@ namespace Arena
                     ClearLeftovers();
                     BuildFloor();
                     game.SaveDeepestFloor(Run.Floor.Number);
-                    game.Message("Andar " + Run.Floor.Number + ": a fogueira está acesa. O chefe está no fim.", 3f);
+                    game.Message("Andar " + Run.Floor.Number + ": " + BiomeRules.Name(Run.Floor.Biome) + ". A fogueira está acesa; o chefe está no fim.", 3f);
                     ArenaAudio.Play2D(Sfx.Skill, 0.8f, 0.6f);
                 }
             }
@@ -408,16 +439,16 @@ namespace Arena
             {
                 var def = room.Enemies[i];
                 Vector3 pos;
-                if (def.Kind == EnemyKind.ReiGoblin) pos = center + away * (r.Depth * 0.35f);
+                if (EnemyDef.IsBoss(def.Kind)) pos = center + away * (r.Depth * 0.35f);
                 else
                 {
                     pos = new Vector3(Random.Range(r.MinX, r.MaxX), 0f, Random.Range(r.MinZ, r.MaxZ));
                     if (Vector3.Dot(pos - center, away) < 0f) pos -= 2f * Vector3.Dot(pos - center, away) * away;   // espelha para o lado de longe
                 }
                 var e = game.Spawn(def, pos, false);
-                if (def.Kind == EnemyKind.ReiGoblin)
+                if (EnemyDef.IsBoss(def.Kind))
                 {
-                    game.SetBoss(e as GoblinKing);
+                    game.SetBoss(e);
                     game.Message("O Rei Goblin!", 2.2f);
                 }
                 ArenaFx.Burst(pos + Vector3.up * 0.5f, new Color(0.6f, 0.42f, 1f), 14, 2.5f);
@@ -477,7 +508,7 @@ namespace Arena
             away = away.sqrMagnitude < 0.25f ? Vector3.forward : away.normalized;
             SpawnPortal(c + away * Mathf.Min(room.Rect.Width, room.Rect.Depth) * 0.3f, home: true);
             portalCd = 3f;
-            game.Message("Rei Goblin derrotado! Pegue o loot e entre no portal.", 3f);
+            game.Message("Chefe derrotado! Pegue o loot e entre no portal.", 3f);
         }
 
         public void OnPlayerDied()

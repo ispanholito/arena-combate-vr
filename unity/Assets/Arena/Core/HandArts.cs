@@ -20,7 +20,7 @@ namespace Arena.Core
         // Soco na Muralha.
         public const float PunchDamageMultiplier = 2.5f, PunchPostureMultiplier = 3f;
         public const float LaunchSpeed = 9f, LaunchUp = 3f;   // pequenos voam
-        public static bool IsBig(EnemyKind k) => k == EnemyKind.Orc || k == EnemyKind.ReiGoblin || k == EnemyKind.Mimico;
+        public static bool IsBig(EnemyKind k) => k == EnemyKind.Orc || EnemyDef.IsBoss(k) || k == EnemyKind.Mimico;
 
         // Defesa com as mãos: golpe chegando perto de uma mão = bloqueio; mão indo rápido contra ele = aparo.
         public const float GuardRadius = 0.4f, ParryHandSpeed = 2f, GuardStamina = 6f, ParryStun = 1.1f;

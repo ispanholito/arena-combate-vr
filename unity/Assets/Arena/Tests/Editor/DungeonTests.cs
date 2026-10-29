@@ -17,8 +17,8 @@ namespace Arena.Core.Tests
                 var f2 = DungeonGenerator.Generate(seed, 2);
                 Assert.AreEqual(RoomKind.Chefe, f2.Last.Kind);
                 Assert.AreEqual(RoomKind.Fogueira, f2.Rooms[f2.Rooms.Count - 2].Kind);
-                Assert.AreEqual(EnemyKind.ReiGoblin, f2.Last.Enemies.Single().Kind);
-                Assert.IsFalse(f2.Rooms.Any(r => r.Kind == RoomKind.Combate && r.Enemies.Any(e => e.Kind == EnemyKind.ReiGoblin)));
+                Assert.IsTrue(EnemyDef.IsBoss(f2.Last.Enemies.Single().Kind));   // chefe sorteado entre os 4
+                Assert.IsFalse(f2.Rooms.Any(r => r.Kind == RoomKind.Combate && r.Enemies.Any(e => EnemyDef.IsBoss(e.Kind))));
             }
         }
 

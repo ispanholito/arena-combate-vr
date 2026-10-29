@@ -50,6 +50,11 @@ namespace Arena.Core
         // Beta: na Arena e na Dungeon os goblins nascem com corpo físico (ragdoll ativo).
         public bool physicalGoblins = false;
         public bool tutorialSeen = false;      // o tutorial dos gestos começa sozinho na 1ª entrada no santuário
+        // Recordes dos desafios (Core/Challenges.cs).
+        public int dailyDate;                  // semente do dia do recorde diário
+        public float dailyBest;                // segundos (0 = sem recorde)
+        public int hordeBest;                  // maior onda
+        public float bossRushBest;             // segundos (0 = sem recorde)
         public int TrainingGoblins => trainingGoblins >= 6 ? 6 : trainingGoblins >= 3 ? 3 : 1;
         public void CycleTrainingGoblins() => trainingGoblins = TrainingGoblins == 1 ? 3 : TrainingGoblins == 3 ? 6 : 1;
 

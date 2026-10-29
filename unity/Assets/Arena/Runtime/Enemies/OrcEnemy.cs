@@ -5,7 +5,7 @@ namespace Arena
 {
     // Orc: mesma IA do goblin (golpe anunciado, aparável), mas grande, lento e com machado de duas mãos.
     // Não cambaleia com golpes comuns (só com a postura quebrada) e bloqueia pouco.
-    public sealed class OrcEnemy : GoblinEnemy
+    public class OrcEnemy : GoblinEnemy
     {
         protected override void BuildVisual()
         {

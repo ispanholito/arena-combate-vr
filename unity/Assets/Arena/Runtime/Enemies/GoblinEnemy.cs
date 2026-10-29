@@ -44,7 +44,7 @@ namespace Arena
         // Corpo do goblin (o esqueleto sobrescreve). Precisa criar `arm` (com a arma ao longo de +Y) e `clubMat`.
         protected virtual void BuildVisual()
         {
-            bool king = Def.Kind == EnemyKind.ReiGoblin;
+            bool king = EnemyDef.IsBoss(Def.Kind);
             skinMat = ArenaUtil.Lit(king ? new Color(0.3f, 0.48f, 0.17f) : new Color(0.37f, 0.54f, 0.23f));
             var cloth = ArenaUtil.Lit(king ? new Color(0.35f, 0.12f, 0.12f) : new Color(0.35f, 0.25f, 0.16f));
             ArenaUtil.Prim(PrimitiveType.Cylinder, model, new Vector3(0, 0.55f, 0), new Vector3(0.5f, 0.35f, 0.5f), cloth);
@@ -123,7 +123,7 @@ namespace Arena
         {
             lastDamagedT = Time.time;   // janela de combo: logo depois de apanhar não bloqueia
             // Golpe forte (fração da vida, pela dificuldade) cancela o ataque anunciado.
-            if (state == AiState.Windup && !ev.Killed && !(this is GoblinKing) && CombatAI.Interrupts(ev.Amount, Def.MaxHp, SaveSystem.Options.Difficulty))
+            if (state == AiState.Windup && !ev.Killed && !(this is IBoss) && CombatAI.Interrupts(ev.Amount, Def.MaxHp, SaveSystem.Options.Difficulty))
             {
                 SetState(AiState.Recover);
                 ArenaFx.FloatText("INTERROMPIDO", Center + Vector3.up * 0.8f, new Color(1f, 0.9f, 0.5f), 0.9f);
@@ -141,7 +141,7 @@ namespace Arena
         float blockCd;
         protected override float BlockMultiplier(float tipSpeed, WeaponDef weapon, float damage)
         {
-            if (this is GoblinKing || this is ArcherEnemy) return 1f;
+            if (this is IBoss || this is ArcherEnemy || this is ShamanEnemy) return 1f;
             bool canBlock = blockCd <= 0f && State.CanAct && !State.Posture.IsBroken && (state == AiState.Approach || state == AiState.Recover)
                             && CombatAI.CanBlockAfterHit(Time.time - lastDamagedT)
                             && (this is not SkeletonEnemy || CanAttackNow);   // esqueleto sem o braço da espada não bloqueia
@@ -177,7 +177,7 @@ namespace Arena
         // ---------- Fichas de ataque, revide ----------
         float lastDamagedT = -10f, riposteT;
         bool riposting;
-        bool UsesTokens => !(this is GoblinKing) && !(this is ArcherEnemy);
+        bool UsesTokens => !(this is IBoss) && !(this is ArcherEnemy) && !(this is ShamanEnemy);
         bool HasToken => !UsesTokens || ArenaGame.Tokens.Has(GetInstanceID());
         bool TokensFull => UsesTokens && !HasToken && ArenaGame.Tokens.InUse >= ArenaGame.Tokens.Capacity;
         bool TryTakeToken() => !UsesTokens || ArenaGame.Tokens.TryTake(GetInstanceID());
@@ -281,11 +281,11 @@ namespace Arena
         // Vaga deste goblin no grupo (goblins e esqueletos vivos, sem o chefe nem arqueiros), em ordem estável.
         float GroupSlot()
         {
-            if (this is GoblinKing) return 0f;   // o chefe vem de frente
+            if (this is IBoss) return 0f;   // o chefe vem de frente
             int count = 0, index = 0, me = GetInstanceID();
             foreach (var e in All)
             {
-                if (!(e is GoblinEnemy) || e is GoblinKing || e is ArcherEnemy || e.Dead) continue;
+                if (!(e is GoblinEnemy) || e is IBoss || e is ArcherEnemy || e is ShamanEnemy || e.Dead) continue;
                 count++;
                 if (e.GetInstanceID() < me) index++;
             }

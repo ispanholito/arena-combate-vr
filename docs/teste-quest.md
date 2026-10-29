@@ -9,6 +9,15 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000000000000000000000. NOVO — chefes sorteados, estátuas, biomas e desafios
+- [ ] **Quadro de desafios** (santuário, 3 pedestais na frente dos portais; grip): Desafio diário, Horda infinita, Boss rush. O HUD mostra tempo/onda?
+- [ ] **Rainha Slime**: o círculo do pulo dá tempo de fugir? Dá para bater depois que ela cai? Os slimes que ela solta atrapalham demais?
+- [ ] **Chefe de Guerra Orc**: investida (desviar → ele cai), giro (sair do círculo), grito (postura dura). Difícil demais?
+- [ ] **Lich**: rebater os orbes nele é a graça — dá para mirar? Teleporta demais? Os esqueletos atrapalham?
+- [ ] **Estátua** (dungeon e canto da arena): ler o texto e comprar com grip.
+- [ ] **Biomas**: a luz muda por andar? Estalactites (Gelo) e lava (Fornalha) são justas ou irritantes?
+- [ ] **FPS** na Fornalha (lava com brilho) e no boss rush.
+
 ## 000000000000000000000000000. NOVO — armas de fogo, forja, Xamã, NPCs, pets e mercenário
 - [ ] **Pistola / Bacamarte** (aparecem no loot; para testar rápido, compre na loja quando aparecer): o cano aponta para onde o controle aponta? (se ficar torto, diga quanto: é o `GunPitch`). Gatilho atira? O coice é gostoso? **Recarregar**: aponte para cima e dê um tranco — é natural? Muito fácil ou difícil?
 - [ ] **Forja de fusão** (santuário, ao lado da bigorna): com 2 armas, grip na forja. A raridade sobe?

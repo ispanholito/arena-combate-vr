@@ -214,6 +214,66 @@ namespace Arena
             UpdateAnvilText();
             UpdateForgeText();
             UpdateNpcTexts();
+            UpdateBoardTexts();
+        }
+
+        // ---------- Quadro de desafios (meio do lado leste, longe das estantes): 3 pedestais, grip / E perto de um começa o desafio ----------
+        static readonly (Challenge c, Vector3 pos, Color col, string desc)[] Boards =
+        {
+            (Challenge.Diario, new Vector3(1.6f, 0f, 2.2f), new Color(1f, 0.85f, 0.35f), "mesma dungeon para todos hoje"),
+            (Challenge.Horda, new Vector3(3.1f, 0f, 2.2f), new Color(1f, 0.4f, 0.3f), "ondas sem fim, recorde de onda"),
+            (Challenge.BossRush, new Vector3(4.6f, 0f, 2.2f), new Color(0.75f, 0.45f, 1f), "os 4 chefes seguidos"),
+        };
+        readonly System.Collections.Generic.List<TextMesh> boardTexts = new System.Collections.Generic.List<TextMesh>();
+
+        void BuildChallengeBoard()
+        {
+            boardTexts.Clear();
+            var stone = ArenaUtil.Lit(new Color(0.3f, 0.28f, 0.3f));
+            foreach (var (c, pos, col, desc) in Boards)
+            {
+                var t = new GameObject("Desafio " + c).transform;
+                t.SetParent(root, false);
+                t.position = pos;
+                ArenaUtil.Prim(PrimitiveType.Cylinder, t, new Vector3(0f, 0.5f, 0f), new Vector3(0.6f, 0.5f, 0.6f), stone, keepCollider: true);
+                ArenaUtil.Prim(PrimitiveType.Sphere, t, new Vector3(0f, 1.2f, 0f), Vector3.one * 0.3f, ArenaUtil.Lit(col, col * 1.4f));
+                var text = ArenaFx.MakeText(t, ChallengeRules.Name(c).ToUpper() + "\n<size=40>" + desc + "</size>", 0.008f, col);
+                text.transform.localPosition = new Vector3(0f, 1.75f, 0f);
+                boardTexts.Add(text);
+            }
+            UpdateBoardTexts();
+        }
+
+        void UpdateBoardTexts()
+        {
+            var cam = Camera.main;
+            var o = SaveSystem.Options;
+            for (int i = 0; i < boardTexts.Count && i < Boards.Length; i++)
+            {
+                var text = boardTexts[i];
+                if (!text) continue;
+                if (cam) text.transform.rotation = Quaternion.LookRotation(text.transform.position - cam.transform.position);
+                var (c, _, _, desc) = Boards[i];
+                string rec = c switch
+                {
+                    Challenge.Diario => o.dailyDate == ChallengeRules.DailySeed(System.DateTime.Now) && o.dailyBest > 0f ? "recorde de hoje " + ChallengeRules.Time(o.dailyBest) : "sem recorde hoje",
+                    Challenge.Horda => "recorde: onda " + o.hordeBest,
+                    _ => o.bossRushBest > 0f ? "recorde " + ChallengeRules.Time(o.bossRushBest) : "sem recorde",
+                };
+                text.text = ChallengeRules.Name(c).ToUpper() + "\n<size=40>" + desc + "\n" + rec + " · grip / E</size>";
+            }
+        }
+
+        bool TryChallenge(ArenaPlayer player)
+        {
+            foreach (var (c, pos, _, _) in Boards)
+            {
+                if (!Near(player, pos, 1.3f, 1.5f)) continue;
+                ArenaAudio.Play2D(Sfx.Skill, 0.8f, 0.6f);
+                game.StartChallenge(c);
+                return true;
+            }
+            return false;
         }
 
         // ---------- NPCs resgatados na dungeon (parede sul) ----------
@@ -240,6 +300,7 @@ namespace Arena
                 npcs.Add((n, t, text));
             }
             UpdateNpcTexts();
+            UpdateBoardTexts();
         }
 
         void UpdateNpcTexts()
@@ -393,6 +454,7 @@ namespace Arena
             BuildMerchant();
             BuildShop();
             BuildNpcs();
+            BuildChallengeBoard();
         }
 
         // Banca: 3 armas e poções. O estoque renova a cada volta ao santuário.
@@ -534,7 +596,7 @@ namespace Arena
         public bool TryInteract(ArenaPlayer player)
         {
             if (!root || !anvil) return false;
-            if (TryResetStone(player) || TryStore(player) || TryBuyPotion(player) || TrySell(player) || TryFuse(player) || TryNpc(player)) return true;
+            if (TryResetStone(player) || TryStore(player) || TryBuyPotion(player) || TrySell(player) || TryFuse(player) || TryNpc(player) || TryChallenge(player)) return true;
             float d = player.IsVr
                 ? Mathf.Min(Vector3.Distance(player.RightHand.position, anvil.position + Vector3.up * 0.75f), (player.FeetPosition - anvil.position).Flat().magnitude)
                 : (player.FeetPosition - anvil.position).Flat().magnitude;
