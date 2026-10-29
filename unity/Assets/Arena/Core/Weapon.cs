@@ -3,6 +3,9 @@ using System;
 namespace Arena.Core
 {
     public enum WeaponKind { Espada, Machado, Cajado, Maca, Lanca, Adaga }
+    // Visual da arma. O "Kind" decide como ela funciona (corta, crava, pancada, magia); o "Look" só muda o modelo,
+    // a massa e o equilíbrio. Assim uma arma nova não precisa mexer em todo o combate.
+    public enum WeaponLook { Padrao, Katana, Rapieira, Martelo, Machadinha, Bacalhau, Frigideira, Tocha, Vassoura }
 
     // Peso: com pouca Força a arma pesada "atrasa" na mão (lag no follow).
     public sealed class WeaponDef
@@ -20,6 +23,10 @@ namespace Arena.Core
         public float LifeSteal { get; private set; }        // fração do dano que vira vida
         public float ExecuteBonus { get; private set; }     // dano extra em inimigos com menos de 30% de vida
         public bool Proficient { get; private set; } = true; // a classe domina a arma: libera os bônus da árvore
+        public WeaponLook Look { get; private set; }
+        public float HeatPerHit { get; private set; }       // tocha: todo golpe põe calor (acende)
+        public float MassKg { get; private set; }           // 0 = massa padrão do tipo
+        public bool Funny { get; private set; }             // arma engraçada (peixe, frigideira...): avisa ao acertar
 
         public WeaponDef(string id, string name, WeaponKind kind, float weight, float damageMultiplier, float staminaPerHit, float length)
         {
@@ -31,7 +38,8 @@ namespace Arena.Core
         public WeaponDef With(string name, float weight, float damageMultiplier, float staminaPerHit,
                               float postureBonus, float lifeSteal, float executeBonus, bool proficient) =>
             new WeaponDef(Id, name, Kind, weight, damageMultiplier, staminaPerHit, Length)
-            { PostureBonus = postureBonus, LifeSteal = lifeSteal, ExecuteBonus = executeBonus, Proficient = proficient };
+            { PostureBonus = postureBonus, LifeSteal = lifeSteal, ExecuteBonus = executeBonus, Proficient = proficient,
+              Look = Look, HeatPerHit = HeatPerHit, MassKg = MassKg, Funny = Funny };
 
         // Quão rápido a arma segue a mão (1/s). Força alta / arma leve = colada na mão.
         public float FollowRate(float strength) => Math.Clamp(60f * (float)Math.Pow(strength / Weight, 1.5), 5f, 45f);
@@ -44,7 +52,18 @@ namespace Arena.Core
         public static readonly WeaponDef Lanca = new WeaponDef("lanca", "Lança", WeaponKind.Lanca, 5f, 1.1f, 8f, 1.9f);
         public static readonly WeaponDef Adaga = new WeaponDef("adaga", "Adaga", WeaponKind.Adaga, 1f, 0.7f, 3f, 0.45f);
 
-        public static readonly WeaponDef[] All = { EspadaLonga, MachadoPesado, CajadoArcano, MacaPesada, Lanca, Adaga };
+        // Armas novas (2026-10-29, inspiração Soul Knight): variações sérias e algumas engraçadas.
+        public static readonly WeaponDef Katana = new WeaponDef("katana", "Katana", WeaponKind.Espada, 2f, 1.1f, 5f, 1.0f) { Look = WeaponLook.Katana, MassKg = 1.1f };
+        public static readonly WeaponDef Rapieira = new WeaponDef("rapieira", "Rapieira", WeaponKind.Espada, 1.2f, 0.85f, 4f, 1.05f) { Look = WeaponLook.Rapieira, MassKg = 0.9f };
+        public static readonly WeaponDef Martelo = new WeaponDef("martelo", "Martelo de Guerra", WeaponKind.Maca, 16f, 1.9f, 16f, 1.1f) { Look = WeaponLook.Martelo, MassKg = 4.5f };
+        public static readonly WeaponDef Machadinha = new WeaponDef("machadinha", "Machadinha", WeaponKind.Machado, 4f, 1.1f, 6f, 0.55f) { Look = WeaponLook.Machadinha, MassKg = 1.0f };
+        public static readonly WeaponDef Bacalhau = new WeaponDef("bacalhau", "Bacalhau Seco", WeaponKind.Maca, 3f, 0.85f, 4f, 0.8f) { Look = WeaponLook.Bacalhau, MassKg = 1.2f, Funny = true };
+        public static readonly WeaponDef Frigideira = new WeaponDef("frigideira", "Frigideira de Ferro", WeaponKind.Maca, 5f, 1.05f, 6f, 0.62f) { Look = WeaponLook.Frigideira, MassKg = 1.8f, Funny = true };
+        public static readonly WeaponDef Tocha = new WeaponDef("tocha", "Tocha", WeaponKind.Maca, 2.5f, 0.7f, 4f, 0.72f) { Look = WeaponLook.Tocha, MassKg = 1.0f, HeatPerHit = 35f };
+        public static readonly WeaponDef Vassoura = new WeaponDef("vassoura", "Vassoura de Bruxa", WeaponKind.Cajado, 2f, 0.45f, 4f, 1.45f) { Look = WeaponLook.Vassoura, MassKg = 0.9f, Funny = true };
+
+        public static readonly WeaponDef[] All = { EspadaLonga, MachadoPesado, CajadoArcano, MacaPesada, Lanca, Adaga,
+                                                   Katana, Rapieira, Martelo, Machadinha, Bacalhau, Frigideira, Tocha, Vassoura };
 
         // Arma contundente: o "fio" não importa e não corta partes do esqueleto.
         public bool Blunt => Kind == WeaponKind.Maca || Kind == WeaponKind.Cajado;
@@ -78,7 +97,7 @@ namespace Arena.Core
         public const float GhostHandDistance = 0.08f;  // a partir daqui mostra a mão fantasma
 
         // Massa em kg (peso real aproximado; o "Weight" do WeaponDef é a escala de jogo usada no FollowRate).
-        public static float Mass(WeaponDef w) => w.Kind switch
+        public static float Mass(WeaponDef w) => w.MassKg > 0f ? w.MassKg : w.Kind switch
         {
             WeaponKind.Espada => 1.4f,
             WeaponKind.Machado => 3.5f,
@@ -131,7 +150,9 @@ namespace Arena.Core
 
         public static WeaponStrike For(WeaponDef w) => w.Kind switch
         {
-            WeaponKind.Machado => new WeaponStrike(new System.Numerics.Vector3(0f, -0.3f, 0.8f), new System.Numerics.Vector3(0f, -0.3f, 1.04f),
+            // Gume proporcional ao tamanho (o machado de 1,05 m fica como era; a machadinha tem a cabeça menor).
+            WeaponKind.Machado => new WeaponStrike(new System.Numerics.Vector3(0f, -0.3f * Math.Min(1f, w.Length / 1.05f), w.Length - 0.25f),
+                                                   new System.Numerics.Vector3(0f, -0.3f * Math.Min(1f, w.Length / 1.05f), w.Length - 0.01f),
                                                    new System.Numerics.Vector3(0f, -1f, 0f)),
             // Maça: só a cabeça (últimos 25 cm). Lança: só a ponta (últimos 45 cm); a haste não fere.
             WeaponKind.Maca => new WeaponStrike(new System.Numerics.Vector3(0f, 0f, w.Length - 0.25f), new System.Numerics.Vector3(0f, 0f, w.Length), System.Numerics.Vector3.Zero),

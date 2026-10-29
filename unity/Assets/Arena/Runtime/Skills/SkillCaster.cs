@@ -219,6 +219,8 @@ namespace Arena
             ArenaAudio.Play(Sfx.Explosion, pos, 1f);
             ArenaFx.Ring(pos, new Color(1f, 0.48f, 0.13f), radius);
             ArenaFx.Burst(pos, new Color(1f, 0.6f, 0.19f), 24, 5f, 2f);
+            Breakable.OnExplosion(pos, radius);   // caixas quebram, barris vermelhos explodem em cadeia
+            SecretWall.OnExplosion(pos, radius);  // explosão também abre a parede rachada
             foreach (var e in ArenaEnemy.All.ToArray())
             {
                 if (e == null || e.Dead) continue;

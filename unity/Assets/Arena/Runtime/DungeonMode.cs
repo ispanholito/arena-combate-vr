@@ -21,10 +21,15 @@ namespace Arena
         Material stone, wall, wood, fire, portalMat;
 
         void Awake() => game = GetComponent<ArenaGame>();
+        public Shop MerchantShop { get; } = new Shop();   // mercador perdido da dungeon
+        DungeonRoom challengeRoom;
+        float challengeT, challengeMsgT;
+        int combatCleared;   // salas de combate limpas nesta partida (altar de bênçãos)
 
         public void Begin(int seed, int bossesDefeated)
         {
             Run = new DungeonRun(seed, bossesDefeated);
+            combatCleared = 0;
             BuildFloor();
             game.Message("Dungeon — andar 1. Desça pela escada; o Rei Goblin espera no andar 2.", 3.5f);
         }
@@ -62,21 +67,21 @@ namespace Arena
             bool art = KayKitArt.Model("Dungeon/wall");
             var artRoot = new GameObject("Arte").transform; artRoot.SetParent(root, false);
             var rng = new System.Random(Run.Floor.Number * 7919 + f.Rooms.Count);
-            foreach (var r in f.Area.Rects)
+            foreach (var r in f.FullArea.Rects)
             {
                 var floor = Box("Chao", new Vector3(r.CenterX, -0.05f, r.CenterZ), new Vector3(r.Width, 0.1f, r.Depth), stone);
                 if (art) { floor.GetComponent<Renderer>().enabled = false; FloorTiles(artRoot, r.MinX, r.MinZ, r.MaxX, r.MaxZ, rng); }
             }
-            foreach (var (x0, z0, x1, z1) in f.Area.WallSegments())
+            foreach (var (x0, z0, x1, z1) in f.FullArea.WallSegments())
             {
                 bool alongX = Mathf.Approximately(z0, z1);
                 float len = alongX ? x1 - x0 : z1 - z0;
                 // A parede fica do lado de fora da borda (0,15 m), para não roubar espaço de andar.
                 var center = new Vector3((x0 + x1) * 0.5f, 2f, (z0 + z1) * 0.5f);
-                center += OutsideNormal(f.Area, x0, z0, x1, z1) * 0.15f;
+                center += OutsideNormal(f.FullArea, x0, z0, x1, z1) * 0.15f;
                 var wallBox = Box("Parede", center, alongX ? new Vector3(len + 0.3f, 4f, 0.3f) : new Vector3(0.3f, 4f, len + 0.3f), wall);
-                if (art) { wallBox.GetComponent<Renderer>().enabled = false; WallPieces(artRoot, f.Area, x0, z0, x1, z1, alongX, len, rng); }
-                else Torches(f.Area, x0, z0, x1, z1, alongX, len);
+                if (art) { wallBox.GetComponent<Renderer>().enabled = false; WallPieces(artRoot, f.FullArea, x0, z0, x1, z1, alongX, len, rng); }
+                else Torches(f.FullArea, x0, z0, x1, z1, alongX, len);
             }
             foreach (var room in f.Rooms)
             {
@@ -97,7 +102,10 @@ namespace Arena
                     GrapplePoint.Spawn(root, new Vector3(gx, 3.6f, gz));
                 GrapplePoint.Spawn(root, c + Vector3.up * 4.6f);
                 if (art) CornerProps(artRoot, room.Rect, rng);
+                if (room.Kind == RoomKind.Combate) Breakables(room.Rect, rng);
+                if (room.HasMerchant) BuildMerchant(c + Vector3.right * 2.5f);
             }
+            if (f.Secret != null) BuildSecret(f);
             if (art) StaticBatchingUtility.Combine(artRoot.gameObject);
             for (int i = 0; i < f.Traps.Count; i++)
                 SpikeTrap.Spawn(new Vector3(f.Traps[i].x, 0f, f.Traps[i].z), root, i * 0.9f);   // ciclos defasados
@@ -150,6 +158,84 @@ namespace Arena
             int a = rng.Next(4), b = (a + 1 + rng.Next(3)) % 4;
             foreach (int k in new[] { a, b })
                 KayKitArt.Place(Props[rng.Next(Props.Length)], parent, new Vector3(corners[k].Item1, 0f, corners[k].Item2), rng.Next(360));
+        }
+
+        // ---------- Salas especiais ----------
+        // Desafio: contagem regressiva na mensagem; acabou o tempo = perde o baú (a sala continua normal).
+        void TickChallenge(float dt)
+        {
+            if (challengeRoom == null || Run.ActiveRoom != challengeRoom) return;
+            challengeT -= dt;
+            challengeMsgT -= dt;
+            if (challengeT <= 0f)
+            {
+                challengeRoom = null;
+                game.Message("Desafio perdido: o tempo acabou", 2f);
+                ArenaAudio.Play2D(Sfx.Deny, 0.8f);
+                return;
+            }
+            if (challengeMsgT <= 0f) { challengeMsgT = 0.25f; game.Message("DESAFIO: " + Mathf.CeilToInt(challengeT) + " s", 0.4f); }
+        }
+
+        // Mercador perdido: 2 armas (Incomum ou melhor) penduradas, compra com grip/E.
+        void BuildMerchant(Vector3 at)
+        {
+            MerchantShop.Stock.Clear();
+            var stand = new GameObject("Mercador").transform;
+            stand.SetParent(root, false);
+            stand.position = at;
+            ArenaUtil.Prim(PrimitiveType.Cube, stand, new Vector3(0f, 0.45f, 0f), new Vector3(1.6f, 0.9f, 0.6f), wood, keepCollider: true);
+            // O mercador: um goblin encapuzado bem simples.
+            var robe = ArenaUtil.Lit(new Color(0.35f, 0.2f, 0.45f));
+            ArenaUtil.Prim(PrimitiveType.Capsule, stand, new Vector3(0f, 0.8f, 0.7f), new Vector3(0.5f, 0.8f, 0.5f), robe);
+            ArenaUtil.Prim(PrimitiveType.Sphere, stand, new Vector3(0f, 1.65f, 0.7f), Vector3.one * 0.38f, ArenaUtil.Lit(new Color(0.45f, 0.62f, 0.3f)));
+            for (int i = 0; i < SpecialRooms.MerchantItems; i++)
+            {
+                var item = game.Loot.RollItem(Rarity.Incomum, game.CurrentTier);
+                MerchantShop.Stock.Add(item);
+                var p = at + new Vector3(-0.4f + 0.8f * i, 1.1f, 0f);
+                WeaponPickup.Spawn(item, p).PlaceOnRack(p, Quaternion.LookRotation(Vector3.back), RackKind.Loja).SetPriceTag(Merchant.ShopPrice(item));
+            }
+            var sign = ArenaFx.MakeText(stand, "MERCADOR PERDIDO\n<size=40>grip/E na arma para comprar</size>", 0.006f, new Color(1f, 0.85f, 0.4f));
+            sign.transform.localPosition = new Vector3(0f, 2.4f, 0.7f);
+            sign.transform.rotation = Quaternion.LookRotation(Vector3.forward);
+        }
+
+        // Sala secreta: parede rachada na porta (quebra com golpe forte ou explosão), baú garantido lá dentro.
+        void BuildSecret(DungeonFloor f)
+        {
+            var s = f.Secret;
+            var c = new Vector3(s.Rect.CenterX, 0f, s.Rect.CenterZ);
+            var l = new GameObject("Luz secreta").AddComponent<Light>();
+            l.transform.SetParent(root, false);
+            l.transform.position = c + Vector3.up * 3f;
+            l.type = LightType.Point; l.range = 9f; l.intensity = 2f; l.color = new Color(1f, 0.85f, 0.4f);
+            var host = f.Rooms[f.SecretHost];
+            TreasureChest.Spawn(c, new Vector3(host.Rect.CenterX, 0f, host.Rect.CenterZ) - c, f.Number, root, false, rare: true);
+            var (x0, z0, x1, z1) = f.SecretDoor;
+            SecretWall.Spawn(new Vector3(x0, 0f, z0), new Vector3(x1, 0f, z1), root, () =>
+            {
+                f.OpenSecret();
+                if (Run != null && Run.ActiveRoom == null) ArenaUtil.Area = f.Area;
+                game.Message("SALA SECRETA!", 2.5f);
+                ArenaAudio.Play2D(Sfx.Level, 1f, 1.4f);
+            });
+        }
+
+        // Caixas e barris que quebram, encostados nas paredes (longe do meio delas, onde ficam as aberturas).
+        void Breakables(Rect2 r, System.Random rng)
+        {
+            int n = BreakableRules.CountForRoom(rng);
+            int explosive = BreakableRules.RoomHasExplosive(rng) ? rng.Next(n) : -1;
+            for (int i = 0; i < n; i++)
+            {
+                int side = rng.Next(4);
+                float t = rng.Next(2) == 0 ? (float)(0.12 + rng.NextDouble() * 0.22) : (float)(0.66 + rng.NextDouble() * 0.22);
+                float x = side < 2 ? Mathf.Lerp(r.MinX, r.MaxX, t) : (side == 2 ? r.MinX + 1.1f : r.MaxX - 1.1f);
+                float z = side >= 2 ? Mathf.Lerp(r.MinZ, r.MaxZ, t) : (side == 0 ? r.MinZ + 1.1f : r.MaxZ - 1.1f);
+                var kind = i == explosive ? BreakableKind.BarrilExplosivo : (rng.Next(2) == 0 ? BreakableKind.Caixa : BreakableKind.Barril);
+                Breakable.Spawn(kind, new Vector3(x, 0f, z), rng.Next(360), root);
+            }
         }
 
         // Tochas nas paredes a cada ~7 m (só a chama emissiva; luz de verdade é 1 por sala, pelo desempenho no Quest).
@@ -231,6 +317,7 @@ namespace Arena
             if (Run == null || ArenaGame.Blocked) return;
             float dt = Time.deltaTime;
             portalCd -= dt;
+            TickChallenge(dt);
             var p = game.Player.FeetPosition;
             var before = Run.CheckpointRoom;
             var room = Run.OnPlayerAt(p.x, p.z);
@@ -249,9 +336,25 @@ namespace Arena
                     var cleared = Run.ActiveRoom;
                     Run.OnRoomEmpty();
                     Unlock();
+                    if (cleared != null && cleared == challengeRoom)
+                    {
+                        challengeRoom = null;
+                        var cc = new Vector3(cleared.Rect.CenterX, 0f, cleared.Rect.CenterZ) + Vector3.left * 1.6f;
+                        TreasureChest.Spawn(cc, game.Player.FeetPosition - cc, Run.Floor.Number, root, false, rare: true);
+                        game.Message("DESAFIO VENCIDO! Baú raro", 2.5f);
+                        ArenaAudio.Play2D(Sfx.Level, 1f, 1.2f);
+                    }
                     if (cleared != null && cleared.HasChest)
                         TreasureChest.Spawn(new Vector3(cleared.Rect.CenterX, 0f, cleared.Rect.CenterZ), game.Player.FeetPosition - new Vector3(cleared.Rect.CenterX, 0f, cleared.Rect.CenterZ), Run.Floor.Number, root, cleared.ChestIsMimic);
                     game.Message("Sala limpa", 1.2f);
+                    if (cleared != null && cleared.Kind == RoomKind.Combate && RunBlessings.AltarAfterRoom(++combatCleared))
+                    {
+                        // Altar ao lado do centro (o baú fica no centro), do lado de onde o jogador está.
+                        var c = new Vector3(cleared.Rect.CenterX, 0f, cleared.Rect.CenterZ);
+                        var toPl = (game.Player.FeetPosition - c).Flat();
+                        toPl = toPl.sqrMagnitude > 0.01f ? toPl.normalized : Vector3.forward;
+                        game.OfferBlessings(c + toPl * 2.2f + Vector3.Cross(Vector3.up, toPl) * 1.5f, root);
+                    }
                     ArenaAudio.Play2D(Sfx.Level, 0.4f, 0.8f);
                     game.RequestSave();
                 }
@@ -310,6 +413,13 @@ namespace Arena
             ArenaAudio.Play2D(Sfx.Windup, 0.7f, 0.6f);
             Lock(room);
             if (room.Kind != RoomKind.Chefe) game.Message("Emboscada! " + room.Enemies.Count + " inimigos", 1.4f);
+            if (room.IsChallenge)
+            {
+                challengeRoom = room;
+                challengeT = SpecialRooms.ChallengeTime(room.Enemies.Count);
+                game.Message("DESAFIO! Limpe a sala em " + Mathf.CeilToInt(challengeT) + " s para ganhar um baú raro", 2.5f);
+                challengeMsgT = 2.5f;
+            }
         }
 
         // Emboscada: portas de barras nas aberturas da sala e a área de andar fica só a sala (ninguém sai até limpar).
@@ -360,6 +470,7 @@ namespace Arena
 
         public void OnPlayerDied()
         {
+            challengeRoom = null;
             Run.OnPlayerDied();
             Unlock();
             SetCheckpoint(Run.CheckpointRoom);

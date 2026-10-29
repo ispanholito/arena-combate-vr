@@ -75,10 +75,10 @@ namespace Arena.Core.Tests
         public void Legendaries_HaveUniqueNames_AndEffects()
         {
             var names = WeaponDef.All.Select(w => new ItemInstance(w, Rarity.Lendario).DisplayName).ToList();
-            Assert.AreEqual(6, names.Distinct().Count());
+            Assert.AreEqual(names.Count, names.Distinct().Count());
             Assert.AreEqual("Presa da Serpente", new ItemInstance(WeaponDef.Lanca, Rarity.Lendario).DisplayName);
             Assert.AreEqual("Presa da Serpente +2", new ItemInstance(WeaponDef.Lanca, Rarity.Lendario, null, 2).DisplayName);
-            Assert.AreEqual(6, WeaponDef.All.Select(w => WeaponAbilities.LegendaryEffect(w.Kind)).Distinct().Count());
+            Assert.AreEqual(6, WeaponDef.All.Select(w => WeaponAbilities.LegendaryEffect(w.Kind)).Distinct().Count());   // um efeito por tipo
             var ps = new PlayerState(ClassId.Lamina);
             ps.ArmBackstab(WeaponAbilities.LegendaryBackstabMultiplier);
             Assert.AreEqual(3f, ps.BackstabMultiplier);

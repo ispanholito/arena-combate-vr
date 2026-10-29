@@ -87,7 +87,7 @@ namespace Arena.Core
                     Rarity.Incomum => Base.Name + " Fina",
                     Rarity.Raro => Base.Name + " Rara",
                     Rarity.Epico => Base.Name + " Épica",
-                    Rarity.Lendario => WeaponAbilities.LegendaryName(Base.Kind),
+                    Rarity.Lendario => Base.Look == WeaponLook.Padrao ? WeaponAbilities.LegendaryName(Base.Kind) : Base.Name,
                     _ => Base.Name,
                 };
                 return Upgrade > 0 ? $"{n} +{Upgrade}" : n;

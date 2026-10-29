@@ -267,6 +267,8 @@ namespace Arena
             ArenaAudio.Play(weapon.Weight > 5f ? Sfx.HitHeavy : Sfx.Hit, Center, 0.4f + tipSpeed / 10f);
             hitCooldown = Combat.HitCooldown;
             var ev = ApplyDamage(dmg, weapon.PostureFactor, dir, Combat.Knockback(tipSpeed, weapon));
+            if (weapon.HeatPerHit > 0f && !Dead) State.Status.AddHeat(weapon.HeatPerHit);   // tocha
+            if (weapon.Funny) WeaponModels.FunnyHit(weapon, Center);
             // Nocaute: pancada forte na cabeça atordoa.
             if (!Dead && DamageTypes.Knocksout(Def.Kind, type, head, tipSpeed))
             {

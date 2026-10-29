@@ -15,7 +15,9 @@ namespace Arena
         Transform lid;
         float openT;
 
-        public static TreasureChest Spawn(Vector3 pos, Vector3 facing, int floor, Transform parent, bool mimic = false)
+        bool rare;   // baú do desafio / sala secreta: arma Rara ou melhor e o dobro de ouro
+
+        public static TreasureChest Spawn(Vector3 pos, Vector3 facing, int floor, Transform parent, bool mimic = false, bool rare = false)
         {
             var go = new GameObject("Bau");
             go.transform.SetParent(parent, false);
@@ -24,6 +26,7 @@ namespace Arena
             var c = go.AddComponent<TreasureChest>();
             c.floor = floor;
             c.mimic = mimic;
+            c.rare = rare;
             c.Build();
             All.Add(c);
             ArenaFx.Burst(pos + Vector3.up * 0.4f, new Color(1f, 0.85f, 0.3f), 16, 2.5f);
@@ -96,6 +99,8 @@ namespace Arena
             var game = ArenaGame.Instance;
             if (mimic && game) { Reveal(game); return; }
             var (gold, item) = game ? game.Loot.RollChest(floor, game.CurrentTier) : (10, null);
+            if (rare && game) { gold *= 2; item = game.Loot.RollItem(Rarity.Raro, game.CurrentTier); }
+            gold = player.State.Blessings.ScaleGold(gold);
             player.State.AddGold(gold);
             bool potion = game && game.Loot.RollChestPotion() && player.State.AddPotion();
             var top = transform.position + Vector3.up * 0.8f;

@@ -618,6 +618,7 @@ namespace Arena
             speed = move.magnitude;
             if (move.sqrMagnitude > 1e-6f)
             {
+                if (State.Elite == EliteKind.Furioso) move *= EliteRules.FuriousSpeed;   // elite furioso anda mais rápido
                 anchor.MovePosition(ArenaUtil.ClampToArena(anchor.position + move * dt));
                 phase += dt * 7f;
             }
@@ -640,7 +641,7 @@ namespace Arena
             if (attack != Attack.None)
             {
                 attackT += dt;
-                float windup = (Armed ? 1.0f : 0.6f) * DifficultyRules.WindupMultiplier(Diff) * (riposte ? 0.6f : 1f);
+                float windup = (Armed ? 1.0f : 0.6f) * DifficultyRules.WindupMultiplier(Diff) * EliteRules.WindupMultiplier(State.Elite) * (riposte ? 0.6f : 1f);
                 if (attack == Attack.Windup && feint && attackT > windup * CombatSteering.FeintAt)
                 {
                     // Finta: ergueu a arma e desistiu, com um passinho para trás (quem aparou no ar fica exposto).
@@ -892,6 +893,8 @@ namespace Arena
                         * ActiveRagdollRules.DamageMultiplier(id) * DamageTypes.Multiplier(DamageTypes.MaterialOf(Kind), dtype);
             dmg *= FlameBlade.DamageMultiplier;   // arma em chamas: +30% e põe calor
             FlameBlade.OnHit(State);
+            if (def.HeatPerHit > 0f && mode != Mode.Dead) State.Status.AddHeat(def.HeatPerHit);   // tocha
+            if (def.Funny) WeaponModels.FunnyHit(def, contact);
             if (dmg > 0f && mode != Mode.Dead) Damage(dmg, contact);
             flopT = ActiveRagdollRules.HitFlopSeconds;
             if (mode == Mode.Stand && ActiveRagdollRules.Knocksdown(id, speed / spec.KnockdownMultiplier, def.Weight > 5f)) KnockDown();

@@ -199,12 +199,17 @@ namespace Arena
         // character: personagem do salvo ou novo. Arena/Dungeon gravam nele; Treino usa um personagem de nível 10 à parte.
         public void StartMode(GameMode mode, PlayerState character)
         {
+            // Trocar de modo encerra a partida: as bênçãos acabam.
+            BlessingAltar.ClearAll();
+            player.State?.ClearBlessings();
+            character?.ClearBlessings();
             ClearEnemies();
             LeaveDungeon();
             if (TutorialMode.Instance) Destroy(TutorialMode.Instance.gameObject);
             Mode = mode;
             SetTrainingHall(mode == GameMode.Treino || mode == GameMode.Arena);
             NavObstacles.SetFromArena(arenaWorld, mode == GameMode.Arena || mode == GameMode.Treino);
+            if (mode == GameMode.Arena || mode == GameMode.Treino) SpawnArenaBreakables();
             if (mode == GameMode.Treino)
             {
                 player.ResetCharacter(character.Class.Id);
@@ -263,6 +268,7 @@ namespace Arena
             WeaponPickup.ClearAll(Mode == GameMode.Treino || Mode == GameMode.Menu ? null : player.State);
             if (ragdollSpawner) Destroy(ragdollSpawner.gameObject);
             RagdollGoblin.ClearAll();
+            Breakable.ClearAll();
             Tokens.Clear();
             foreach (var e in ArenaEnemy.All.ToArray()) if (e) Destroy(e.gameObject);
             ArenaEnemy.All.Clear();
@@ -309,6 +315,7 @@ namespace Arena
             float dt = Time.deltaTime;
             MessageTime -= dt;
             Tokens.Capacity = CombatAI.AttackTokens(SaveSystem.Options.Difficulty);
+            RunBlessings.Current = player.State?.Blessings;   // os inimigos leem daqui o dano extra das bênçãos
             SyncPhysicsRate();
             if (Mode == GameMode.Treino)
             {
@@ -358,10 +365,17 @@ namespace Arena
         }
 
         // forcePhysical: corpo físico mesmo com a opção beta desligada (goblins do Treino).
+        static readonly System.Random eliteRng = new System.Random();
+
         public ArenaEnemy Spawn(EnemyDef def, Vector3 pos, bool fromDirector, bool forcePhysical = false)
         {
             var diff = SaveSystem.Options.Difficulty;
-            if (def.Kind != EnemyKind.Boneco) def = def.Scaled(DifficultyRules.EnemyHp(diff) * ArcadeRules.HpMultiplier(CurrentTier), DifficultyRules.WindupMultiplier(diff));
+            // Elite: só na Arena e na Dungeon (Treino e chefe não).
+            var elite = Mode == GameMode.Dungeon ? EliteRules.Roll(def.Kind, EliteRules.Chance(true, dungeon.Run?.Floor.Number ?? 1), eliteRng)
+                      : Mode == GameMode.Arena ? EliteRules.Roll(def.Kind, EliteRules.Chance(false, player.State.Kills), eliteRng)
+                      : EliteKind.Nenhum;
+            if (def.Kind != EnemyKind.Boneco) def = def.Scaled(DifficultyRules.EnemyHp(diff) * ArcadeRules.HpMultiplier(CurrentTier) * EliteRules.HpMultiplier(elite),
+                                                               DifficultyRules.WindupMultiplier(diff) * EliteRules.WindupMultiplier(elite));
             var go = new GameObject(def.Name);
             go.transform.SetParent(enemyRoot, false);
             go.transform.position = ArenaUtil.ClampToArena(new Vector3(pos.x, 0, pos.z));
@@ -378,6 +392,7 @@ namespace Arena
                 _ => go.AddComponent<GoblinKing>(),
             };
             e.Init(def);
+            if (elite != EliteKind.Nenhum) { e.State.Elite = elite; EliteAura.Attach(e); }
             var look = (player.FeetPosition - go.transform.position).Flat();
             if (look.sqrMagnitude > 0.01f) go.transform.rotation = Quaternion.LookRotation(look);
             return e;
@@ -386,7 +401,9 @@ namespace Arena
         public void OnEnemyKilled(ArenaEnemy e)
         {
             int levelBefore = player.State.Progression.Level;
-            player.State.AddKill(e.Def.Xp);
+            bool elite = e.State.Elite != EliteKind.Nenhum;
+            player.State.AddKill(elite ? Mathf.RoundToInt(e.Def.Xp * EliteRules.XpMultiplier) : e.Def.Xp);
+            if (e.State.Elite == EliteKind.Explosivo) EliteAura.ExplodeLater(e.Center);
             player.State.OnKillPassive();
             DropLoot(e);
             if (e is GoblinKing && Mode == GameMode.Dungeon)
@@ -406,6 +423,9 @@ namespace Arena
                 player.State.ArenaTier = ArcadeRules.Clamp(player.State.ArenaTier + 1);
                 Message("Rei Goblin derrotado! Arena na profundidade " + player.State.ArenaTier, 2.5f);
             }
+            // Arena: altar de bênçãos a cada N abates (no centro, se não houver outro).
+            if (Mode == GameMode.Arena && Boss == null && player.State.Kills > 0 && player.State.Kills % RunBlessings.ArenaKillsPerAltar == 0 && BlessingAltar.All.Count == 0)
+                OfferBlessings(Vector3.zero, null);
             if (player.State.Progression.Level > levelBefore)
                 Message($"Nível {player.State.Progression.Level}! +1 ponto de habilidade (abra a árvore)", 2f);
             RequestSave();
@@ -416,12 +436,15 @@ namespace Arena
         {
             if (Mode == GameMode.Treino) return;
             int gold = Loot.RollGold(e.Def.Kind, CurrentTier);
+            if (e.State.Elite != EliteKind.Nenhum) gold = Mathf.RoundToInt(gold * EliteRules.GoldMultiplier);
+            gold = player.State.Blessings.ScaleGold(gold);
             if (gold > 0)
             {
                 player.State.AddGold(gold);
                 ArenaFx.FloatText("+" + gold + " ouro", e.Center + Vector3.up * 0.9f, new Color(1f, 0.85f, 0.3f), 0.9f);
             }
             var item = Loot.RollDrop(e.Def.Kind, CurrentTier);
+            if (item == null && e.State.Elite != EliteKind.Nenhum && Random.value < EliteRules.WeaponDropChance) item = Loot.RollChest(2, CurrentTier).Item2;
             if (item == null) return;
             var dir = Random.insideUnitCircle.normalized;
             WeaponPickup.Spawn(item, e.Center, new Vector3(dir.x * 1.5f, 3.5f, dir.y * 1.5f));
@@ -459,7 +482,7 @@ namespace Arena
                 Message($"Você morreu: {lossText} e a dungeon recomeça da profundidade 1", 3.5f);
                 return;
             }
-            if (Mode == GameMode.Arena) player.State.ArenaTier = 1;
+            if (Mode == GameMode.Arena) { player.State.ArenaTier = 1; st.ClearBlessings(); BlessingAltar.ClearAll(); }   // morrer na arena acaba a partida
             foreach (var e in ArenaEnemy.All.ToArray()) if (e) Destroy(e.gameObject);
             ArenaEnemy.All.Clear();
             RagdollGoblin.ClearAll();
@@ -473,6 +496,41 @@ namespace Arena
         }
 
         RagdollGoblinSpawner ragdollSpawner;
+
+        // Arena/Treino: caixas e barris perto das paredes; quebrou = renasce no mesmo lugar depois de um tempo.
+        void SpawnArenaBreakables()
+        {
+            float h = Combat.ArenaHalfSize - 1.3f;
+            var spots = new (float x, float z, BreakableKind k)[]
+            {
+                (-h, -4f, BreakableKind.BarrilExplosivo), (h, 4f, BreakableKind.BarrilExplosivo),
+                (4f, -h, BreakableKind.BarrilExplosivo), (-4f, h, BreakableKind.BarrilExplosivo),
+                (-h, 5f, BreakableKind.Caixa), (h, -5f, BreakableKind.Barril), (-5f, -h, BreakableKind.Barril), (5f, h, BreakableKind.Caixa),
+            };
+            foreach (var s in spots) SpawnArenaBreakable(new Vector3(s.x, 0f, s.z), s.k);
+        }
+
+        void SpawnArenaBreakable(Vector3 pos, BreakableKind kind)
+        {
+            var b = Breakable.Spawn(kind, pos, Random.Range(0f, 360f), null);
+            var mode = Mode;
+            b.OnBroken = _ => StartCoroutine(RespawnBreakable(pos, kind, mode));
+        }
+
+        System.Collections.IEnumerator RespawnBreakable(Vector3 pos, BreakableKind kind, GameMode mode)
+        {
+            yield return new WaitForSeconds(BreakableRules.ArenaRespawnSeconds);
+            if (Mode == mode && (Mode == GameMode.Arena || Mode == GameMode.Treino)) SpawnArenaBreakable(pos, kind);
+        }
+
+        // Altar com 3 bênçãos que o jogador ainda não tem.
+        public void OfferBlessings(Vector3 at, Transform parent)
+        {
+            var choices = player.State.Blessings.RollChoices(new System.Random(Random.Range(0, int.MaxValue)));
+            if (choices.Count == 0) return;
+            BlessingAltar.Spawn(at, player.FeetPosition - at, choices, parent);
+            Message("Altar de bênçãos: toque num orbe para escolher", 2.5f);
+        }
 
         public void Message(string text, float seconds)
         {

@@ -108,7 +108,7 @@ namespace Arena.Core
         }
     }
 
-    public enum RoomKind { Inicio, Combate, Fogueira, Escada, Chefe }
+    public enum RoomKind { Inicio, Combate, Fogueira, Escada, Chefe, Secreta }
 
     public sealed class DungeonRoom
     {
@@ -121,6 +121,17 @@ namespace Arena.Core
         public bool HasChest;          // baú aparece quando a sala é limpa
         public bool ChestIsMimic;      // o baú é um mímico
         public int EnteredFrom = -1;   // sala anterior (para os inimigos nascerem longe da entrada)
+        public bool IsChallenge;       // sala de desafio: limpar dentro do tempo = baú raro
+        public bool HasMerchant;       // mercador perdido (fogueira do andar 2)
+    }
+
+    // Salas especiais (inspiração Soul Knight).
+    public static class SpecialRooms
+    {
+        public const double SecretChance = 0.6, ChallengeChance = 0.5, MerchantChance = 0.7;
+        public const int SecretSize = 10, MerchantItems = 2;
+        // Desafio: 20 s + 3 s por inimigo.
+        public static float ChallengeTime(int enemies) => 20f + 3f * enemies;
     }
 
     public sealed class DungeonFloor
@@ -130,6 +141,15 @@ namespace Arena.Core
         public List<Rect2> Corridors = new List<Rect2>();
         public List<(float x, float z)> Traps = new List<(float, float)>();   // armadilhas de espinhos (centro da placa)
         public WalkArea Area;
+        // Sala secreta: fica FORA da lista de salas (não entra no caminho nem no mapa). A parede rachada na porta
+        // (SecretDoor, na borda da sala hospedeira) quebra com golpe; aí a área de andar passa a incluir a sala.
+        public DungeonRoom Secret;
+        public Rect2 SecretCorridor;
+        public int SecretHost = -1;
+        public (float x0, float z0, float x1, float z1) SecretDoor;
+        public WalkArea FullArea;      // com a sala secreta (as paredes são geradas por esta)
+        public bool SecretOpen;
+        public void OpenSecret() { SecretOpen = true; if (FullArea != null) Area = FullArea; }
         public DungeonRoom Start => Rooms[0];
         public DungeonRoom Last => Rooms[Rooms.Count - 1];
 
@@ -206,7 +226,44 @@ namespace Arena.Core
             }
             f.Area = new WalkArea(f.Rooms.Select(r => r.Rect).Concat(f.Corridors));
             PlaceTraps(f, rng, floor);
+            // Sala de desafio (não a 1ª de combate) e mercador perdido na fogueira do andar 2.
+            var combatRooms = f.Rooms.Where(r => r.Kind == RoomKind.Combate).ToList();
+            if (combatRooms.Count > 1 && rng.NextDouble() < SpecialRooms.ChallengeChance) combatRooms[1 + rng.Next(combatRooms.Count - 1)].IsChallenge = true;
+            foreach (var r in f.Rooms) if (r.Kind == RoomKind.Fogueira && last && rng.NextDouble() < SpecialRooms.MerchantChance) r.HasMerchant = true;
+            if (rng.NextDouble() < SpecialRooms.SecretChance) PlaceSecret(f, cells, rng);
+            f.FullArea = f.Secret != null ? new WalkArea(f.Rooms.Select(r => r.Rect).Concat(f.Corridors).Append(f.Secret.Rect).Append(f.SecretCorridor)) : f.Area;
             return f;
+        }
+
+        // Sala secreta numa célula livre ao lado de uma sala de combate, ligada por um corredor curto.
+        static void PlaceSecret(DungeonFloor f, List<(int x, int z)> cells, Random rng)
+        {
+            var used = new HashSet<(int, int)>(cells);
+            var dirs = new[] { (0, 1), (1, 0), (0, -1), (-1, 0) };
+            var hosts = f.Rooms.Where(r => r.Kind == RoomKind.Combate).OrderBy(_ => rng.Next()).ToList();
+            foreach (var host in hosts)
+            {
+                var hc = cells[host.Index];
+                foreach (var (dx, dz) in dirs.OrderBy(_ => rng.Next()))
+                {
+                    var n = (hc.x + dx, hc.z + dz);
+                    if (used.Contains(n)) continue;
+                    var rect = Rect2.Centered(n.Item1 * Cell, n.Item2 * Cell, SpecialRooms.SecretSize, SpecialRooms.SecretSize);
+                    var a = host.Rect;
+                    float h = CorridorWidth / 2f - 0.5f;   // corredor um pouco mais estreito
+                    var cor = dx == 0
+                        ? new Rect2(a.CenterX - h, Math.Min(a.CenterZ, rect.CenterZ), a.CenterX + h, Math.Max(a.CenterZ, rect.CenterZ))
+                        : new Rect2(Math.Min(a.CenterX, rect.CenterX), a.CenterZ - h, Math.Max(a.CenterX, rect.CenterX), a.CenterZ + h);
+                    // (Corredores do caminho ligam só células vizinhas: não cruzam este.)
+                    f.Secret = new DungeonRoom { Index = -1, Kind = RoomKind.Secreta, Rect = rect, HasChest = true, Cleared = true };
+                    f.SecretCorridor = cor;
+                    f.SecretHost = host.Index;
+                    f.SecretDoor = dx == 0
+                        ? (cor.MinX, dz > 0 ? a.MaxZ : a.MinZ, cor.MaxX, dz > 0 ? a.MaxZ : a.MinZ)
+                        : (dx > 0 ? a.MaxX : a.MinX, cor.MinZ, dx > 0 ? a.MaxX : a.MinX, cor.MaxZ);
+                    return;
+                }
+            }
         }
 
         // Espinhos: 0-1 por sala de combate no andar 1, 1-2 no andar 2, longe do centro (onde aparece o baú); e às

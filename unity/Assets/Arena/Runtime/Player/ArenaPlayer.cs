@@ -130,6 +130,12 @@ namespace Arena
                 {
                     if (ArenaGame.Instance) ArenaGame.Instance.OnPlayerDied(lost);
                 };
+                State.SecondChance += () =>
+                {
+                    if (ArenaGame.Instance) ArenaGame.Instance.Message("SEGUNDA CHANCE! Você levantou com metade da vida", 2.5f);
+                    ArenaAudio.Play2D(Sfx.Level, 1f, 0.7f);
+                    ArenaFx.Burst(HeadPosition + Vector3.down * 0.6f, new Color(1f, 1f, 0.75f), 40, 4f);
+                };
             }
             SetupLoadout();
             dashT = chargeT = 0f;
@@ -288,9 +294,10 @@ namespace Arena
             else
             {
                 var mv = Input.Move;
-                rigRoot.position += (f * mv.y + r * mv.x) * Combat.MoveSpeed * dt;
+                float speed = Combat.MoveSpeed * State.Blessings.MoveMultiplier;   // bênção Pés Leves
+                rigRoot.position += (f * mv.y + r * mv.x) * speed * dt;
                 // Passos: um a cada 0,75 m andados com o analógico.
-                stepDist += mv.magnitude * Combat.MoveSpeed * dt;
+                stepDist += mv.magnitude * speed * dt;
                 if (stepDist > 0.75f) { stepDist = 0f; ArenaAudio.Play(Sfx.Step, FeetPosition, 0.35f, Random.Range(0.85f, 1.1f)); }
                 if (IsVr && SaveSystem.Options.moveVignette && mv.magnitude > 0.15f)
                     vignette = Mathf.Max(vignette, GameOptions.MoveVignetteLevel * Mathf.Min(1f, mv.magnitude));

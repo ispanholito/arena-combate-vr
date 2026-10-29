@@ -9,6 +9,15 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000000000000000000000000. NOVO — leva Soul Knight (bênçãos, destrutíveis, elites, salas especiais, armas)
+- [ ] **Bênçãos**: na dungeon, limpe a 1ª sala de combate → altar com 3 orbes. Dá para ler os nomes? Tocar o orbe com a mão escolhe (com a espada na mão também)? Na arena aparece no centro a cada 6 abates.
+- [ ] **Caixas e barris**: quebram com um golpe normal? Solta ouro às vezes? **Barril vermelho** explode e leva os vizinhos? Bola de fogo também quebra?
+- [ ] **Elites**: anel colorido nos pés e "ELITE ..." em cima. O Explosivo dá tempo de fugir (1 s)? O Blindado está chato demais?
+- [ ] **Sala secreta**: procure uma parede com rachaduras brilhando numa sala de combate e bata forte. Abre? Tem baú dentro?
+- [ ] **Desafio**: "DESAFIO! Limpe a sala em X s". O tempo é justo?
+- [ ] **Mercador perdido** na fogueira do andar 2 (nem sempre aparece): comprar com grip.
+- [ ] **Armas novas** (aparecem no loot): Katana, Rapieira, Martelo de Guerra, Machadinha, Bacalhau Seco, Frigideira ("BONK!"), Tocha (põe fogo) e Vassoura de Bruxa (cajado). Peso e empunhadura parecem certos? Alguma está torta na mão?
+
 ## 0000000000000000000000000. NOVO — Muralha Impenetrável, Raio do céu, lâmina que atravessa
 - [ ] **Muralha**: soque o punho na palma aberta da outra mão → aura vermelha (anel nos pés, mãos vermelhas). Soco joga goblin longe? Orc atordoa rápido? Ponha a mão no caminho da clava (bloqueio) e vá rápido contra ela (aparo). Palma batida = onda para frente; punho na palma = onda em volta.
 - [ ] **Raio do céu**: olhe para cima, mão fechada acima da cabeça, abra → relâmpago desce na mão. Estique o braço para frente → raio pula entre os inimigos. Algum conflito com a teia (olhando para um gancho aceso)?

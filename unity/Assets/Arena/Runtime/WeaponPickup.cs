@@ -164,7 +164,8 @@ namespace Arena
             var item = best.Item;
             if (best.Rack == RackKind.Loja)
             {
-                var shop = ArenaGame.Instance && ArenaGame.Instance.Sanctuary ? ArenaGame.Instance.Sanctuary.Shop : null;
+                var g = ArenaGame.Instance;
+                var shop = g && g.Dungeon && g.Dungeon.Active ? g.Dungeon.MerchantShop : g && g.Sanctuary ? g.Sanctuary.Shop : null;
                 if (shop == null || !shop.TryBuy(item, player.State))
                 {
                     ArenaGame.Instance?.Message("Custa " + Merchant.ShopPrice(item) + " de ouro (você tem " + player.State.Gold + ")", 1.4f);

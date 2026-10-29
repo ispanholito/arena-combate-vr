@@ -31,6 +31,25 @@ namespace Arena.Core
 
         readonly Dictionary<string, float> cooldowns = new Dictionary<string, float>();
 
+        // Bênçãos da partida (altar depois das salas). Não vão no salvo.
+        public RunBlessings Blessings { get; } = new RunBlessings();
+        public event Action SecondChance;
+
+        public void ChooseBlessing(BlessingId id)
+        {
+            if (!Blessings.Add(id)) return;
+            if (id == BlessingId.CoracaoForte) { ApplyLevelStats(fill: false); Hp.Restore(RunBlessings.HpBonus); }
+            if (id == BlessingId.PocaoExtra) { AddPotion(); Hp.Fill(); }
+        }
+
+        // Fim da partida (saiu da dungeon, morreu na arena): perde as bênçãos.
+        public void ClearBlessings()
+        {
+            if (Blessings.Count == 0) return;
+            Blessings.Clear();
+            ApplyLevelStats(fill: false);
+        }
+
         public event Action<float> Hurt;
         public event Action<int> Died;          // XP perdido
         public event Action<int> LeveledUp;
@@ -198,7 +217,7 @@ namespace Arena.Core
             if (r != SkillCastResult.Ok) return r;
             var item = ActiveItem;
             (item.Ability.Resource == ResourceKind.Mana ? Mana : Stamina).TrySpend(item.Ability.Cost, 0.6f);
-            cooldowns[WeaponAbilities.CooldownId] = WeaponAbilities.CooldownFor(item);
+            cooldowns[WeaponAbilities.CooldownId] = WeaponAbilities.CooldownFor(item) * Blessings.CooldownMultiplier;
             return r;
         }
 
@@ -225,7 +244,7 @@ namespace Arena.Core
         void ApplyLevelStats(bool fill)
         {
             int l = Progression.Level;
-            Hp.SetMax(Class.MaxHp(l), fill);
+            Hp.SetMax(Class.MaxHp(l) + Blessings.BonusHp, fill);
             Stamina.SetMax(Class.MaxStamina(l), fill);
             Mana.SetMax(Class.MaxMana(l), fill);
         }
@@ -234,11 +253,15 @@ namespace Arena.Core
         public bool TakeDamage(float amount)
         {
             if (Invulnerable > 0f || HurtCooldown > 0f || amount <= 0f) return false;
-            Hp.Drain(amount);
+            Hp.Drain(amount * Blessings.DamageTakenMultiplier);
             HurtCooldown = 0.4f;
             Stamina.DelayRegen(1.5f);   // levar dano trava a estamina menos tempo (era 3 s)
             Hurt?.Invoke(amount);
-            if (Hp.IsEmpty) Die();
+            if (Hp.IsEmpty)
+            {
+                if (Blessings.TryCheatDeath()) { Hp.Restore(Hp.Max * RunBlessings.SecondChanceHp); SetInvulnerable(2f); SecondChance?.Invoke(); }
+                else Die();
+            }
             return true;
         }
 
@@ -308,7 +331,7 @@ namespace Arena.Core
             (node.Resource == ResourceKind.Mana ? Mana : Stamina).TrySpend(node.Cost, 0.6f);
             float cd = node.Cooldown;
             if (id == SkillIds.Investida && Has(SkillIds.InvestidaCadeia)) cd *= 0.5f;
-            cooldowns[id] = cd;
+            cooldowns[id] = cd * Blessings.CooldownMultiplier;
             if (id == SkillIds.Contra) CounterStance = 2f;
             if (id == SkillIds.VentoLamina) WindCharges = 2;
             return r;
@@ -339,7 +362,7 @@ namespace Arena.Core
             var key = HandCooldownKey(id, hand);
             if (CooldownLeft(key) > 0f) return SkillCastResult.Cooldown;
             if (!Mana.TrySpend(cost, 0.6f)) return SkillCastResult.NoMana;
-            cooldowns[key] = cd;
+            cooldowns[key] = cd * Blessings.CooldownMultiplier;
             return SkillCastResult.Ok;
         }
 
@@ -349,7 +372,7 @@ namespace Arena.Core
         // Esquiva = dash. Retorna false se não houver estamina.
         public bool TryDash()
         {
-            if (!Stamina.TrySpend(Combat.DashCost(Has(SkillIds.PassoLeve)), 0.8f)) return false;
+            if (!Stamina.TrySpend(Combat.DashCost(Has(SkillIds.PassoLeve)) * Blessings.DashCostMultiplier, 0.8f)) return false;
             SetInvulnerable(0.3f);
             return true;
         }
@@ -364,7 +387,10 @@ namespace Arena.Core
             HurtCooldown = Math.Max(0f, HurtCooldown - dt);
             CounterStance = Math.Max(0f, CounterStance - dt);
             BackstabReady = Math.Max(0f, BackstabReady - dt);
-            Mana.RegenPerSecond = Has(SkillIds.FonteArcana) ? ManaRegenFonte : ManaRegen;
+            Mana.RegenPerSecond = (Has(SkillIds.FonteArcana) ? ManaRegenFonte : ManaRegen) * Blessings.ManaRegenMultiplier;
+            Stamina.RegenPerSecond = StaminaRegen * Blessings.StaminaRegenMultiplier;
+            float heal = Blessings.TakeHeal();
+            if (heal > 0f && !Hp.IsEmpty) Hp.Restore(heal);
             Hp.Tick(dt); Stamina.Tick(dt); Mana.Tick(dt);
             if (cooldowns.Count == 0) return;
             var keys = new List<string>(cooldowns.Keys);

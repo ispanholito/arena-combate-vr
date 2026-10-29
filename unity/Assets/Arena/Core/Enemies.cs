@@ -80,6 +80,8 @@ namespace Arena.Core
         public float Frozen { get; private set; }
         public float Rooted { get; private set; }
         public StatusEffects Status { get; }
+        public EliteKind Elite { get; set; }   // elite: aura e modificador (Core/Elites.cs)
+        float sinceHit = 99f;
 
         public event Action<DamageEvent> Damaged;
         public event Action Died;
@@ -96,17 +98,28 @@ namespace Arena.Core
         public float HpFraction => Def.MaxHp <= 0 ? 0 : Math.Max(0f, Hp / Def.MaxHp);
         public bool CanAct => !Dead && Stun <= 0f && Frozen <= 0f && Rooted <= 0f && Status.Electrocuted <= 0f;
         public bool CanMove => !Dead && Stun <= 0f && Frozen <= 0f && Rooted <= 0f;
-        public float SpeedMultiplier => Status.Electrocuted > 0f ? StatusRules.ElectrocuteSpeed : Slow > 0f ? 0.45f : 1f;
+        public float SpeedMultiplier => (Status.Electrocuted > 0f ? StatusRules.ElectrocuteSpeed : Slow > 0f ? 0.45f : 1f)
+                                        * (Elite == EliteKind.Furioso ? EliteRules.FuriousSpeed : 1f);
 
         // postureFactor: fração do dano que vira postura (0,7 padrão). Retorna o dano aplicado.
         public DamageEvent TakeDamage(float amount, float postureFactor = 0.7f, bool canCrit = true, bool burn = false, bool dot = false)
         {
             if (Dead) return default;
+            var bless = dot ? null : RunBlessings.Current;   // bênçãos da partida (dano extra, executor)
+            if (bless != null) amount *= bless.DamageMultiplier(HpFraction);
+            if (Elite == EliteKind.Blindado && !dot) amount *= EliteRules.ArmoredDamageTaken;
+            if (!dot) sinceHit = 0f;
             bool crit = canCrit && Posture.IsBroken;
             if (crit) amount *= Combat.CritMultiplier;
             if (burn && Rooted > 0f) amount *= Combat.BurnMultiplier; else burn = false;
             float dmg = (float)Math.Max(1, Math.Round(amount));
             Hp -= dmg;
+            if (bless != null)
+            {
+                bless.OnDamageDealt(dmg);
+                if (!Dead && bless.HeatPerHitAmount > 0f) Status.AddHeat(bless.HeatPerHitAmount);
+                if (!Dead && bless.ChargePerHitAmount > 0f) Status.AddCharge(bless.ChargePerHitAmount);
+            }
             bool broke = Posture.Add(dmg * postureFactor);
             var ev = new DamageEvent(dmg, crit, broke, burn, Dead, dot);
             Damaged?.Invoke(ev);
@@ -128,6 +141,9 @@ namespace Arena.Core
             Slow = Math.Max(0f, Slow - dt);
             Frozen = Math.Max(0f, Frozen - dt);
             Rooted = Math.Max(0f, Rooted - dt);
+            sinceHit += dt;
+            if (Elite == EliteKind.Regenerador && !Dead && sinceHit >= EliteRules.RegenAfterHit)
+                Hp = Math.Min(Def.MaxHp, Hp + Def.MaxHp * EliteRules.RegenPerSecond * dt);
             float burn = Status.Tick(dt);
             if (burn > 0f && !Dead) TakeDamage(burn, postureFactor: 0f, canCrit: false, dot: true);
         }

@@ -6,10 +6,10 @@ namespace Arena.Core.Tests
     public class ItemTests
     {
         [Test]
-        public void SixWeapons_WithUniqueIds()
+        public void AllWeapons_WithUniqueIds()
         {
-            Assert.AreEqual(6, WeaponDef.All.Length);
-            Assert.AreEqual(6, WeaponDef.All.Select(w => w.Id).Distinct().Count());
+            Assert.AreEqual(14, WeaponDef.All.Length);   // 6 originais + 8 da leva Soul Knight
+            Assert.AreEqual(WeaponDef.All.Length, WeaponDef.All.Select(w => w.Id).Distinct().Count());
         }
 
         [Test]

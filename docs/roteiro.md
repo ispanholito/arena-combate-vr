@@ -17,7 +17,8 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 - **Feito**: sala do Treino com KayKit (grátis, CC0) e esqueleto físico com modelo cortado por osso. Próximo: goblin/orc (o KayKit grátis não tem; opções: KayKit Adventurers adaptado, outro pacote CC0, ou pago), arma e mãos do jogador, levar o estilo para Arena/Dungeon se o FPS aguentar.
 - Balanceamento depois do visual, jogando.
 - **Marcado para outra hora (Pablo, 2026-10-29)**: **Raio do céu** — melhorar o visual (o raio de agora é uma linha em zigue-zague) e aumentar a duração (hoje fica 6 s na mão).
-- **Referência de estilo (2026-10-29)**: Soul Knight (celular). Ver a análise na conversa: copiar a estrutura de run (salas trancadas, buff entre andares, muitas armas com personalidade, cores vivas e legíveis). Não copiar o bullet hell nem o pixel art.
+- **Referência de estilo (2026-10-29)**: Soul Knight (celular). Arte para **8 a 21 anos**, colorida e estilizada, sem ficar boba. Não copiar o bullet hell, o pixel art nem "perder tudo ao morrer".
+- **Lista Soul Knight** (ordem do Pablo: 1 → 13 → 5 → 3 → 6; feitos em 2026-10-29): ~~1 bênçãos~~, ~~13 destrutíveis~~, ~~5 elites~~, ~~3 salas especiais (secreta, desafio, mercador)~~, ~~6 armas novas (8)~~. **Falta**: 2 estátuas/altares pagos com ouro, 4 chefe sorteado por andar (precisa de 2-3 chefes), 7 forja que funde 2 armas, 8 rebater projéteis de magia com a espada, 10 pets e mercenários, 11 NPCs resgatados que moram no santuário, 14 biomas por andar, 15 desafio diário / boss rush / coop. **Guardados** (decisão do Pablo): 9 meta-progressão (jardim no santuário) e 12 paleta/efeitos por bioma.
 
 ## Validar no Quest (pendente de teste seu)
 - **A** **Siga `docs/teste-quest.md`** (lista completa de tudo desde o último teste, na ordem de uma sessão).
