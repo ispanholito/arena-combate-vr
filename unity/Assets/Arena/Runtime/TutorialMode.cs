@@ -39,7 +39,7 @@ namespace Arena
             new Step { Title = "Raízes", Event = "raizes",
                 How = "Bata uma PALMA, separe as mãos e jogue as DUAS para baixo, rápido. Raízes prendem os inimigos à sua frente por 3 s. Fogo em quem está preso queima mais." },
             new Step { Title = "Onda de energia", Event = "kame",
-                How = "Bata uma PALMA na frente e puxe as mãos juntas para a LATERAL do corpo (direita ou esquerda): a esfera azul carrega entre elas. Ao lado, abra um pouco as mãos em GARRA e espere um instante: a esfera pulsa forte e faz um som (armado). Então jogue as duas mãos para FRENTE: um raio grosso que atravessa todos." },
+                How = "Bata uma PALMA e mantenha os PULSOS JUNTOS, mãos abertas na altura da barriga: a esfera azul cresce. Empurre as duas mãos para frente com força: um raio grosso que atravessa todos." },
             new Step { Title = "Teia", Event = "puxar",
                 How = "OLHE para um ponto no alto de um pilar ou da parede: ele acende em azul. Estique a mão ABERTA na direção dele e FECHE: a teia prende. Puxe a mão fechada para o peito para voar; abra a mão para soltar (você segue com o embalo)." },
             new Step { Title = "Esquiva para trás", Event = "dash_tras",

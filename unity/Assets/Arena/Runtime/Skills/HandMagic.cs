@@ -9,9 +9,8 @@ namespace Arena
     //   As magias de duas mãos começam com uma PALMA BATIDA (abre uma janela de 1,5 s):
     //   - RAÍZES: depois da palma, separe e jogue as duas mãos rápido para baixo → raízes prendem os inimigos num
     //     círculo de 4 m à frente por 3 s.
-    //   - KAMEHAMEHA (como no anime): palma na frente → puxe as mãos juntas para a LATERAL do corpo (a esfera azul
-    //     carrega entre elas enquanto estão ao lado) → abra um pouco as mãos em GARRA e espere um instante (a esfera
-    //     brilha: armado) → jogue as duas mãos para frente: raio grosso que atravessa todos.
+    //   - KAMEHAMEHA: depois da palma, mantenha os pulsos juntos na altura do tronco → carrega uma esfera azul;
+    //     empurrar as duas mãos para frente com força solta um raio grosso que atravessa todos.
     //   - BOLA DE FOGO (uma mão): punho fechado esticado para frente → abrir a mão carrega a bola na palma (cheia em
     //     1,5 s) → jogar a mão para frente arremessa. É TELEGUIADA: vai no inimigo mais perto da direção do arremesso.
     // Enquanto carrega, os poderes de uma mão daquela mão ficam desligados (o empurrão não vira corte da palma).
@@ -38,8 +37,6 @@ namespace Arena
         readonly HandData[] h = { new HandData(), new HandData() };
 
         float rootsCd, kameT, kameCd, fireCd, clapWindow, clapCd, prevPalmsApart = 1f;
-        float clawT, offSideT;
-        bool kameArmed;   // onda: tempo na garra ao lado; tempo longe do lado sem ter armado
         bool kameCharging;
         public bool KameCharging => kameCharging;   // a IA sai da frente
         Transform kameOrb;
@@ -135,40 +132,42 @@ namespace Arena
                 clapWindow = 0f;
                 return true;
             }
-            // Kamehameha: palma → mãos juntas puxadas para o lado (carrega) → garra ao lado (arma) → jogar para frente.
+            // Kamehameha: pulsos juntos, mãos abertas na altura do tronco.
+            bool openish = L.Shape != HandShape.Punho && R.Shape != HandShape.Punho && L.Shape != HandShape.Apontar && R.Shape != HandShape.Apontar;
+            float belowHead = player.HeadPosition.y - (L.Palm.y + R.Palm.y) * 0.5f;
+            bool pose = openish && HandMagicRules.KamePose(wristsApart, palmsApart, belowHead);
             var mid = (L.Palm + R.Palm) * 0.5f;
-            var right = Vector3.Cross(Vector3.up, player.HeadForward).normalized;
-            float lateral = Vector3.Dot(mid - player.HeadPosition, right);
-            bool atSide = HandMagicRules.KameAtSide(lateral);
-            if (!kameCharging)
+            if (pose && kameCd <= 0f)
             {
-                if (kameCd > 0f || !HandMagicRules.KameStart(palmsApart, wristsApart, lateral)) return false;
-                kameCharging = true; kameT = 0f; clawT = 0f; offSideT = 0f; kameArmed = false;
-                ArenaAudio.Play(Sfx.Wind, mid, 0.4f, 1.6f);
-            }
-            clapWindow = Mathf.Max(clapWindow, 0.3f);
-            if (atSide) { kameT += dt; offSideT = 0f; } else offSideT += dt;
-            if (atSide && HandMagicRules.KameClaw(palmsApart, wristsApart)) clawT += dt;
-            float charge = HandMagicRules.Charge01(kameT, HandMagicRules.KameMinCharge, HandMagicRules.KameFullCharge);
-            bool armed = charge > 0f && clawT >= HandMagicRules.KameClawHold;
-            if (armed && !kameArmed) ArenaAudio.Play(Sfx.Skill, mid, 0.7f, 1.5f);   // armado: pode jogar
-            kameArmed = armed;
-            ShowKameOrb(mid, charge, armed);
-            var push = (L.Vel + R.Vel) * 0.5f;
-            if (armed && Vector3.Dot(push, player.HeadForward) > HandMagicRules.KamePushSpeed)
-            {
-                FireKamehameha(mid, player.HeadForward, charge);
-                HandLock.HoldBoth("duas", HandLock.AfterCast);
-                kameCharging = false; kameT = 0f; clawT = 0f;
+                kameCharging = true;
+                clapWindow = Mathf.Max(clapWindow, 0.3f);
+                kameT += dt;
+                float c = HandMagicRules.Charge01(kameT, HandMagicRules.KameMinCharge, HandMagicRules.KameFullCharge);
+                ShowKameOrb(mid, c);
+                // Soltar: as duas mãos empurrando para frente.
+                var push = (L.Vel + R.Vel) * 0.5f;
+                if (c > 0f && Vector3.Dot(push, player.HeadForward) > HandMagicRules.KamePushSpeed)
+                {
+                    FireKamehameha(mid, push.normalized, c);
+                    HandLock.HoldBoth("duas", HandLock.AfterCast);
+                    kameCharging = false; kameT = 0f;
+                }
                 return true;
             }
-            // Desistiu: separou as mãos demais, ou saiu do lado sem ter armado.
-            if (palmsApart > HandMagicRules.KameCancelApart || (!armed && offSideT > HandMagicRules.KameLoseSideSeconds))
+            // Ainda carregado e empurrando (as mãos se separam um pouco no empurrão): solta mesmo assim.
+            if (kameCharging)
             {
-                kameCharging = false; kameT = 0f; clawT = 0f; HideKameOrb();
-                return false;
+                float c = HandMagicRules.Charge01(kameT, HandMagicRules.KameMinCharge, HandMagicRules.KameFullCharge);
+                var push = (L.Vel + R.Vel) * 0.5f;
+                if (c > 0f && Vector3.Dot(push, player.HeadForward) > HandMagicRules.KamePushSpeed && palmsApart < 0.5f)
+                {
+                    FireKamehameha(mid, push.normalized, c);
+                    HandLock.HoldBoth("duas", HandLock.AfterCast);
+                }
+                kameCharging = false; kameT = 0f; HideKameOrb();
+                return c > 0f;
             }
-            return true;
+            return false;
         }
 
         public void CastRoots()
