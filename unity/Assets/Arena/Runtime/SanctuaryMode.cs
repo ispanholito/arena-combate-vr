@@ -437,8 +437,8 @@ namespace Arena
         // ---------- Estantes de armas e mercador ----------
         // Parede leste = PERMANENTE (o que você guarda; não some). Parede oeste = TEMPORÁRIA (o que ficou para trás na
         // dungeon/arena; some quando você entra num portal sem tirar). Grip numa arma: troca pela sua (ou vai para a
-        // 2ª vaga vazia). Grip num gancho vazio da permanente: guarda a sua 2ª arma. Mercador (baú com moedas, perto da
-        // bigorna): grip vende a sua 2ª arma por ouro para o ferreiro.
+        // 2ª vaga vazia). Grip num gancho vazio da permanente: guarda a arma da mão. Mercador (baú com moedas, perto da
+        // bigorna): grip vende a arma da mão por ouro para o ferreiro.
         public const int RackSlots = 12;
         const float RackStep = 0.75f, RackZ0 = -4.6f;
 
@@ -450,7 +450,7 @@ namespace Arena
 
         void BuildRacks()
         {
-            BuildRack(RackKind.Permanente, "ESTANTE PERMANENTE\n<size=40>grip numa arma: troca · grip num gancho vazio: guarda a sua 2ª arma</size>");
+            BuildRack(RackKind.Permanente, "ESTANTE PERMANENTE\n<size=40>grip numa arma: troca · grip num gancho vazio: guarda a arma da mão</size>");
             BuildRack(RackKind.Temporaria, "ESTANTE TEMPORÁRIA\n<size=40>o que ficou para trás · SOME quando você entrar num portal</size>");
             var ps = game.Player.State;
             for (int i = 0; i < ps.Stash.Count && i < RackSlots; i++) Hang(ps.Stash[i], RackKind.Permanente, i);
@@ -545,7 +545,7 @@ namespace Arena
             ArenaUtil.Prim(PrimitiveType.Cube, merchant, new Vector3(0, 0.3f, 0), new Vector3(0.9f, 0.6f, 0.6f), wood, keepCollider: true);
             for (int i = 0; i < 7; i++)
                 ArenaUtil.Prim(PrimitiveType.Cylinder, merchant, new Vector3(-0.3f + (i % 4) * 0.2f, 0.62f + (i / 4) * 0.03f, -0.1f + (i % 3) * 0.1f), new Vector3(0.12f, 0.012f, 0.12f), gold);
-            var t = ArenaFx.MakeText(merchant, "MERCADOR\n<size=40>grip / E: vende a sua 2ª arma (paga 25% do preço da loja)</size>", 0.006f, new Color(1f, 0.85f, 0.4f));
+            var t = ArenaFx.MakeText(merchant, "MERCADOR\n<size=40>grip / gatilho / E: vende a arma da MÃO (paga 25% do preço da loja)</size>", 0.006f, new Color(1f, 0.85f, 0.4f));
             t.transform.localPosition = new Vector3(0, 1.4f, 0);
             t.transform.rotation = Quaternion.LookRotation(Vector3.left);
         }
@@ -554,14 +554,15 @@ namespace Arena
             player.IsVr ? Mathf.Min(Vector3.Distance(player.RightHand.position, at + Vector3.up * 0.6f), (player.FeetPosition - at).Flat().magnitude) < vrRange
                         : (player.FeetPosition - at).Flat().magnitude < desktopRange;
 
-        // Grip no mercador: vende a 2ª arma.
+        // Grip/gatilho no mercador: vende a arma da MÃO (a 2ª passa para a mão).
         bool TrySell(ArenaPlayer player)
         {
             if (!merchant || !Near(player, merchant.position, 1.3f, 1.6f)) return false;
             var s = player.State;
-            var item = s.Loadout[1 - s.ActiveSlot];
-            int price = s.SellSecondWeapon();
-            if (price <= 0) { game.Message("O mercador compra a sua 2ª arma (a que não está na mão)", 1.6f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
+            var item = s.ActiveItem;
+            int price = s.SellHandWeapon();
+            if (price <= 0) { game.Message("Para vender a arma da mão você precisa ter outra arma (a 2ª)", 1.6f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
+            player.EquipActive();
             ArenaAudio.Play(Sfx.Pickup, merchant.position + Vector3.up, 1f, 1.3f);
             ArenaFx.FloatText("+" + price + " ouro", merchant.position + Vector3.up * 1f, new Color(1f, 0.85f, 0.3f), 1.1f);
             game.Message("Vendeu " + item.DisplayName + " por " + price + " de ouro", 1.6f);
@@ -569,7 +570,7 @@ namespace Arena
             return true;
         }
 
-        // Grip num gancho vazio da estante permanente: guarda a 2ª arma (a que não está na mão).
+        // Grip num gancho vazio da estante permanente: guarda a arma da mão (a 2ª passa para a mão).
         bool TryStore(ArenaPlayer player)
         {
             const RackKind k = RackKind.Permanente;
@@ -586,11 +587,12 @@ namespace Arena
             foreach (var p in WeaponPickup.All)
                 if (p && p.OnRack && (p.RackPos - slot).sqrMagnitude < 0.01f) return false;   // ocupado: quem pega é o WeaponPickup
             var s2 = player.State;
-            int other = 1 - s2.ActiveSlot;
-            var item = s2.Loadout[other];
-            if (item == null) { game.Message("Nada para guardar: a estante guarda a sua 2ª arma", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
-            if (!s2.AddToStash(item)) { game.Message("Estante permanente cheia (12)", 1.2f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
-            s2.Loadout[other] = null;
+            var item = s2.ActiveItem;   // guarda a arma da MÃO (a 2ª passa para a mão)
+            if (item == null || s2.Loadout[1 - s2.ActiveSlot] == null) { game.Message("Para guardar a arma da mão você precisa ter outra arma (a 2ª)", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
+            if (s2.Stash.Count >= PlayerState.MaxStash) { game.Message("Estante permanente cheia (12)", 1.2f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
+            s2.RemoveHandWeapon();
+            s2.AddToStash(item);
+            player.EquipActive();
             Hang(item, k, best);
             ArenaAudio.Play(Sfx.Pickup, slot + Vector3.up, 0.8f, 0.8f);
             game.Message("Guardou " + item.DisplayName, 1.2f);

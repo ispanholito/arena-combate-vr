@@ -23,6 +23,82 @@ namespace Arena
         bool retreated;
         float nextAttackDelay;
 
+        // Movimento com aceleração, chegada em curva, esquiva e tranco ao apanhar (Core/EnemyMotion.cs).
+        Vector3 moveVel, dodgeDir, flinchDir;
+        float approachAngle = float.NaN, weaveSeed, dodgeT, dodgeCd, flinchT, flinchDur, flinchTilt, flinchStumble, stepT;
+        bool Heavy => this is IBoss || Def.Kind == EnemyKind.Orc;
+
+        void Steer(Vector3 want, float dt)
+        {
+            float rate = want.sqrMagnitude > moveVel.sqrMagnitude ? EnemyMotion.Accel : EnemyMotion.Decel;
+            moveVel = Vector3.MoveTowards(moveVel, want, rate * dt);
+            Move(moveVel, dt);
+            // Passo: balança o corpo conforme anda.
+            float sp = moveVel.magnitude;
+            if (sp > 0.2f && flinchT <= 0f)
+            {
+                stepT += dt * (4f + sp * 2.5f);
+                var local = transform.InverseTransformDirection(moveVel) / Mathf.Max(sp, 0.01f);
+                model.localRotation = Quaternion.Euler(local.z * Mathf.Min(sp, 3f) * 3f, 0f, Mathf.Sin(stepT) * 3f - local.x * 4f);
+            }
+        }
+
+        // Tranco: começa no OnHit; enquanto dura, joga o corpo para trás e recua uns passos.
+        void StartFlinch(DamageEvent ev)
+        {
+            if (Heavy || ev.Killed || ev.Dot) return;
+            float frac = ev.Amount / Mathf.Max(1f, Def.MaxHp);
+            flinchDur = EnemyMotion.FlinchSeconds(frac);
+            flinchT = flinchDur;
+            flinchTilt = EnemyMotion.FlinchTiltDeg(frac);
+            flinchStumble = EnemyMotion.StumbleSpeed(frac);
+            var away = Player ? (transform.position - Player.FeetPosition).Flat() : -transform.forward;
+            flinchDir = away.sqrMagnitude > 1e-4f ? away.normalized : -transform.forward;
+            moveVel = flinchDir * flinchStumble;
+        }
+
+        // Retorna true se o tranco tomou conta deste quadro.
+        bool UpdateFlinch(float dt)
+        {
+            if (flinchT <= 0f) return false;
+            flinchT -= dt;
+            float t = 1f - Mathf.Clamp01(flinchT / Mathf.Max(flinchDur, 0.01f));
+            float curve = Mathf.Sin(t * Mathf.PI);   // vai e volta
+            var local = transform.InverseTransformDirection(flinchDir);
+            model.localRotation = Quaternion.Euler(-flinchTilt * curve * Mathf.Max(0.3f, -local.z), 0f, flinchTilt * 0.5f * curve * local.x);
+            // Atacando: só o tranco visual (o ataque continua, a não ser que o golpe forte já tenha interrompido).
+            if (state == AiState.Windup || state == AiState.Strike) return false;
+            LerpArm(30f, 10f, dt);
+            Move(flinchDir * flinchStumble * (1f - t), dt);
+            moveVel = Vector3.zero;
+            return true;
+        }
+
+        // Arma do jogador vindo rápido perto do corpo: passo para o lado ou para trás (chance pela dificuldade).
+        bool UpdateDodge(float dt, Vector3 dir, float d)
+        {
+            dodgeCd -= dt;
+            if (dodgeT > 0f)
+            {
+                dodgeT -= dt;
+                Move(dodgeDir * EnemyMotion.DodgeSpeed, dt);
+                model.localRotation = Quaternion.Euler(-8f, 0f, Vector3.Dot(dodgeDir, transform.right) * -14f);
+                return true;
+            }
+            if (Heavy || dodgeCd > 0f || state != AiState.Approach || !State.CanAct || Player == null) return false;
+            var w = Player.Weapon;
+            if (w == null || !w.Held || w.TipSpeed < EnemyMotion.DodgeTipSpeed) return false;
+            if (Vector3.Distance(w.TipPoint, Center) > EnemyMotion.DodgeRange * k) return false;
+            dodgeCd = EnemyMotion.DodgeCooldown;
+            if (Random.value >= EnemyMotion.MeleeDodgeChance(SaveSystem.Options.Difficulty)) return false;
+            var side = new Vector3(-dir.z, 0f, dir.x) * (Random.value < 0.5f ? -1f : 1f);
+            dodgeDir = (side * 0.8f - dir * 0.6f).normalized;
+            dodgeT = EnemyMotion.DodgeSeconds;
+            moveVel = Vector3.zero;
+            ArenaAudio.Play(Sfx.Dash, Center, 0.5f, 1.3f);
+            return true;
+        }
+
         protected Color clubColor = new Color(0.42f, 0.27f, 0.15f);
 
         protected override void BuildModel()
@@ -122,6 +198,7 @@ namespace Arena
         protected override void OnHit(DamageEvent ev)
         {
             lastDamagedT = Time.time;   // janela de combo: logo depois de apanhar não bloqueia
+            StartFlinch(ev);
             // Golpe forte (fração da vida, pela dificuldade) cancela o ataque anunciado.
             if (state == AiState.Windup && !ev.Killed && !(this is IBoss) && CombatAI.Interrupts(ev.Amount, Def.MaxHp, SaveSystem.Options.Difficulty))
             {
@@ -201,11 +278,13 @@ namespace Arena
                 OnStunned();
                 return;
             }
-            model.localRotation = Quaternion.identity;
+            if (moveVel.sqrMagnitude < 0.04f && flinchT <= 0f) { model.localRotation = Quaternion.Slerp(model.localRotation, Quaternion.identity, dt * 10f); }
             if (State.Rooted <= 0f) FacePlayer(toPlayer, dt, TurnSpeed);
             stateT += dt;
             if (ExtraAI(dt, d)) return;
             var dir = d > 1e-3f ? toPlayer / d : transform.forward;
+            if (UpdateFlinch(dt)) return;
+            if (UpdateDodge(dt, dir, d)) return;
             if (riposteT > 0f)
             {
                 riposteT -= dt;
@@ -224,7 +303,11 @@ namespace Arena
                 case AiState.Approach:
                 {
                     var side = new Vector3(-dir.z, 0, dir.x) * strafe * 0.8f;
-                    var want = d > 1.25f * k ? dir * Def.MoveSpeed : d < 0.9f * k ? -dir : Vector3.zero;
+                    // Chega em curva (ângulo próprio que some perto), corre de longe e ziguezagueia na média distância.
+                    if (float.IsNaN(approachAngle)) { approachAngle = Heavy ? 0f : EnemyMotion.PickApproachAngle(Random.value); weaveSeed = Random.value * 10f; }
+                    var curved = Quaternion.Euler(0f, EnemyMotion.ApproachAngle(approachAngle, d / k), 0f) * dir;
+                    var lateral = new Vector3(-dir.z, 0, dir.x) * (Heavy ? 0f : EnemyMotion.Weave(Time.time, weaveSeed, d / k));
+                    var want = d > 1.25f * k ? (curved + lateral).normalized * Def.MoveSpeed * EnemyMotion.SpeedFactor(d / k) : d < 0.9f * k ? -dir : Vector3.zero;
                     // Em grupo: cada um vai para a sua vaga num arco à frente do jogador (cercam pelos lados).
                     float slot = GroupSlot();
                     if (Mathf.Abs(slot) > 1f && d < GoblinTactics.EngageDistance * k)
@@ -237,7 +320,7 @@ namespace Arena
                     else if (d < 2.2f * k) want += side;
                     // Sem ficha de ataque: fica rondando a ~2 m, esperando a vez.
                     if (TokensFull && d < 2f * k) want = -dir * Def.MoveSpeed * 0.5f + side;
-                    Move(want, dt);
+                    Steer(want, dt);
                     LerpArm(-35f, 5f, dt);
                     if (d < EnemyAttacks.Range(nextAttack) * k && stateT > (k > 1f ? 0.6f : 1.0f) + nextAttackDelay && State.CanAct && CanAttackNow && TryTakeToken())
                     {
@@ -265,12 +348,12 @@ namespace Arena
                 }
                 case AiState.Retreat:
                     LerpArm(-20f, 4f, dt);
-                    Move(-dir * Def.MoveSpeed * 1.1f, dt);
+                    Steer(-dir * Def.MoveSpeed * 1.1f, dt);
                     if (stateT > GoblinTactics.RetreatSeconds) SetState(AiState.Approach);
                     break;
                 case AiState.Recover:
                     LerpArm(-35f, 4f, dt);
-                    Move(-dir * 0.6f, dt);
+                    Steer(-dir * 0.6f + new Vector3(-dir.z, 0, dir.x) * strafe * 0.5f, dt);   // recua de lado
                     if (stateT > (k > 1f ? 0.7f : 0.9f)) { SetState(AiState.Approach); strafe = -strafe; }
                     break;
             }

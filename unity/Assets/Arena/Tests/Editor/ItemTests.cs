@@ -105,19 +105,19 @@ namespace Arena.Core.Tests
         }
 
         [Test]
-        public void TakeItem_FillsEmptySecondSlot_BeforeSwapping()
+        public void TakeItem_GoesToHand_OldToEmptySecondSlot()
         {
             var ps = new PlayerState(ClassId.Lamina);
             ps.Loadout[1] = null;   // guardou o machado
             var spear = ItemInstance.Basic(WeaponDef.Lanca);
-            Assert.IsNull(ps.TakeItem(spear, out bool second));
+            Assert.IsNull(ps.TakeItem(spear, out bool second));   // a espada foi para a 2ª vaga
             Assert.IsTrue(second);
-            Assert.AreSame(spear, ps.Loadout[1]);
-            Assert.AreEqual(WeaponKind.Espada, ps.ActiveItem.Base.Kind);
+            Assert.AreSame(spear, ps.ActiveItem);
+            Assert.AreEqual(WeaponKind.Espada, ps.Loadout[1 - ps.ActiveSlot].Base.Kind);
             var mace = ItemInstance.Basic(WeaponDef.MacaPesada);
             var old = ps.TakeItem(mace, out second);   // as duas vagas cheias: troca a da mão
             Assert.IsFalse(second);
-            Assert.AreEqual(WeaponKind.Espada, old.Base.Kind);
+            Assert.AreSame(spear, old);
             Assert.AreSame(mace, ps.ActiveItem);
         }
 

@@ -136,7 +136,9 @@ namespace Arena
         }
 
         // Pega a arma mais próxima ao alcance. Retorna true se pegou (o grip não arremessa a arma nesse quadro).
-        public static bool TryPickup(ArenaPlayer player)
+        // handOnly (gatilho perto da arma): só conta a mão, bem perto (não pega sem querer pelos pés no meio da luta).
+        public const float TriggerHandRange = 0.45f;
+        public static bool TryPickup(ArenaPlayer player, bool handOnly = false)
         {
             WeaponPickup best = null;
             float bestD = float.MaxValue;
@@ -149,8 +151,8 @@ namespace Arena
                     var center = p.transform.position + Vector3.up * (p.OnRack ? p.Item.Base.Length * 0.5f + 0.1f : 0.25f);
                     float hand = Vector3.Distance(player.RightHand.position, center);
                     float feet = (player.FeetPosition - p.transform.position).Flat().magnitude;
-                    if (hand > VrHandRange && feet > FeetRange) continue;
-                    d = Mathf.Min(hand, feet);
+                    if (handOnly) { if (hand > TriggerHandRange) continue; d = hand; }
+                    else { if (hand > VrHandRange && feet > FeetRange) continue; d = Mathf.Min(hand, feet); }
                 }
                 else
                 {
@@ -160,7 +162,7 @@ namespace Arena
                 }
                 if (d < bestD) { bestD = d; best = p; }
             }
-            if (!best || !player.Weapon.Held) return false;
+            if (!best) return false;
             var item = best.Item;
             if (best.Rack == RackKind.Loja)
             {
@@ -174,13 +176,14 @@ namespace Arena
                 }
                 ArenaAudio.Play2D(Sfx.Level, 0.6f, 1.3f);
             }
-            var pos = best.transform.position;
+            // A arma que sai cai onde estava a nova (ou onde a sua caiu, se você estava de mão vazia).
+            var pos = player.Weapon.Held ? best.transform.position : player.Weapon.Visual.position;
             All.Remove(best);
             Destroy(best.gameObject);
             if (best.Rack == RackKind.Permanente) player.State.Stash.Remove(item);
             else if (best.Rack != RackKind.Loja) player.State.LostItems.Remove(item);   // era uma arma esquecida: achou
             var old = player.State.TakeItem(item, out bool toSecond);
-            if (!toSecond) player.EquipActive();
+            player.EquipActive();   // a nova sempre vai para a mão
             if (old != null)
             {
                 var dropped = Spawn(old, pos + Vector3.up * 0.05f);
@@ -196,7 +199,7 @@ namespace Arena
             ArenaInput.Haptic(0.5f, 0.08f);
             var proficient = Proficiency.IsProficient(player.State.Class.Id, item.Base.Kind);
             ArenaGame.Instance?.Message(item.DisplayName
-                + (toSecond ? "\n<size=48>(foi para a 2ª arma: troque com Q / clique do analógico)</size>" : "")
+                + (toSecond ? "\n<size=48>(a antiga foi para a 2ª arma)</size>" : "")
                 + (proficient ? "" : "\n<size=48>(fora da classe: -15% dano)</size>"), 1.6f);
             return true;
         }

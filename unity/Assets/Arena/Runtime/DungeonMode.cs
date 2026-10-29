@@ -128,10 +128,29 @@ namespace Arena
                 foreach (var (gx, gz) in new[] { (rr.MinX, rr.MinZ), (rr.MaxX, rr.MinZ), (rr.MinX, rr.MaxZ), (rr.MaxX, rr.MaxZ) })
                     GrapplePoint.Spawn(root, new Vector3(gx, 3.6f, gz));
                 GrapplePoint.Spawn(root, c + Vector3.up * 4.6f);
+                // Em cada porta (2026-10-29, Pablo não conseguia trocar de sala): um ponto no alto da abertura, por dentro da sala.
+                foreach (var (x0, z0, x1, z1) in f.Openings(room.Index))
+                {
+                    var door = new Vector3((x0 + x1) * 0.5f, 3.4f, (z0 + z1) * 0.5f);
+                    GrapplePoint.Spawn(root, door + (c - door).Flat().normalized * 0.8f);
+                }
                 if (art) CornerProps(artRoot, room.Rect, rng);
                 if (room.Kind == RoomKind.Combate) Breakables(room.Rect, rng);
                 if (room.HasMerchant) BuildMerchant(c + Vector3.right * 2.5f);
                 if (room.HasStatue) BlessingStatue.Spawn(new Vector3(room.Rect.MaxX - 2.4f, 0f, room.Rect.MaxZ - 2.4f), root, BlessingStatue.Price(f.Number + game.CurrentTier - 1, 0), repeat: false);
+            }
+            // Corredores: um ponto no meio (e mais um a cada ~6 m nos compridos).
+            foreach (var cor in f.Corridors)
+            {
+                float len = Mathf.Max(cor.Width, cor.Depth);
+                int n = Mathf.Max(1, Mathf.RoundToInt(len / 6f));
+                bool alongX = cor.Width > cor.Depth;
+                for (int i = 0; i < n; i++)
+                {
+                    float t = (i + 0.5f) / n;
+                    var p = alongX ? new Vector3(Mathf.Lerp(cor.MinX, cor.MaxX, t), 3.6f, cor.CenterZ) : new Vector3(cor.CenterX, 3.6f, Mathf.Lerp(cor.MinZ, cor.MaxZ, t));
+                    if (f.RoomAt(p.x, p.z, -0.5f) == null) GrapplePoint.Spawn(root, p);   // só a parte fora das salas
+                }
             }
             if (f.Secret != null) BuildSecret(f);
             foreach (var lava in f.Lava) LavaPool.Spawn(lava, root);

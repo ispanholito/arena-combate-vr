@@ -9,6 +9,12 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000000000000000000000000000. NOVO — movimento dos inimigos, armas da mão, ganchos da dungeon
+- [ ] **Inimigos** (Arena/Dungeon): chegam em curva e ziguezagueando? Aceleram/freiam em vez de deslizar? Dão um tranco para trás quando você acerta (maior com golpe forte)? Às vezes desviam do seu golpe? Ficou melhor ou exagerado?
+- [ ] **Pegar arma com o GATILHO**: encoste a mão na arma do chão/estante e aperte o gatilho. A nova vai para a mão?
+- [ ] **Vender/guardar**: o mercador e a estante permanente levam a arma da MÃO.
+- [ ] **Dungeon**: ganchos no alto das portas e nos corredores — dá para ir de sala em sala de teia?
+
 ## 00000000000000000000000000000. NOVO — ajustes da teia, pistola, fusão, fada
 - [ ] **Teia**: olhe para um ponto (acende), aponte a mão FECHADA para ele e ABRA → teia (sem bola de fogo). Feche e puxe para voar; abra para soltar. Fora de um ponto aceso, a bola de fogo continua igual?
 - [ ] **Santuário**: os ganchos acima dos portais levam você até eles?

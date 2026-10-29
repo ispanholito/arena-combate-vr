@@ -35,6 +35,8 @@ namespace Arena
         readonly Dictionary<RagBone, Bone> bones = new Dictionary<RagBone, Bone>();
         readonly List<Bone> boneList = new List<Bone>();
         public EnemyState State { get; private set; }
+        float approachDeg = float.NaN;   // ângulo de chegada (EnemyMotion)
+        Vector3 smoothMove;
         Rigidbody anchor;
         ConfigurableJoint anchorJoint;
         float totalMass;
@@ -598,7 +600,12 @@ namespace Arena
             else if (retreatT > 0f && !stuck) { move = -dir * 1.6f; hasToken = false; tokens.Release(TokenId); }
             else if (attack == Attack.None && !stuck && guardT <= 0f)
             {
-                if (hasToken && dist > reach - 0.15f) move = dir * 1.3f;
+                if (hasToken && dist > reach - 0.15f)
+                {
+                    // Chega em curva e corre de longe (EnemyMotion, 2026-10-29: antes vinha reto).
+                    if (float.IsNaN(approachDeg)) approachDeg = EnemyMotion.PickApproachAngle(Random.value);
+                    move = Quaternion.Euler(0f, EnemyMotion.ApproachAngle(approachDeg, dist), 0f) * dir * 1.3f * EnemyMotion.SpeedFactor(dist);
+                }
                 else if (!hasToken)
                 {
                     // Ronda numa VAGA do arco na frente do jogador (CombatSteering.AssignSlots); parado na vaga, balança de lado.
@@ -615,6 +622,9 @@ namespace Arena
             bool lunging = attack == Attack.Strike && curAttack == EnemyAttack.Passo && attackT < 0.2f;
             if (lunging) move = lungeDir * (ActiveRagdollPoses.StepLunge / 0.2f);
             else if (!stuck) move = Steer(move);   // separação dos vizinhos + desvio dos pilares
+            // Acelera e freia (não muda de velocidade de uma vez); esquiva e avanço do golpe continuam instantâneos.
+            if (!lunging && dodgeT <= 0f) { smoothMove = Vector3.MoveTowards(smoothMove, move, (move.sqrMagnitude > smoothMove.sqrMagnitude ? EnemyMotion.Accel : EnemyMotion.Decel) * dt); move = smoothMove; }
+            else smoothMove = move;
             speed = move.magnitude;
             if (move.sqrMagnitude > 1e-6f)
             {

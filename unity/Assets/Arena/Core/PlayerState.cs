@@ -113,19 +113,27 @@ namespace Arena.Core
             ActiveSlot = 0;
         }
 
-        // Pegou uma arma: se a 2ª vaga estiver vazia ela vai para lá (nada cai no chão); senão troca a da mão.
-        // Devolve a arma que saiu (ou null) e se a nova foi para a 2ª vaga.
-        public ItemInstance TakeItem(ItemInstance item, out bool wentToSecond)
+        // Pegou uma arma: ela vai para a MÃO (pedido do Pablo, 2026-10-29). A que estava na mão vai para a 2ª vaga se
+        // ela estiver vazia; senão sai (cai no chão / fica no gancho). Devolve a que saiu (ou null).
+        public ItemInstance TakeItem(ItemInstance item, out bool oldWentToSecond)
         {
             int other = 1 - ActiveSlot;
-            if (Loadout[other] == null && Loadout[ActiveSlot] != null)
-            {
-                Loadout[other] = item;
-                wentToSecond = true;
-                return null;
-            }
-            wentToSecond = false;
-            return EquipToActive(item);
+            var old = Loadout[ActiveSlot];
+            Loadout[ActiveSlot] = item;
+            if (old != null && Loadout[other] == null) { Loadout[other] = old; oldWentToSecond = true; return null; }
+            oldWentToSecond = false;
+            return old;
+        }
+
+        // Tira a arma da MÃO (vender/guardar): a 2ª vira a da mão. Não deixa ficar sem arma nenhuma.
+        public ItemInstance RemoveHandWeapon()
+        {
+            int other = 1 - ActiveSlot;
+            var item = Loadout[ActiveSlot];
+            if (item == null || Loadout[other] == null) return null;
+            Loadout[ActiveSlot] = null;
+            ActiveSlot = other;
+            return item;
         }
 
         // Troca a arma do slot ativo pela nova; devolve a antiga (que cai no chão).
@@ -166,13 +174,11 @@ namespace Arena.Core
             return n;
         }
 
-        // Vende a 2ª arma (a que não está na mão) ao mercador do santuário. Devolve o ouro ganho (0 = nada para vender).
-        public int SellSecondWeapon()
+        // Vende a arma da MÃO (pedido do Pablo, 2026-10-29); a 2ª vai para a mão. Precisa ter outra arma.
+        public int SellHandWeapon()
         {
-            int other = 1 - ActiveSlot;
-            var item = Loadout[other];
-            if (item == null || Loadout[ActiveSlot] == null) return 0;
-            Loadout[other] = null;
+            var item = RemoveHandWeapon();
+            if (item == null) return 0;
             int price = Merchant.Price(item);
             AddGold(price);
             return price;

@@ -101,15 +101,15 @@ namespace Arena.Core.Tests
         }
 
         [Test]
-        public void Merchant_BuysSecondWeapon_ByRarity()
+        public void Merchant_BuysHandWeapon_ByRarity()
         {
             var ps = new PlayerState(ClassId.Lamina);
             int gold = ps.Gold;
-            int price = ps.SellSecondWeapon();   // o machado comum
-            Assert.AreEqual(Merchant.Price(ItemInstance.Basic(WeaponDef.MachadoPesado)), price);
+            int price = ps.SellHandWeapon();   // a espada comum (o machado passa para a mão)
+            Assert.AreEqual(Merchant.Price(ItemInstance.Basic(WeaponDef.EspadaLonga)), price);
             Assert.AreEqual(gold + price, ps.Gold);
-            Assert.IsNull(ps.Loadout[1]);
-            Assert.AreEqual(0, ps.SellSecondWeapon());   // nada mais para vender (a da mão não se vende)
+            Assert.AreEqual(WeaponKind.Machado, ps.ActiveItem.Base.Kind);
+            Assert.AreEqual(0, ps.SellHandWeapon());   // não vende a única arma
             Assert.IsNotNull(ps.ActiveItem);
             Assert.Greater(Merchant.Price(new ItemInstance(WeaponDef.Adaga, Rarity.Lendario)), Merchant.Price(new ItemInstance(WeaponDef.Adaga, Rarity.Raro)));
             Assert.Greater(Merchant.Price(new ItemInstance(WeaponDef.Adaga, Rarity.Raro, null, 3)), Merchant.Price(new ItemInstance(WeaponDef.Adaga, Rarity.Raro)));
