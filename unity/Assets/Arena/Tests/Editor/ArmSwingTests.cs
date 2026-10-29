@@ -50,10 +50,11 @@ namespace Arena.Core.Tests
         }
 
         [Test]
-        public void PalmCutNeedsSidewaysSweep()
+        public void PalmCutNeedsArmExtendedInFront()
         {
-            Assert.IsTrue(PalmSweepRules.IsSweep(3.5f, 4f));
-            Assert.IsFalse(PalmSweepRules.IsSweep(1f, 4f));   // frente/trás (balanço de corrida) não corta
+            Assert.IsTrue(PalmSweepRules.IsExtendedInFront(0.5f, 0.2f));
+            Assert.IsFalse(PalmSweepRules.IsExtendedInFront(0.15f, 0f));   // perto do corpo (corridinha) não corta
+            Assert.IsFalse(PalmSweepRules.IsExtendedInFront(0.4f, 0.6f));  // do lado não corta
         }
     }
 }

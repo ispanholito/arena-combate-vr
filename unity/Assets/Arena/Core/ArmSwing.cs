@@ -2,14 +2,14 @@ using System;
 
 namespace Arena.Core
 {
-    // Correr balançando os braços (pedido do Pablo, 2026-10-29). Só com as DUAS mãos livres (nenhum controle).
-    // Reconhece a corrida pelos braços em OPOSIÇÃO: um vai para frente enquanto o outro vai para trás, com ritmo.
-    // Um corte de palma é uma mão só — por isso não confunde. Enquanto corre, os poderes das mãos ficam travados
-    // (e o corte da palma também passou a exigir varrida para o LADO, para o primeiro balanço não disparar).
+    // Correr balançando os braços (pedido do Pablo, 2026-10-29). Só com as DUAS mãos livres (nenhum controle) e
+    // ABERTAS (2ª versão, depois do teste). Reconhece a corrida pelos braços em OPOSIÇÃO no arco da corrida (para
+    // frente-e-cima / trás-e-baixo), com ritmo. Enquanto corre, os poderes das mãos ficam travados; o corte da palma
+    // só vale com o braço ESTICADO na frente (perto do corpo ou do lado = balanço da corrida, não corta).
     public sealed class ArmSwingDetector
     {
         public const float MinHandSpeed = 0.5f;      // m/s de cada mão no eixo frente/trás (relativo ao corpo)
-        public const float EnterSeconds = 0.35f;     // tempo acumulado em oposição para virar "correndo"
+        public const float EnterSeconds = 0.25f;     // tempo acumulado em oposição para virar "correndo" (2ª versão: responde mais rápido)
         public const float ExitSeconds = 0.4f;       // sem balanço esse tempo = parou
         public const float SpeedGain = 2.4f, SpeedOffset = 0.5f, MaxSpeed = 5.5f;   // m/s do jogador
         public const float SpeedSmoothing = 6f;
@@ -43,8 +43,9 @@ namespace Arena.Core
 
     public static class PalmSweepRules
     {
-        // Corte da palma só com varrida para o LADO: a parte lateral da velocidade tem que ser a maior parte dela.
-        public const float MinLateralFraction = 0.6f;
-        public static bool IsSweep(float lateralSpeed, float totalSpeed) => totalSpeed > 1e-3f && Math.Abs(lateralSpeed) / totalSpeed >= MinLateralFraction;
+        // Corte da palma só com o braço ESTICADO à frente (2026-10-29, Pablo): a mão a ≥ 35 cm na frente da cabeça e
+        // dentro de 45° do olhar. Mão perto do corpo (corridinha, para cima e para baixo) ou do lado não corta.
+        public const float MinForward = 0.35f;
+        public static bool IsExtendedInFront(float forward, float lateral) => forward >= MinForward && Math.Abs(lateral) <= forward;
     }
 }

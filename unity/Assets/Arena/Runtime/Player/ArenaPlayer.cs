@@ -114,6 +114,7 @@ namespace Arena
             if (!GetComponent<PetCompanion>()) gameObject.AddComponent<PetCompanion>();   // fada da Domadora
             if (!GetComponent<WeaponSwapGesture>()) gameObject.AddComponent<WeaponSwapGesture>();   // mão livre por cima do ombro = troca de arma
             if (!GetComponent<ArmSwingRun>()) gameObject.AddComponent<ArmSwingRun>();   // sem controle: correr balançando os braços
+            if (!GetComponent<HandInteract>()) gameObject.AddComponent<HandInteract>();   // sem controle: pinça perto = interagir
             if (!GetComponent<Muralha>()) gameObject.AddComponent<Muralha>();   // punho na palma: aura vermelha, só soco forte
             if (!GetComponent<SkyBolt>()) gameObject.AddComponent<SkyBolt>();   // mão fechada ao céu e abrir: raio em cadeia   // arma mergulhada na bola de fogo pega fogo   // livro de magias (abre pela pausa)
             ResetCharacter(startClass);

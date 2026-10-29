@@ -11,7 +11,7 @@ namespace Arena
         ArenaPlayer player;
         HandMagic magic;
         readonly ArmSwingDetector detector = new ArmSwingDetector();
-        float stepDist;
+        float stepDist, openL, openR;
         bool announced;
 
         public bool Running => detector.Running;
@@ -24,14 +24,20 @@ namespace Arena
             bool allowed = player.IsVr && SaveSystem.Options.armSwingRun && !ArenaGame.Blocked && !player.TreeOpen && !player.Hanging
                            && player.Input.LeftHandFree && player.Input.RightHandFree;
             if (!magic) magic = GetComponent<HandMagic>();
-            if (!allowed || !magic || !magic.GetHand(0, out var lp, out var lv, out _) || !magic.GetHand(1, out var rp, out var rv, out _))
+            if (!allowed || !magic || !magic.GetHand(0, out var lp, out var lv, out var ls) || !magic.GetHand(1, out var rp, out var rv, out var rs))
             {
                 detector.Reset();
                 return;
             }
+            // As duas mãos ABERTAS (2ª versão): com punho ou dedos apontando não corre.
+            if (ls == HandShape.Aberta) openL = 0.25f; else openL -= dt;
+            if (rs == HandShape.Aberta) openR = 0.25f; else openR -= dt;   // tolera um quadro de rastreamento ruim
+            bool open = openL > 0f && openR > 0f;
             var fwd = player.HeadForward;
-            float chest = player.HeadPosition.y - 0.25f;
-            detector.Update(Vector3.Dot(lv, fwd), Vector3.Dot(rv, fwd), lp.y < chest && rp.y < chest, dt);
+            var arc = (fwd + Vector3.up).normalized;   // arco da corrida: frente-e-cima / trás-e-baixo
+            float chest = player.HeadPosition.y - 0.2f;
+            if (!open) detector.Update(0f, 0f, false, dt);
+            else detector.Update(Vector3.Dot(lv, arc), Vector3.Dot(rv, arc), lp.y < chest && rp.y < chest, dt);
             // Balançando (mesmo antes de virar corrida): as mãos não soltam poderes.
             if (detector.Swinging || detector.Running) HandLock.HoldBoth("correr", 0.4f);
             if (detector.Speed <= 0.01f) { announced = false; return; }

@@ -31,7 +31,7 @@ namespace Arena
             new Step { Title = "Soco", Event = "soco",
                 How = "Chegue perto do boneco, feche o punho e dê um SOCO rápido para frente. Acerta um pouco além da mão." },
             new Step { Title = "Corte da palma", Event = "palma",
-                How = "Mão ABERTA, passe-a rápido PARA O LADO na frente do peito, como um tapa forte: sai um corte de vento na direção do movimento." },
+                How = "Mão ABERTA, ESTIQUE o braço na frente e passe a mão rápido, como um tapa forte: sai um corte de vento na direção do movimento." },
             new Step { Title = "Bola de fogo", Event = "bola",
                 How = "Estique o PUNHO fechado para frente e então ABRA a mão: a bola cresce na palma (cheia em 1,5 s). Jogue a mão para frente. Ela é teleguiada: vai no alvo para onde você jogou." },
             new Step { Title = "As duas mãos livres", Done = p => !p.IsVr || (p.Input.LeftHandFree && p.Input.RightHandFree),

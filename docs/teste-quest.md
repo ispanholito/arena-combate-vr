@@ -9,7 +9,12 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
-## 0000000000000000000000000000000. NOVO — correr balançando os braços
+## 00000000000000000000000000000000. NOVO — corrida 2ª versão e pinça para interagir
+- [ ] **Correr**: sem controles, as DUAS mãos ABERTAS, balançando como corrida. Ficou melhor? Com a mão fechada não corre (de propósito).
+- [ ] **Corte da palma**: só com o braço ESTICADO na frente. Perto do corpo não sai corte?
+- [ ] **Pinça** (indicador + polegar) perto do baú, da estátua, dos pedestais dos desafios, dos NPCs, da arma no chão: funciona sem controle?
+
+## 0000000000000000000000000000000. (substituído pela 2ª versão) correr balançando os braços
 - [ ] Larga os DOIS controles e balança os braços como quem corre: anda para onde você olha? A velocidade acompanha o balanço? Para logo quando você para?
 - [ ] Correndo, sai corte de vento, soco ou bola de fogo sem querer? (não deveria)
 - [ ] O **corte da palma** agora é varrida para o LADO: ainda é fácil de soltar quando você quer?
