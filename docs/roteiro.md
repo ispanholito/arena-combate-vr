@@ -16,6 +16,8 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 - **Feito (2026-10-28)**: tutorial dos gestos; arte KayKit também na Arena, no menu e na Dungeon.
 - **Feito**: sala do Treino com KayKit (grátis, CC0) e esqueleto físico com modelo cortado por osso. Próximo: goblin/orc (o KayKit grátis não tem; opções: KayKit Adventurers adaptado, outro pacote CC0, ou pago), arma e mãos do jogador, levar o estilo para Arena/Dungeon se o FPS aguentar.
 - Balanceamento depois do visual, jogando.
+- **Marcado para outra hora (Pablo, 2026-10-29)**: **Raio do céu** — melhorar o visual (o raio de agora é uma linha em zigue-zague) e aumentar a duração (hoje fica 6 s na mão).
+- **Referência de estilo (2026-10-29)**: Soul Knight (celular). Ver a análise na conversa: copiar a estrutura de run (salas trancadas, buff entre andares, muitas armas com personalidade, cores vivas e legíveis). Não copiar o bullet hell nem o pixel art.
 
 ## Validar no Quest (pendente de teste seu)
 - **A** **Siga `docs/teste-quest.md`** (lista completa de tudo desde o último teste, na ordem de uma sessão).
