@@ -18,7 +18,9 @@ namespace Arena.Core
         public static int ElixirPrice(int extraSlotsNow) => 120 * (extraSlotsNow + 1);
 
         // Fada Faísca: raio pequeno no inimigo mais perto. Fada Curandeira: cura devagar.
-        public const float FairyDamage = 7f, FairyInterval = 1.4f, FairyRange = 10f, HealerPerSecond = 1.5f;
+        public const float FairyDamage = 7f, FairyInterval = 1.2f, FairyRange = 10f, HealerPerSecond = 1.5f;
+        // Afastada da visão (2026-10-29) e voando até o inimigo para bater.
+        public const float FairyIdleSide = 0.95f, FairyIdleUp = 0.35f, FairySpeed = 7f, FairyReach = 0.45f;
         // Mercenário: segue você, luta corpo a corpo com quem estiver perto. Não é alvo dos inimigos (simplificação).
         public const float MercDamage = 14f, MercInterval = 1.1f, MercReach = 1.5f, MercAggro = 9f, MercLeash = 14f, MercSpeed = 3.6f;
 

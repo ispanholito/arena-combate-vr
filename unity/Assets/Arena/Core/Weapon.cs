@@ -5,7 +5,7 @@ namespace Arena.Core
     public enum WeaponKind { Espada, Machado, Cajado, Maca, Lanca, Adaga }
     // Visual da arma. O "Kind" decide como ela funciona (corta, crava, pancada, magia); o "Look" só muda o modelo,
     // a massa e o equilíbrio. Assim uma arma nova não precisa mexer em todo o combate.
-    public enum WeaponLook { Padrao, Katana, Rapieira, Martelo, Machadinha, Bacalhau, Frigideira, Tocha, Vassoura, Pistola, Bacamarte }
+    public enum WeaponLook { Padrao, Katana, Rapieira, Martelo, Machadinha, Bacalhau, Frigideira, Tocha, Vassoura, Pistola, Bacamarte, PistolaRepeticao }
 
     // Peso: com pouca Força a arma pesada "atrasa" na mão (lag no follow).
     public sealed class WeaponDef
@@ -64,11 +64,13 @@ namespace Arena.Core
 
         // Armas de fogo (Core/Guns.cs): batem como maça leve; o tiro vem do GunSpec.
         public static readonly WeaponDef Pistola = new WeaponDef("pistola", "Pistola de Pederneira", WeaponKind.Maca, 2f, 0.6f, 3f, 0.32f) { Look = WeaponLook.Pistola, MassKg = 1.1f };
+        // Semiautomática (pedido do Pablo, 2026-10-29): 8 tiros, um por puxada do gatilho, bem rápida.
+        public static readonly WeaponDef PistolaRepeticao = new WeaponDef("pistola_rep", "Pistola de Repetição", WeaponKind.Maca, 2.2f, 0.65f, 3f, 0.34f) { Look = WeaponLook.PistolaRepeticao, MassKg = 1.2f };
         public static readonly WeaponDef Bacamarte = new WeaponDef("bacamarte", "Bacamarte", WeaponKind.Maca, 5f, 0.8f, 5f, 0.66f) { Look = WeaponLook.Bacamarte, MassKg = 2.8f };
 
         public static readonly WeaponDef[] All = { EspadaLonga, MachadoPesado, CajadoArcano, MacaPesada, Lanca, Adaga,
-                                                   Katana, Rapieira, Martelo, Machadinha, Bacalhau, Frigideira, Tocha, Vassoura, Pistola, Bacamarte };
-        public bool IsGun => Look == WeaponLook.Pistola || Look == WeaponLook.Bacamarte;
+                                                   Katana, Rapieira, Martelo, Machadinha, Bacalhau, Frigideira, Tocha, Vassoura, Pistola, Bacamarte, PistolaRepeticao };
+        public bool IsGun => Look == WeaponLook.Pistola || Look == WeaponLook.Bacamarte || Look == WeaponLook.PistolaRepeticao;
 
         // Arma contundente: o "fio" não importa e não corta partes do esqueleto.
         public bool Blunt => Kind == WeaponKind.Maca || Kind == WeaponKind.Cajado;

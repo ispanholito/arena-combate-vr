@@ -111,7 +111,8 @@ namespace Arena
         void OnDestroy() => All.Remove(this);
     }
 
-    // Pet: fada que voa perto do ombro esquerdo. Faísca = raio pequeno no inimigo mais perto; Curandeira = cura devagar.
+    // Pet: fada. Fica afastada (1 m à esquerda e acima, fora do centro da visão — pedido do Pablo, 2026-10-29).
+    // Faísca: com inimigo por perto, VOA até ele e bate (volta quando não há mais ninguém). Curandeira: cura devagar.
     public sealed class PetCompanion : MonoBehaviour
     {
         ArenaPlayer player;
@@ -119,6 +120,7 @@ namespace Arena
         PetKind shown;
         float cd, t;
         Material glow;
+        ArenaEnemy prey;
 
         void Awake() => player = GetComponent<ArenaPlayer>();
 
@@ -129,16 +131,37 @@ namespace Arena
             if (kind != shown) Rebuild(kind);
             if (!fairy || ArenaGame.Paused) return;
             float dt = Time.deltaTime;
-            t += dt;
-            // Flutua perto do ombro esquerdo.
+            t += dt; cd -= dt;
             var head = player.Head;
-            var target = head.position - head.right * 0.45f + Vector3.up * (0.05f + Mathf.Sin(t * 3f) * 0.06f) + head.forward * 0.2f;
-            fairy.position = Vector3.Lerp(fairy.position, target, 1f - Mathf.Exp(-6f * dt));
+            var right = Vector3.Cross(Vector3.up, player.HeadForward).normalized;
+            var idle = head.position - right * AllyRules.FairyIdleSide + Vector3.up * (AllyRules.FairyIdleUp + Mathf.Sin(t * 3f) * 0.08f) + player.HeadForward * 0.15f;
             if (Random.value < dt * 4f) ArenaFx.Burst(fairy.position, glow.color, 1, 0.3f);
-            if (ArenaGame.Blocked) return;
-            if (kind == PetKind.FadaCurandeira) { if (player.State.Hp.Current < player.State.Hp.Max) player.State.Hp.Restore(AllyRules.HealerPerSecond * dt); return; }
-            cd -= dt;
-            if (cd > 0f) return;
+            if (kind == PetKind.FadaCurandeira || ArenaGame.Blocked)
+            {
+                Fly(idle, 6f, dt);
+                if (kind == PetKind.FadaCurandeira && !ArenaGame.Blocked && player.State.Hp.Current < player.State.Hp.Max) player.State.Hp.Restore(AllyRules.HealerPerSecond * dt);
+                return;
+            }
+            // Faísca: escolhe o inimigo mais perto de você (até 10 m) e vai até ele.
+            if (!prey || prey.Dead || Vector3.Distance(prey.Center, player.HeadPosition) > AllyRules.FairyRange + 3f) prey = PickPrey(game);
+            if (!prey) { Fly(idle, 6f, dt); return; }
+            var orbit = prey.Center + Vector3.up * 0.5f + new Vector3(Mathf.Cos(t * 4f), 0f, Mathf.Sin(t * 4f)) * (prey.Radius + 0.25f);
+            Fly(orbit, AllyRules.FairySpeed, dt);
+            if (cd > 0f || Vector3.Distance(fairy.position, prey.Center) > prey.Radius + AllyRules.FairyReach) return;
+            cd = AllyRules.FairyInterval;
+            prey.ApplyDamage(AllyRules.FairyDamage, 0.3f, prey.Center - fairy.position, 0.5f, new Color(1f, 0.95f, 0.5f));
+            ArenaFx.Burst(prey.Center + (fairy.position - prey.Center) * 0.5f, new Color(1f, 0.95f, 0.5f), 8, 2f);
+            ArenaAudio.Play(Sfx.Shot, fairy.position, 0.4f, 2.4f);
+        }
+
+        void Fly(Vector3 to, float speed, float dt)
+        {
+            float d = Vector3.Distance(fairy.position, to);
+            fairy.position = Vector3.MoveTowards(fairy.position, to, Mathf.Max(speed, d * 6f) * dt);   // longe: alcança rápido
+        }
+
+        ArenaEnemy PickPrey(ArenaGame game)
+        {
             ArenaEnemy best = null; float bestD = AllyRules.FairyRange;
             foreach (var e in ArenaEnemy.All)
             {
@@ -146,15 +169,7 @@ namespace Arena
                 float d = Vector3.Distance(e.Center, player.HeadPosition);
                 if (d < bestD) { bestD = d; best = e; }
             }
-            if (!best) return;
-            cd = AllyRules.FairyInterval;
-            best.ApplyDamage(AllyRules.FairyDamage, 0.3f, best.Center - fairy.position, 0.5f, new Color(1f, 0.95f, 0.5f));
-            var go = new GameObject("RaioFada");
-            var lr = go.AddComponent<LineRenderer>();
-            lr.positionCount = 2; lr.SetPosition(0, fairy.position); lr.SetPosition(1, best.Center);
-            lr.startWidth = 0.025f; lr.endWidth = 0.01f; lr.material = ArenaUtil.Unlit(new Color(1f, 0.95f, 0.5f));
-            Destroy(go, 0.08f);
-            ArenaAudio.Play(Sfx.Shot, fairy.position, 0.4f, 2.2f);
+            return best;
         }
 
         void Rebuild(PetKind kind)

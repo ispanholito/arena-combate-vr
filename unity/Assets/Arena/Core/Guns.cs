@@ -23,7 +23,16 @@ namespace Arena.Core
         public static readonly GunSpec Bacamarte = new GunSpec
         { Shots = 2, Pellets = 7, Damage = 8f, Spread = 8f, Range = 14f, Cooldown = 0.55f, Knock = 6f, Posture = 0.6f, BaseMultiplier = 0.8f };
 
-        public static GunSpec For(WeaponLook look) => look == WeaponLook.Pistola ? Pistola : look == WeaponLook.Bacamarte ? Bacamarte : null;
+        public static readonly GunSpec Repeticao = new GunSpec
+        { Shots = 8, Pellets = 1, Damage = 15f, Spread = 1.2f, Range = 28f, Cooldown = 0.12f, Knock = 1.5f, Posture = 0.7f, BaseMultiplier = 0.65f };
+
+        public static GunSpec For(WeaponLook look) => look switch
+        {
+            WeaponLook.Pistola => Pistola,
+            WeaponLook.Bacamarte => Bacamarte,
+            WeaponLook.PistolaRepeticao => Repeticao,
+            _ => null,
+        };
 
         public static float ShotDamage(GunSpec s, WeaponDef w) => s.Damage * (w.DamageMultiplier / s.BaseMultiplier);
 

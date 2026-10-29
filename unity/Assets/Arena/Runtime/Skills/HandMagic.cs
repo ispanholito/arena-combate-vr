@@ -281,9 +281,12 @@ namespace Arena
                 }
                 return;
             }
+            // Mirando um ponto de teia aceso: a mão é da teia, não da bola de fogo.
+            bool aimingWeb = SpiderLocomotion.Instance && SpiderLocomotion.Instance.AimsAtLit(d.Palm);
             if (d.Armed)
             {
                 d.OpenWindow -= dt;
+                if (aimingWeb) { CancelFire(side); return; }
                 if (d.Shape == HandShape.Aberta && fireCd <= 0f)
                 {
                     if (player.State.Mana.Current < HandMagicRules.FireMana) { ArenaGame.Instance?.Message("Sem mana", 0.6f); CancelFire(side); return; }
@@ -294,7 +297,7 @@ namespace Arena
                 return;
             }
             // Punho fechado esticado para frente por um instante = pronto para abrir.
-            if (d.Shape == HandShape.Punho && extended && d.Vel.magnitude < 2f) d.ArmT += dt; else d.ArmT = 0f;
+            if (d.Shape == HandShape.Punho && extended && d.Vel.magnitude < 2f && !aimingWeb) d.ArmT += dt; else d.ArmT = 0f;
             if (d.ArmT >= HandMagicRules.FireArmHold) { d.Armed = true; d.OpenWindow = HandMagicRules.FireOpenWindow; d.ArmT = 0f; }
         }
 

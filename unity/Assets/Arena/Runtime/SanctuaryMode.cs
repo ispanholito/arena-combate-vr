@@ -69,6 +69,12 @@ namespace Arena
             Portal(new Vector3(0f, 0, 6.5f), ArenaGame.GameMode.Dungeon, "DUNGEON", "2 andares, baús e o chefe", new Color(0.55f, 0.35f, 1f));
             Portal(new Vector3(4.5f, 0, 6f), ArenaGame.GameMode.Treino, "TREINO", "boneco; nível 10 (não salva)", new Color(0.4f, 0.9f, 0.5f));
             Portal(new Vector3(4.5f, 0, -5.5f), ArenaGame.GameMode.Menu, "TUTORIAL", "aprenda os gestos e poderes", new Color(1f, 0.85f, 0.4f));   // Menu = marcador do tutorial
+            // Ganchos de teia (pedido do Pablo, 2026-10-29): acima de cada portal, nos cantos e no meio das paredes,
+            // para atravessar o santuário voando e cair na frente do portal.
+            foreach (var g in new[] { new Vector3(-4.5f, 3.6f, 6.6f), new Vector3(0f, 3.6f, 7.1f), new Vector3(4.5f, 3.6f, 6.6f), new Vector3(4.5f, 3.6f, -6.4f),
+                                      new Vector3(-7.3f, 3.8f, -7.3f), new Vector3(7.3f, 3.8f, -7.3f), new Vector3(-7.3f, 3.8f, 7.3f), new Vector3(7.3f, 3.8f, 7.3f),
+                                      new Vector3(-7.5f, 4f, 0f), new Vector3(7.5f, 4f, 0f), new Vector3(0f, 4.3f, 0f) })
+                GrapplePoint.Spawn(root, g);
             ResetStone(new Vector3(-2.7f, 0, 5.2f), ArenaGame.GameMode.Arena);
             ResetStone(new Vector3(1.8f, 0, 5.4f), ArenaGame.GameMode.Dungeon);
 
@@ -391,9 +397,9 @@ namespace Arena
             if (!near) return;
             var s = game.Player.State;
             var keep = s.Loadout[s.ActiveSlot]; var food = s.Loadout[1 - s.ActiveSlot];
-            if (keep == null || food == null) { forgeText.text = "FORJA DE FUSÃO\n<size=44>Junte a arma da mão com a 2ª arma\n(precisa das duas)</size>"; return; }
+            if (keep == null || food == null) { forgeText.text = "FORJA DE FUSÃO\n<size=44>As duas armas viram uma outra\n(precisa da arma da mão e da 2ª)</size>"; return; }
             var r = Fusion.ResultRarity(keep, food);
-            forgeText.text = "FORJA DE FUSÃO\n<size=44>" + keep.DisplayName + " + " + food.DisplayName + "\n→ " + keep.Base.Name + " " + ItemInstance.RarityName(r)
+            forgeText.text = "FORJA DE FUSÃO\n<size=44>" + keep.DisplayName + " + " + food.DisplayName + "\n→ " + Fusion.ResultBase(keep.Base, food.Base).Name + " " + ItemInstance.RarityName(r)
                 + "\n" + Fusion.Cost(keep, food) + " ouro (você tem " + s.Gold + ") · grip / E</size>";
         }
 
@@ -402,7 +408,7 @@ namespace Arena
             if (!forge || !Near(player, forge.position, 1.3f, 1.6f)) return false;
             var s = player.State;
             var keep = s.Loadout[s.ActiveSlot]; var food = s.Loadout[1 - s.ActiveSlot];
-            if (keep == null || food == null) { game.Message("A forja junta a arma da mão com a 2ª arma", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
+            if (keep == null || food == null) { game.Message("A forja transforma a arma da mão e a 2ª arma numa outra", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
             if (!Fusion.TryFuse(s, fuseRng, out var result))
             {
                 game.Message("Custa " + Fusion.Cost(keep, food) + " de ouro (você tem " + s.Gold + ")", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true;

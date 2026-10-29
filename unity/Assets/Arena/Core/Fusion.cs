@@ -4,9 +4,10 @@ using System.Linq;
 
 namespace Arena.Core
 {
-    // Forja de fusão (inspiração Soul Knight): junta a arma da mão (fica o tipo dela) com a 2ª arma (é consumida).
-    // Mesma raridade = sobe uma raridade; diferentes = fica a maior. Os atributos das duas se somam (vale o melhor de
-    // cada tipo, até o limite da raridade), o ferreiro fica o maior e a passiva é herdada.
+    // Forja de fusão (inspiração Soul Knight): as DUAS armas (a da mão e a 2ª) viram UMA OUTRA arma (decisão do Pablo,
+    // 2026-10-29: não é sacrificar uma para melhorar a outra). Cada par tem uma "receita" fixa: o mesmo par sempre dá a
+    // mesma arma, diferente das duas. Mesma raridade = sobe uma raridade; diferentes = fica a maior. Os atributos se
+    // somam (o melhor de cada tipo, até o limite da raridade), o ferreiro fica o maior e a passiva é herdada.
     public static class Fusion
     {
         public static Rarity ResultRarity(ItemInstance keep, ItemInstance food) =>
@@ -21,6 +22,23 @@ namespace Arena.Core
         public static bool CanFuse(ItemInstance keep, ItemInstance food) =>
             keep != null && food != null && !(keep.Rarity == Rarity.Lendario && food.Rarity == Rarity.Lendario && keep.Upgrade >= ItemInstance.MaxUpgrade);
 
+        // Receita: arma resultante do par (não depende da ordem; nunca é uma das duas).
+        public static WeaponDef ResultBase(WeaponDef a, WeaponDef b)
+        {
+            var options = new List<WeaponDef>();
+            foreach (var w in WeaponDef.All) if (w != a && w != b) options.Add(w);
+            uint h = Hash(a.Id) ^ Hash(b.Id);
+            if (a == b) h = Hash(a.Id) * 31u;
+            return options[(int)(h % (uint)options.Count)];
+        }
+
+        static uint Hash(string s)   // FNV-1a: estável entre execuções (string.GetHashCode não é)
+        {
+            uint h = 2166136261u;
+            foreach (char c in s) { h ^= c; h *= 16777619u; }
+            return h;
+        }
+
         public static ItemInstance Fuse(ItemInstance keep, ItemInstance food, Random rng)
         {
             var rarity = ResultRarity(keep, food);
@@ -32,7 +50,7 @@ namespace Arena.Core
             var passive = keep.Passive != WeaponPassive.Nenhuma ? keep.Passive : food.Passive;
             if (rarity >= Rarity.Raro && passive == WeaponPassive.Nenhuma)
                 passive = (WeaponPassive)rng.Next(1, Enum.GetValues(typeof(WeaponPassive)).Length);
-            return new ItemInstance(keep.Base, rarity, affixes, Math.Max(keep.Upgrade, food.Upgrade), passive);
+            return new ItemInstance(ResultBase(keep.Base, food.Base), rarity, affixes, Math.Max(keep.Upgrade, food.Upgrade), passive);
         }
 
         // Funde no personagem: cobra o ouro, troca a arma da mão e esvazia a 2ª vaga.

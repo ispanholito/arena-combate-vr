@@ -41,7 +41,7 @@ namespace Arena
             new Step { Title = "Onda de energia", Event = "kame",
                 How = "Bata uma PALMA e mantenha os PULSOS JUNTOS, mãos abertas na altura da barriga: a esfera azul cresce. Empurre as duas mãos para frente com força: um raio grosso que atravessa todos." },
             new Step { Title = "Teia", Event = "puxar",
-                How = "OLHE para um ponto no alto de um pilar ou da parede: ele acende em azul. Estique a mão ABERTA na direção dele e FECHE: a teia prende. Puxe a mão fechada para o peito para voar; abra a mão para soltar (você segue com o embalo)." },
+                How = "OLHE para um ponto no alto de um pilar ou da parede: ele acende em azul. Aponte a mão FECHADA para ele e ABRA: a teia prende. FECHE de novo e puxe para o peito para voar; abra a mão para soltar (você segue com o embalo)." },
             new Step { Title = "Esquiva para trás", Event = "dash_tras",
                 How = "Faça o sinal do chifre (indicador e mindinho esticados, médio e anelar dobrados) DUAS vezes seguidas, rápido: você dá um salto para trás." },
             new Step { Title = "Pausa e menus", Event = "pausa",

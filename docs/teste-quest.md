@@ -9,6 +9,14 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000000000000000000000000000. NOVO — ajustes da teia, pistola, fusão, fada
+- [ ] **Teia**: olhe para um ponto (acende), aponte a mão FECHADA para ele e ABRA → teia (sem bola de fogo). Feche e puxe para voar; abra para soltar. Fora de um ponto aceso, a bola de fogo continua igual?
+- [ ] **Santuário**: os ganchos acima dos portais levam você até eles?
+- [ ] **Pistola de Repetição**: 8 tiros rápidos. Gostou do ritmo?
+- [ ] **Forja**: o texto mostra a arma nova que sai; as duas viram ela?
+- [ ] **Trocar de arma** com a mão livre: mão por cima do ombro, atrás da cabeça, e fechar. Dispara sem querer?
+- [ ] **Fada**: longe o bastante da visão? Vai até o inimigo e bate?
+
 ## 0000000000000000000000000000. NOVO — chefes sorteados, estátuas, biomas e desafios
 - [ ] **Quadro de desafios** (santuário, 3 pedestais na frente dos portais; grip): Desafio diário, Horda infinita, Boss rush. O HUD mostra tempo/onda?
 - [ ] **Rainha Slime**: o círculo do pulo dá tempo de fugir? Dá para bater depois que ela cai? Os slimes que ela solta atrapalham demais?

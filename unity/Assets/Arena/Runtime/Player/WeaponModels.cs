@@ -192,6 +192,19 @@ namespace Arena
                     ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(0, -0.015f, 0.03f), new Vector3(0.01f, 0.03f, 0.01f), brass);  // gatilho
                     return new Vector3(0, -0.11f, -0.04f);
                 }
+                case WeaponLook.PistolaRepeticao:
+                {
+                    var iron = ArenaUtil.Lit(new Color(0.22f, 0.22f, 0.25f), new Color(0.03f, 0.03f, 0.03f));
+                    var brass = ArenaUtil.Lit(new Color(0.75f, 0.58f, 0.25f), new Color(0.15f, 0.1f, 0.02f));
+                    var g = ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(0, -0.06f, -0.02f), new Vector3(0.035f, 0.12f, 0.05f), wood).transform;
+                    g.localRotation = Quaternion.Euler(18, 0, 0);
+                    Handle(t, new Vector3(0, 0.035f, 0.2f), 0.12f, 0.026f, iron);                       // cano
+                    ArenaUtil.Prim(PrimitiveType.Cylinder, t, new Vector3(0, 0.035f, 0.06f), new Vector3(0.06f, 0.035f, 0.06f), brass).transform.localRotation = Quaternion.Euler(90, 0, 0);   // tambor
+                    ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(0, 0.0f, 0.04f), new Vector3(0.03f, 0.03f, 0.12f), iron);
+                    ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(0, 0.06f, -0.01f), new Vector3(0.02f, 0.025f, 0.03f), iron);   // cão
+                    ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(0, -0.015f, 0.03f), new Vector3(0.01f, 0.03f, 0.01f), brass);  // gatilho
+                    return new Vector3(0, -0.11f, -0.04f);
+                }
                 case WeaponLook.Bacamarte:
                 {
                     var brass = ArenaUtil.Lit(new Color(0.78f, 0.6f, 0.25f), new Color(0.15f, 0.1f, 0.02f));
@@ -250,6 +263,7 @@ namespace Arena
             WeaponLook.Tocha => new[] { new Box(new Vector3(0, 0, 0.36f), new Vector3(0.06f, 0.06f, 0.8f)) },
             WeaponLook.Vassoura => new[] { new Box(new Vector3(0, 0, 0.65f), new Vector3(0.05f, 0.05f, 1.35f)), new Box(new Vector3(0, 0, 1.36f), new Vector3(0.22f, 0.08f, 0.3f)) },
             WeaponLook.Pistola => new[] { new Box(new Vector3(0, 0.0f, 0.14f), new Vector3(0.04f, 0.08f, 0.34f)) },
+            WeaponLook.PistolaRepeticao => new[] { new Box(new Vector3(0, 0.0f, 0.14f), new Vector3(0.06f, 0.09f, 0.36f)) },
             WeaponLook.Bacamarte => new[] { new Box(new Vector3(0, 0, 0.24f), new Vector3(0.06f, 0.1f, 0.84f)) },
             _ => KindColliders(def),
         };
@@ -276,6 +290,7 @@ namespace Arena
             WeaponLook.Tocha => new Vector3(0, 0, 0.42f),
             WeaponLook.Vassoura => new Vector3(0, 0, 0.8f),
             WeaponLook.Pistola => new Vector3(0, 0, 0.08f),
+            WeaponLook.PistolaRepeticao => new Vector3(0, 0, 0.07f),
             WeaponLook.Bacamarte => new Vector3(0, 0, 0.15f),
             _ => KindCenterOfMass(def),
         };

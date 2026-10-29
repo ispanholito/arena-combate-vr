@@ -8,7 +8,7 @@ namespace Arena.Core.Tests
         [Test]
         public void AllWeapons_WithUniqueIds()
         {
-            Assert.AreEqual(16, WeaponDef.All.Length);   // 6 originais + 8 da leva Soul Knight + 2 armas de fogo
+            Assert.AreEqual(17, WeaponDef.All.Length);   // 6 originais + 8 da leva Soul Knight + 3 armas de fogo
             Assert.AreEqual(WeaponDef.All.Length, WeaponDef.All.Select(w => w.Id).Distinct().Count());
         }
 

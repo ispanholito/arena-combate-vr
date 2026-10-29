@@ -14,7 +14,10 @@ namespace Arena.Core.Tests
             var food = new ItemInstance(WeaponDef.Adaga, Rarity.Incomum, new[] { new Affix(AffixKind.Dano, 0.15f) }, 3);
             var r = Fusion.Fuse(keep, food, new System.Random(1));
             Assert.AreEqual(Rarity.Raro, r.Rarity);
-            Assert.AreSame(WeaponDef.Katana, r.Base);
+            Assert.AreNotSame(WeaponDef.Katana, r.Base);   // as duas viram uma OUTRA arma
+            Assert.AreNotSame(WeaponDef.Adaga, r.Base);
+            Assert.AreSame(Fusion.ResultBase(WeaponDef.Katana, WeaponDef.Adaga), r.Base);
+            Assert.AreSame(Fusion.ResultBase(WeaponDef.Adaga, WeaponDef.Katana), r.Base);   // receita não depende da ordem
             Assert.AreEqual(3, r.Upgrade);
             Assert.AreEqual(0.15f, r.Sum(AffixKind.Dano), 1e-4);
             Assert.AreNotEqual(WeaponPassive.Nenhuma, r.Passive);   // virou Rara: ganha passiva
@@ -44,7 +47,7 @@ namespace Arena.Core.Tests
             Assert.Greater(GunRules.ShotDamage(GunRules.Pistola, epica), GunRules.ShotDamage(GunRules.Pistola, comum));
             Assert.IsTrue(GunRules.IsReloadFlick(3f, 0.8f));
             Assert.IsFalse(GunRules.IsReloadFlick(3f, 0.1f));   // cano deitado não recarrega
-            Assert.AreEqual(16, WeaponDef.All.Length);
+            Assert.AreEqual(17, WeaponDef.All.Length);
         }
 
         [Test]

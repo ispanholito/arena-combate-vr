@@ -7,9 +7,10 @@ namespace Arena
 {
     // Andar sem controle (Pablo, 2026-10-28), com qualquer mão LIVRE (sem controle nela):
     //   - TEIA (refeita depois do teste): há pontos de gancho no alto das pilastras, paredes e teto (GrapplePoint).
-    //     O ponto para onde você OLHA acende. Estique a mão aberta em direção a ele e FECHE: a teia prende nele.
-    //     Puxe a mão fechada em direção ao corpo: você ganha velocidade ao longo da teia. Parou de puxar ou soltou
-    //     (abriu a mão): continua com o EMBALO e cai em arco com a gravidade (ArenaPlayer.AirVelocity).
+    //     O ponto para onde você OLHA acende. Aponte a mão FECHADA para ele e ABRA: a teia prende nele (2026-10-29:
+    //     com o ponto aceso e a mão mirando nele, abrir lança a teia e NUNCA a bola de fogo). Feche a mão de novo e
+    //     puxe em direção ao corpo: você ganha velocidade ao longo da teia. Abriu a mão de novo: solta e continua
+    //     com o EMBALO, caindo em arco com a gravidade (ArenaPlayer.AirVelocity).
     //   - Sinal do Homem-Aranha (indicador + mindinho) duas vezes seguidas = dash para trás.
     [RequireComponent(typeof(ArenaPlayer))]
     public sealed class SpiderLocomotion : MonoBehaviour
@@ -55,8 +56,8 @@ namespace Arena
                 var hand = side == 0 ? hands.leftHand : hands.rightHand;
                 if (!free || !hand.isTracked) { detectors[side].Update(false, 0f, dt); lastShape[side] = HandShape.Nenhuma; if (ropeActive && ropeSide == side) Release(); continue; }
                 var shape = Detect(hand);
-                bool fistOnset = shape == HandShape.Punho && lastShape[side] != HandShape.Punho;
-                lastShape[side] = shape;
+                bool openFromFist = shape == HandShape.Aberta && lastShape[side] == HandShape.Punho;
+                if (shape != HandShape.Nenhuma) lastShape[side] = shape;
                 if (ropeActive && ropeSide == side) { HandLock.Hold(side, "teia"); UpdateRope(hand, shape, dt); continue; }
                 // Sinal do Homem-Aranha 2× = dash para trás (a teia por sinal foi trocada pelos pontos de gancho).
                 if (detectors[side].Update(shape == HandShape.Chifres, 0f, dt) == SpiderAction.DashBack)
@@ -64,8 +65,8 @@ namespace Arena
                     player.DashBack();
                     ArenaFx.FloatText("DASH", player.HeadPosition + player.HeadForward * 0.8f, new Color(0.8f, 0.9f, 1f), 0.5f);
                 }
-                // Mão esticada em direção ao ponto aceso + fechar = lança a teia.
-                if (fistOnset && !ropeActive && target && !Muralha.Active && HandLock.Free(side, "teia") && World(hand, XRHandJointID.Palm, out var palm) && AimsAt(palm, target.Position))
+                // Mão fechada mirando o ponto aceso + abrir = lança a teia.
+                if (openFromFist && !ropeActive && target && !Muralha.Active && HandLock.Free(side, "teia") && World(hand, XRHandJointID.Palm, out var palm) && AimsAt(palm, target.Position))
                     Shoot(side, palm, target.Position);
             }
         }
@@ -96,6 +97,9 @@ namespace Arena
         }
 
         // Braço esticado e a mão apontando para o ponto (a partir da cabeça).
+        // A mão está mirando o ponto aceso? (a bola de fogo da mão não arma nesse caso: a teia tem prioridade)
+        public bool AimsAtLit(Vector3 palm) => target && !ropeActive && AimsAt(palm, target.Position);
+
         bool AimsAt(Vector3 palm, Vector3 point)
         {
             var eye = player.HeadPosition;
@@ -109,7 +113,7 @@ namespace Arena
         {
             anchor = point;
             TutorialEvents.Raise("teia");
-            ropeActive = true; ropeSide = side; ropeT = 0f; openT = 0f; grabbedOnce = true; sincePull = 99f;
+            ropeActive = true; ropeSide = side; ropeT = 0f; openT = 0f; grabbedOnce = false; sincePull = 99f;   // lança com a mão aberta: falta fechar
             lastHandLocal = player.trackingSpace.InverseTransformPoint(handPos);
             if (!line)
             {
@@ -140,6 +144,7 @@ namespace Arena
             var local = player.trackingSpace.InverseTransformPoint(handPos);
             if (shape == HandShape.Punho)
             {
+                grabbedOnce = true;
                 openT = 0f;
                 // Velocidade da mão em relação ao corpo, na direção oposta à teia = puxão.
                 var handVel = player.trackingSpace.TransformVector(local - lastHandLocal) / Mathf.Max(dt, 1e-4f);
@@ -149,11 +154,12 @@ namespace Arena
                 player.Hanging = true;
                 player.Coasting = sincePull < HandMagicRules.HangCoast;
             }
-            else
+            else if (grabbedOnce)
             {
                 openT += dt;
-                if (openT > 0.08f) { Release(); return; }   // abriu a mão: solta e segue com o embalo
+                if (openT > 0.08f) { Release(); return; }   // abriu a mão de novo: solta e segue com o embalo
             }
+            else if (ropeT > RopeRules.GrabTimeout) { Release(); return; }   // lançou e não fechou a mão a tempo
             lastHandLocal = local;
         }
 
