@@ -206,7 +206,7 @@ namespace Arena
             float size = 0.12f + 0.1f * power;
             var vis = ArenaUtil.Prim(PrimitiveType.Sphere, null, start, Vector3.one * size * 2f, ArenaUtil.Unlit(new Color(1f, 0.48f, 0.13f)));
             var p = Projectile.Spawn(vis, start, vel);
-            p.Gravity = 3f; p.Life = 2.5f; p.Radius = size; p.Pierce = 1;
+            p.Gravity = 3f; p.Life = 2.5f; p.Radius = size; p.Pierce = 1; p.IsFire = true;
             float radius = Combat.FireballRadius(power, S.Has(SkillIds.Combustao));
             float dmg = Combat.FireballDamage(power);
             p.OnEnd = pr => Explode(new Vector3(pr.transform.position.x, Mathf.Max(0.3f, pr.transform.position.y), pr.transform.position.z), radius, dmg);

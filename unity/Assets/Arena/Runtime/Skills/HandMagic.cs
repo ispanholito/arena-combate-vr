@@ -9,8 +9,9 @@ namespace Arena
     //   As magias de duas mãos começam com uma PALMA BATIDA (abre uma janela de 1,5 s):
     //   - RAÍZES: depois da palma, separe e jogue as duas mãos rápido para baixo → raízes prendem os inimigos num
     //     círculo de 4 m à frente por 3 s.
-    //   - KAMEHAMEHA: depois da palma, mantenha os pulsos juntos na altura do tronco → carrega uma esfera azul;
-    //     empurrar as duas mãos para frente com força solta um raio grosso que atravessa todos.
+    //   - KAMEHAMEHA (como no anime): palma na frente → puxe as mãos juntas para a LATERAL do corpo (a esfera azul
+    //     carrega entre elas enquanto estão ao lado) → abra um pouco as mãos em GARRA e espere um instante (a esfera
+    //     brilha: armado) → jogue as duas mãos para frente: raio grosso que atravessa todos.
     //   - BOLA DE FOGO (uma mão): punho fechado esticado para frente → abrir a mão carrega a bola na palma (cheia em
     //     1,5 s) → jogar a mão para frente arremessa. É TELEGUIADA: vai no inimigo mais perto da direção do arremesso.
     // Enquanto carrega, os poderes de uma mão daquela mão ficam desligados (o empurrão não vira corte da palma).
@@ -37,6 +38,8 @@ namespace Arena
         readonly HandData[] h = { new HandData(), new HandData() };
 
         float rootsCd, kameT, kameCd, fireCd, clapWindow, clapCd, prevPalmsApart = 1f;
+        float clawT, offSideT;
+        bool kameArmed;   // onda: tempo na garra ao lado; tempo longe do lado sem ter armado
         bool kameCharging;
         public bool KameCharging => kameCharging;   // a IA sai da frente
         Transform kameOrb;
@@ -109,42 +112,40 @@ namespace Arena
                 clapWindow = 0f;
                 return true;
             }
-            // Kamehameha: pulsos juntos, mãos abertas na altura do tronco.
-            bool openish = L.Shape != HandShape.Punho && R.Shape != HandShape.Punho && L.Shape != HandShape.Apontar && R.Shape != HandShape.Apontar;
-            float belowHead = player.HeadPosition.y - (L.Palm.y + R.Palm.y) * 0.5f;
-            bool pose = openish && HandMagicRules.KamePose(wristsApart, palmsApart, belowHead);
+            // Kamehameha: palma → mãos juntas puxadas para o lado (carrega) → garra ao lado (arma) → jogar para frente.
             var mid = (L.Palm + R.Palm) * 0.5f;
-            if (pose && kameCd <= 0f)
+            var right = Vector3.Cross(Vector3.up, player.HeadForward).normalized;
+            float lateral = Vector3.Dot(mid - player.HeadPosition, right);
+            bool atSide = HandMagicRules.KameAtSide(lateral);
+            if (!kameCharging)
             {
-                kameCharging = true;
-                clapWindow = Mathf.Max(clapWindow, 0.3f);
-                kameT += dt;
-                float c = HandMagicRules.Charge01(kameT, HandMagicRules.KameMinCharge, HandMagicRules.KameFullCharge);
-                ShowKameOrb(mid, c);
-                // Soltar: as duas mãos empurrando para frente.
-                var push = (L.Vel + R.Vel) * 0.5f;
-                if (c > 0f && Vector3.Dot(push, player.HeadForward) > HandMagicRules.KamePushSpeed)
-                {
-                    FireKamehameha(mid, push.normalized, c);
-                    HandLock.HoldBoth("duas", HandLock.AfterCast);
-                    kameCharging = false; kameT = 0f;
-                }
+                if (kameCd > 0f || !HandMagicRules.KameStart(palmsApart, wristsApart, lateral)) return false;
+                kameCharging = true; kameT = 0f; clawT = 0f; offSideT = 0f; kameArmed = false;
+                ArenaAudio.Play(Sfx.Wind, mid, 0.4f, 1.6f);
+            }
+            clapWindow = Mathf.Max(clapWindow, 0.3f);
+            if (atSide) { kameT += dt; offSideT = 0f; } else offSideT += dt;
+            if (atSide && HandMagicRules.KameClaw(palmsApart, wristsApart)) clawT += dt;
+            float charge = HandMagicRules.Charge01(kameT, HandMagicRules.KameMinCharge, HandMagicRules.KameFullCharge);
+            bool armed = charge > 0f && clawT >= HandMagicRules.KameClawHold;
+            if (armed && !kameArmed) ArenaAudio.Play(Sfx.Skill, mid, 0.7f, 1.5f);   // armado: pode jogar
+            kameArmed = armed;
+            ShowKameOrb(mid, charge, armed);
+            var push = (L.Vel + R.Vel) * 0.5f;
+            if (armed && Vector3.Dot(push, player.HeadForward) > HandMagicRules.KamePushSpeed)
+            {
+                FireKamehameha(mid, player.HeadForward, charge);
+                HandLock.HoldBoth("duas", HandLock.AfterCast);
+                kameCharging = false; kameT = 0f; clawT = 0f;
                 return true;
             }
-            // Ainda carregado e empurrando (as mãos se separam um pouco no empurrão): solta mesmo assim.
-            if (kameCharging)
+            // Desistiu: separou as mãos demais, ou saiu do lado sem ter armado.
+            if (palmsApart > HandMagicRules.KameCancelApart || (!armed && offSideT > HandMagicRules.KameLoseSideSeconds))
             {
-                float c = HandMagicRules.Charge01(kameT, HandMagicRules.KameMinCharge, HandMagicRules.KameFullCharge);
-                var push = (L.Vel + R.Vel) * 0.5f;
-                if (c > 0f && Vector3.Dot(push, player.HeadForward) > HandMagicRules.KamePushSpeed && palmsApart < 0.5f)
-                {
-                    FireKamehameha(mid, push.normalized, c);
-                    HandLock.HoldBoth("duas", HandLock.AfterCast);
-                }
-                kameCharging = false; kameT = 0f; HideKameOrb();
-                return c > 0f;
+                kameCharging = false; kameT = 0f; clawT = 0f; HideKameOrb();
+                return false;
             }
-            return false;
+            return true;
         }
 
         public void CastRoots()
@@ -177,7 +178,7 @@ namespace Arena
             ArenaGame.Instance?.Message(n > 0 ? $"Raízes! Enraizou {n}" : "Raízes!", 0.8f);
         }
 
-        void ShowKameOrb(Vector3 at, float c)
+        void ShowKameOrb(Vector3 at, float c, bool armed = false)
         {
             if (!kameOrb)
             {
@@ -187,7 +188,7 @@ namespace Arena
             }
             kameOrb.gameObject.SetActive(true);
             kameOrb.position = at;
-            float pulse = 1f + 0.12f * Mathf.Sin(Time.time * 30f);
+            float pulse = 1f + (armed ? 0.25f : 0.12f) * Mathf.Sin(Time.time * (armed ? 45f : 30f));   // armado: pulsa forte
             kameOrb.localScale = Vector3.one * Mathf.Lerp(0.03f, 0.18f, Mathf.Max(c, kameT / HandMagicRules.KameFullCharge * 0.3f)) * pulse;
         }
 
@@ -302,7 +303,7 @@ namespace Arena
             var vis = ArenaUtil.Prim(PrimitiveType.Sphere, null, from, Vector3.one * size * 2f, ArenaUtil.Unlit(new Color(1f, 0.48f, 0.13f)));
             foreach (var col in vis.GetComponentsInChildren<Collider>()) Destroy(col);
             var p = Projectile.Spawn(vis, from, vel);
-            p.Gravity = 3f; p.Life = 2.5f; p.Radius = size; p.Pierce = 1;
+            p.Gravity = 3f; p.Life = 2.5f; p.Radius = size; p.Pierce = 1; p.IsFire = true;
             float radius = Combat.FireballRadius(power, ps.Has(SkillIds.Combustao));
             float dmg = Combat.FireballDamage(power);
             p.OnEnd = pr => SkillCaster.Explode(new Vector3(pr.transform.position.x, Mathf.Max(0.3f, pr.transform.position.y), pr.transform.position.z), radius, dmg);
@@ -328,6 +329,24 @@ namespace Arena
             }
             int k = HandMagicRules.PickHomingTarget(angles, dists);
             return k >= 0 ? list[k] : null;
+        }
+
+        // Espada flamejante: a lâmina (a→b) passou pela bola que alguma mão está carregando? Consome a bola (gasta a mana
+        // dela) e devolve true.
+        public bool TryConsumeFireOrb(Vector3 a, Vector3 b, float margin)
+        {
+            for (int side = 0; side < 2; side++)
+            {
+                var d = h[side];
+                if (!d.Charging || !d.Orb || !d.Orb.gameObject.activeSelf) continue;
+                var ab = b - a; var o = d.Orb.position;
+                float t = Mathf.Clamp01(Vector3.Dot(o - a, ab) / Mathf.Max(1e-6f, ab.sqrMagnitude));
+                if (Vector3.Distance(o, a + ab * t) > d.Orb.lossyScale.x * 0.85f + margin) continue;
+                if (!player.State.Mana.TrySpend(HandMagicRules.FireMana, 0.6f)) { ArenaGame.Instance?.Message("Sem mana", 0.6f); return false; }
+                CancelFire(side);
+                return true;
+            }
+            return false;
         }
 
         void CancelFire(int side)

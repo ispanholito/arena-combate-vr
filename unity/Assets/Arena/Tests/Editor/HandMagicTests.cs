@@ -12,9 +12,13 @@ namespace Arena.Core.Tests
             Assert.IsTrue(HandMagicRules.RootsSlam(0.4f, -2f, -2.2f));     // separou e jogou as duas para baixo
             Assert.IsFalse(HandMagicRules.RootsSlam(0.4f, -2f, 0f));       // só uma mão
             Assert.IsFalse(HandMagicRules.RootsSlam(0.05f, -2f, -2f));     // ainda juntas
-            Assert.IsTrue(HandMagicRules.KamePose(0.1f, 0.15f, 0.5f));     // pulsos juntos na altura do peito
-            Assert.IsFalse(HandMagicRules.KamePose(0.4f, 0.15f, 0.5f));    // pulsos longe
-            Assert.IsFalse(HandMagicRules.KamePose(0.1f, 0.15f, 1.4f));    // mãos baixas demais
+            // Onda: começa com as mãos juntas puxadas para o lado; arma com a garra (um pouco abertas, pulsos juntos).
+            Assert.IsTrue(HandMagicRules.KameStart(0.1f, 0.12f, 0.25f));     // juntas, ao lado direito
+            Assert.IsTrue(HandMagicRules.KameStart(0.1f, 0.12f, -0.25f));    // ou ao esquerdo
+            Assert.IsFalse(HandMagicRules.KameStart(0.1f, 0.12f, 0.05f));    // ainda na frente
+            Assert.IsTrue(HandMagicRules.KameClaw(0.15f, 0.12f));
+            Assert.IsFalse(HandMagicRules.KameClaw(0.02f, 0.12f));           // fechadas (palma colada)
+            Assert.IsFalse(HandMagicRules.KameClaw(0.45f, 0.12f));           // abertas demais
         }
 
         [Test]
@@ -27,6 +31,16 @@ namespace Arena.Core.Tests
             Assert.AreEqual(1, HandMagicRules.PickHomingTarget(new[] { 4f, 6f }, new[] { 20f, 5f }));
             // Ninguém no cone: sem alvo (vai reto).
             Assert.AreEqual(-1, HandMagicRules.PickHomingTarget(new[] { 50f }, new[] { 3f }));
+        }
+
+        [Test]
+        public void FlameBlade_SwordsYes_StaffNo_RefreshCaps()
+        {
+            Assert.IsTrue(FlameBladeRules.CanIgnite(WeaponKind.Espada));
+            Assert.IsTrue(FlameBladeRules.CanIgnite(WeaponKind.Machado));
+            Assert.IsFalse(FlameBladeRules.CanIgnite(WeaponKind.Cajado));
+            Assert.AreEqual(FlameBladeRules.Seconds, FlameBladeRules.Refresh(3f), 1e-4);
+            Assert.Greater(FlameBladeRules.DamageMultiplier, 1f);
         }
 
         [Test]

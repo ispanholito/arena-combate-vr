@@ -9,6 +9,10 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000000000000000000000. NOVO — Kamehameha como no anime e arma em chamas
+- [ ] **Kamehameha**: palma na frente → puxe as mãos juntas para o lado do corpo (a esfera carrega) → abra um pouco em garra e espere (pulsa forte + som) → jogue para frente. Fica natural? A garra é reconhecida? Dispara sem querer?
+- [ ] **Arma em chamas** (Lâmina com a mão esquerda livre): carregue a bola de fogo na mão esquerda e passe a espada nela. A espada pega fogo 12 s? Os inimigos pegam fogo em 2 golpes? Também funciona passando a espada numa bola do cajado voando (difícil, mas possível).
+
 ## 00000000000000000000000. NOVO — tutorial e arte na arena/dungeon
 - [ ] **Tutorial**: na 1ª entrada no santuário ele começa sozinho (ou portal TUTORIAL / menu inicial). O quadro dá para ler? Cada passo avança quando você faz o gesto? Algum passo trava (use pausa → Pular)?
 - [ ] **Arena** e **menu inicial** com a sala do Treino (muralha, pilares, tochas).

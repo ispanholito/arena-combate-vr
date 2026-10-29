@@ -21,7 +21,7 @@ namespace Arena
             ("Sem controle", "Corte da palma", "Mão aberta, passe-a rápido no ar, como um tapa. Solta um corte de vento. 10 de mana."),
             ("Sem controle", "Bola de fogo", "Estique o punho fechado para frente e ABRA a mão: a bola cresce na palma (cheia em 1,5 s). Jogue a mão para frente. É teleguiada: vai no inimigo mais perto da direção em que você jogou, mesmo que ele esteja longe. 18 de mana."),
             ("Sem controle", "Raízes", "Bata uma PALMA, separe as mãos e jogue as duas rápido para baixo. Raízes prendem por 3 s os inimigos num círculo de 4 m à sua frente. Fogo em inimigo enraizado queima mais. 25 de mana, recarga de 6 s."),
-            ("Sem controle", "Kamehameha", "Bata uma PALMA e mantenha os pulsos juntos, mãos abertas na altura da barriga: a esfera azul cresce. Empurre as duas mãos para frente com força: um raio de 25 m que atravessa todos. 35 de mana, recarga de 6 s."),
+            ("Sem controle", "Kamehameha", "Bata uma PALMA na frente e puxe as mãos juntas para a LATERAL do corpo (direita ou esquerda): a esfera azul carrega entre elas. Ao lado, abra um pouco as mãos em GARRA e espere um instante: a esfera pulsa forte e faz um som (armado). Então jogue as duas mãos para FRENTE: um raio grosso que atravessa todos. 35 de mana, recarga de 6 s."),
             ("Sem controle", "Teia", "Olhe para um ponto de gancho (topo dos pilares, alto das paredes, cantos das salas): ele acende. Estique a mão aberta em direção a ele e FECHE. Puxe a mão fechada para o peito para voar; abra a mão para soltar (você segue com o embalo e cai)."),
             ("Sem controle", "Dash para trás", "Faça o sinal do Homem-Aranha (indicador e mindinho esticados, médio e anelar dobrados) duas vezes seguidas, rápido."),
             ("Sem controle", "Agarrar e arremessar", "Feche a mão perto de um inimigo para agarrar. Jogue o braço e abra a mão para arremessar; ele leva dano ao bater. Não funciona em orc nem em chefe."),
@@ -34,6 +34,7 @@ namespace Arena
             ("Elementalista", "Lança de Gelo", "Aponte o cajado e aperte A: perfura até 3 inimigos e deixa lento."),
             ("Elementalista", "Raízes (cajado)", "Segure B, mire no chão com o cajado e solte: prende os inimigos por 3 s."),
             ("Qualquer arma", "Habilidade da arma", "Erga a arma acima da cabeça com a ponta para cima por meio segundo (vibra e brilha) e dê um golpe rápido em até 4 s. Cada tipo de arma tem a sua (espada, machado, maça, lança, adaga, cajado)."),
+            ("Qualquer arma", "Arma em chamas", "Mergulhe a lâmina numa bola de fogo: a que está carregando na mão livre (ela é gasta) ou uma voando. A arma pega fogo por 12 s: +30% de dano e cada golpe faz o inimigo pegar fogo. Não vale para o cajado."),
             ("Qualquer arma", "Aparo, bloqueio e perfurar", "Escudo parado bloqueia. Empurrar o escudo ou a arma contra o golpe no último instante apara e atordoa o inimigo. Estocada com a ponta crava; puxe a arma para trás para soltar."),
         };
 

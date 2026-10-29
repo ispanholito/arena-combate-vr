@@ -5,7 +5,9 @@ namespace Arena.Core
     // Mago sem controle (pedido do Pablo, 2026-10-28): poderes de mão vazia com gestos das DUAS mãos ou de uma.
     //   - Tudo das duas mãos começa com uma PALMA BATIDA (2026-10-28, depois do 1º teste):
     //     - Raízes: bateu a palma, separa e joga as duas mãos rápido para baixo → raízes prendem os inimigos à frente.
-    //     - Kamehameha: bateu a palma e mantém os pulsos juntos (carrega) → empurrar as duas mãos para frente.
+    //     - Kamehameha (refeito em 2026-10-28, como no anime): palma na frente → puxar as mãos juntas para a LATERAL do
+    //       corpo (carrega enquanto estão ao lado) → abrir um pouco as mãos em GARRA ao lado e esperar um instante (arma)
+    //       → jogar as duas mãos para frente (solta).
     //   - Bola de fogo: punho fechado esticado para frente → abrir a mão carrega a bola na palma → jogar a mão para frente.
     public static class HandMagicRules
     {
@@ -46,15 +48,22 @@ namespace Arena.Core
         }
 
         // ---------- Kamehameha ----------
-        public const float KameWristsTogether = 0.16f, KamePalmsTogether = 0.25f;
+        public const float KameSideMin = 0.16f;       // centro das mãos a 16 cm ou mais para o lado do centro da cabeça
+        public const float KameStartApart = 0.3f;     // para começar a puxar: palmas ainda juntas (acabou de bater)
+        public const float KameWristsTogether = 0.22f;
+        public const float KameClawMinApart = 0.06f, KameClawMaxApart = 0.3f;   // garra: mãos um pouco abertas, pulsos juntos
+        public const float KameClawHold = 0.35f;      // segurar a garra ao lado este tempo arma o golpe
+        public const float KameCancelApart = 0.6f;    // separou as mãos demais: desiste
+        public const float KameLoseSideSeconds = 1.2f; // saiu do lado sem armar por este tempo: desiste
         public const float KameMinCharge = 0.6f, KameFullCharge = 1.6f;
         public const float KamePushSpeed = 2f;        // m/s das mãos para frente (relativo ao corpo) para soltar
         public const float KameRange = 25f, KameRadius = 0.5f, KameMana = 35f, KameCooldown = 6f, KameKnock = 7f;
-        public const float KameMinHeightBelowHead = 0.05f, KameMaxHeightBelowHead = 1f;   // mãos na altura do tronco
 
-        public static bool KamePose(float wristsApart, float palmsApart, float belowHead) =>
-            wristsApart <= KameWristsTogether && palmsApart <= KamePalmsTogether
-            && belowHead >= KameMinHeightBelowHead && belowHead <= KameMaxHeightBelowHead;
+        public static bool KameAtSide(float lateral) => Math.Abs(lateral) >= KameSideMin;
+        public static bool KameStart(float palmsApart, float wristsApart, float lateral) =>
+            palmsApart <= KameStartApart && wristsApart <= KameWristsTogether && KameAtSide(lateral);
+        public static bool KameClaw(float palmsApart, float wristsApart) =>
+            palmsApart >= KameClawMinApart && palmsApart <= KameClawMaxApart && wristsApart <= KameWristsTogether;
 
         public static float Charge01(float seconds, float min, float full) =>
             seconds < min ? 0f : Math.Min(1f, (seconds - min) / Math.Max(0.01f, full - min) * 0.7f + 0.3f);

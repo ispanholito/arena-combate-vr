@@ -844,8 +844,10 @@ namespace Arena
                 float thrust = TipSpeed > 0.01f ? Vector3.Dot(BladeDir, TipVelocity / TipSpeed) : 0f;
                 float mult = TwoHandRules.DamageMultiplier(Def, TwoHanded);
                 if (Thrown) mult *= DamageTypes.ThrownMultiplier(Def.Kind, DamageTypes.Classify(Def.Kind, edge, thrust));   // adaga arremessada x3
+                mult *= FlameBlade.DamageMultiplier;   // arma em chamas: +30%
                 if (e.TakeMeleeHit(speed, edge, strikeVel, Def, player.State, mult, height, thrust))
                 {
+                    FlameBlade.OnHit(e.State);
                     TutorialEvents.Raise("golpe");
                     // Ponto do acerto na lâmina (para o esqueleto saber qual parte foi cortada).
                     float s = Geometry.ClosestParamOnSecond(a.ToN(), b.ToN(), strikeA.ToN(), strikeB.ToN());

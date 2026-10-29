@@ -873,6 +873,8 @@ namespace Arena
             var dtype = DamageTypes.Classify(def.Kind, edge, align);
             float dmg = Combat.MeleeDamage(speed, def, Combat.SharpEdge(pl.State.Has(SkillIds.FioAfiado), def), true, def.Blunt ? 1f : edge)
                         * ActiveRagdollRules.DamageMultiplier(id) * DamageTypes.Multiplier(DamageTypes.MaterialOf(Kind), dtype);
+            dmg *= FlameBlade.DamageMultiplier;   // arma em chamas: +30% e põe calor
+            FlameBlade.OnHit(State);
             if (dmg > 0f && mode != Mode.Dead) Damage(dmg, contact);
             flopT = ActiveRagdollRules.HitFlopSeconds;
             if (mode == Mode.Stand && ActiveRagdollRules.Knocksdown(id, speed / spec.KnockdownMultiplier, def.Weight > 5f)) KnockDown();

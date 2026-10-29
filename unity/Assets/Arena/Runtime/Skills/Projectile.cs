@@ -11,6 +11,7 @@ namespace Arena
         public Vector3 Velocity;
         public float Gravity, Life = 2f, Radius = 0.1f;
         public int Pierce = 1;
+        public bool IsFire;   // bola de fogo: mergulhar a arma nela acende a arma (FlameBlade)
         public Action<ArenaEnemy, Projectile> OnHitEnemy;
         public Action<Projectile> OnEnd;
 

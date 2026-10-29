@@ -108,7 +108,8 @@ namespace Arena
             if (!GetComponent<SpiderLocomotion>()) gameObject.AddComponent<SpiderLocomotion>();   // teia por pontos de gancho + dash (sinal do Homem-Aranha)
             if (!GetComponent<HandMagic>()) gameObject.AddComponent<HandMagic>();   // mago sem controle: raízes, Kamehameha, bola de fogo
             if (!GetComponent<HandPointer>()) gameObject.AddComponent<HandPointer>();   // ponteiro do dedo + pinça nos menus
-            if (!GetComponent<SpellBook>()) gameObject.AddComponent<SpellBook>();   // livro de magias (abre pela pausa)
+            if (!GetComponent<SpellBook>()) gameObject.AddComponent<SpellBook>();
+            if (!GetComponent<FlameBlade>()) gameObject.AddComponent<FlameBlade>();   // arma mergulhada na bola de fogo pega fogo   // livro de magias (abre pela pausa)
             ResetCharacter(startClass);
             yaw = rigRoot.eulerAngles.y;
         }
