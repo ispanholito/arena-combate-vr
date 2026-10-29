@@ -44,7 +44,7 @@ namespace Arena.Core
         };
 
         public static bool CanBeElite(EnemyKind k) =>
-            k == EnemyKind.Goblin || k == EnemyKind.Esqueleto || k == EnemyKind.Orc || k == EnemyKind.Arqueiro || k == EnemyKind.Slime;
+            k == EnemyKind.Goblin || k == EnemyKind.Esqueleto || k == EnemyKind.Orc || k == EnemyKind.Arqueiro || k == EnemyKind.Slime || k == EnemyKind.Xama;
 
         // Chance por inimigo: dungeon 10% no andar 1 e 18% no 2; arena 0 até 8 abates, depois 10%.
         public static float Chance(bool dungeon, int floorOrKills) =>

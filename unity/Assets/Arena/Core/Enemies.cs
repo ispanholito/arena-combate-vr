@@ -2,7 +2,7 @@ using System;
 
 namespace Arena.Core
 {
-    public enum EnemyKind { Slime, Goblin, ReiGoblin, Boneco, Esqueleto, Mimico, Arqueiro, Orc }
+    public enum EnemyKind { Slime, Goblin, ReiGoblin, Boneco, Esqueleto, Mimico, Arqueiro, Orc, Xama }
 
     public sealed class EnemyDef
     {
@@ -46,6 +46,8 @@ namespace Arena.Core
         public static readonly EnemyDef Mimico = new EnemyDef(EnemyKind.Mimico, "Mímico", 110f, 120f, 50, 18f, 0.55f, 0.42f, 0.8f, 2.2f, 2.2f);
 
         // Goblin arqueiro: mantém distância e atira flechas (bloqueáveis com o escudo e rebatíveis com a arma).
+        // Goblin Xamã (2026-10-29): fica longe e lança orbes de magia lentos que a arma rebate.
+        public static readonly EnemyDef Xama = new EnemyDef(EnemyKind.Xama, "Goblin Xamã", 50f, 70f, 35, 14f, 1.0f, 0.3f, 1.1f, 1.0f, 1.6f);
         public static readonly EnemyDef Arqueiro = new EnemyDef(EnemyKind.Arqueiro, "Goblin Arqueiro", 45f, 70f, 30, 10f, 0.9f, 0.3f, 1.1f, 1.0f, 1.8f);
 
         // Boneco de treino (modo Treino): não ataca nem anda, vida enorme que volta cheia, postura de goblin forte.

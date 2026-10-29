@@ -16,6 +16,7 @@ namespace Arena.Core
             {
                 case EnemyKind.Goblin:
                 case EnemyKind.Arqueiro:
+                case EnemyKind.Xama:
                     return speed >= DecapMinSpeed;
                 case EnemyKind.Orc:
                     return type == DamageType.CorteMachado && speed >= DecapMinSpeedHeavy;

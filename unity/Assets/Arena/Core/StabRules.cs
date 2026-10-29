@@ -95,6 +95,7 @@ namespace Arena.Core
             EnemyKind.Slime => 1.6f,                    // leve: voa longe
             EnemyKind.Goblin => 0.9f,
             EnemyKind.Arqueiro => 1f,
+            EnemyKind.Xama => 1f,
             _ => 0.5f,
         };
 

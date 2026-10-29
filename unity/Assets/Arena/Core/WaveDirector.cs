@@ -41,6 +41,7 @@ namespace Arena.Core
             bool humanoid = aliveGoblins < MaxGoblins(playerLevel) && rng.NextDouble() < 0.55;
             if (!humanoid) return EnemyDef.Slime(1f);
             if (playerLevel >= OrcMinLevel && rng.NextDouble() < 0.12) return EnemyDef.Orc;
+            if (playerLevel >= ArcherMinLevel + 1 && rng.NextDouble() < 0.1) return EnemyDef.Xama;
             if (playerLevel >= ArcherMinLevel && rng.NextDouble() < 0.2) return EnemyDef.Arqueiro;
             return playerLevel >= SkeletonMinLevel && rng.NextDouble() < 0.45 ? EnemyDef.Esqueleto : EnemyDef.Goblin;
         }

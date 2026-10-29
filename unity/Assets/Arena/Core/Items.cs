@@ -112,7 +112,7 @@ namespace Arena.Core
         // A arma efetiva para a classe: o combate inteiro usa este WeaponDef (dano, peso, estamina, postura...).
         public WeaponDef Resolve(ClassId cls)
         {
-            bool prof = Proficiency.IsProficient(cls, Base.Kind);
+            bool prof = Proficiency.IsProficient(cls, Base.Kind) || Base.IsGun;   // arma de fogo: qualquer classe
             float dmg = Base.DamageMultiplier * DamageMultiplier * (prof ? 1f : OffClassPenalty);
             float weight = Base.Weight * Math.Max(0.4f, 1f - Sum(AffixKind.Leveza));
             float sta = Base.StaminaPerHit * Math.Max(0.4f, 1f - Sum(AffixKind.Folego));
@@ -171,7 +171,7 @@ namespace Arena.Core
 
         public bool TryBuyPotion(PlayerState ps)
         {
-            if (PotionsLeft <= 0 || ps.Potions >= PlayerState.MaxPotions || ps.Gold < Merchant.PotionPrice) return false;
+            if (PotionsLeft <= 0 || ps.Potions >= ps.PotionCap || ps.Gold < Merchant.PotionPrice) return false;
             ps.SpendGold(Merchant.PotionPrice);
             ps.AddPotion();
             PotionsLeft--;
@@ -233,6 +233,7 @@ namespace Arena.Core
             EnemyKind.Goblin => 6,
             EnemyKind.Esqueleto => 7,
             EnemyKind.Arqueiro => 6,
+            EnemyKind.Xama => 8,
             EnemyKind.Mimico => 25,
             EnemyKind.Orc => 14,
             EnemyKind.ReiGoblin => 60,

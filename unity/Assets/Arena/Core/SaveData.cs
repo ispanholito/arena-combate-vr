@@ -25,6 +25,10 @@ namespace Arena.Core
         public List<ItemSave> items = new List<ItemSave>();
         public List<ItemSave> lostItems = new List<ItemSave>();   // armas esquecidas (voltam no santuário)
         public List<ItemSave> stash = new List<ItemSave>();       // estante permanente do santuário
+        public List<int> rescued = new List<int>();               // NPCs resgatados (moram no santuário)
+        public int pet;
+        public int extraPotions;
+        public bool mercenary;
 
         public static SaveData From(PlayerState ps)
         {
@@ -39,6 +43,10 @@ namespace Arena.Core
                 arenaTier = ps.ArenaTier,
                 activeSlot = ps.ActiveSlot,
                 skills = ps.Tree.Unlocked.ToList(),
+                rescued = ps.Rescued.Select(n => (int)n).ToList(),
+                pet = (int)ps.Pet,
+                extraPotions = ps.ExtraPotionSlots,
+                mercenary = ps.MercenaryHired,
             };
             foreach (var it in ps.Loadout) d.items.Add(ItemSave.From(it));
             foreach (var it in ps.LostItems) d.lostItems.Add(ItemSave.From(it));
@@ -53,6 +61,10 @@ namespace Arena.Core
             var ps = new PlayerState(cls, maxLevel);
             ps.RestoreProgress(level, xp, skills ?? new List<string>());
             ps.SetGold(gold);
+            if (rescued != null) foreach (var n in rescued) if (Enum.IsDefined(typeof(NpcId), n)) ps.Rescued.Add((NpcId)n);
+            ps.Pet = Enum.IsDefined(typeof(PetKind), pet) ? (PetKind)pet : PetKind.Nenhum;
+            ps.ExtraPotionSlots = Math.Clamp(extraPotions, 0, AllyRules.MaxExtraPotions);
+            ps.MercenaryHired = mercenary;
             ps.SetPotions(potions);
             ps.DungeonTier = ArcadeRules.Clamp(dungeonTier);
             ps.ArenaTier = ArcadeRules.Clamp(arenaTier);

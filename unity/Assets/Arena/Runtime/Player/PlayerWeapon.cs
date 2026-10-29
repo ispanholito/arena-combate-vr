@@ -370,7 +370,7 @@ namespace Arena
             if (Def == null || dt <= 0f) return;
             CarryWithRig(dt);
             // Alvo = pose da mão (VR) ou pose animada (desktop). A física persegue esse alvo no FixedUpdate.
-            if (vr) { targetPos = player.RightHand.position; targetRot = player.RightHand.rotation * Quaternion.Euler(VrGripPitch, 0, 0); }
+            if (vr) { targetPos = player.RightHand.position; targetRot = player.RightHand.rotation * Quaternion.Euler(Def.IsGun ? GunRules.GunPitch : VrGripPitch, 0, 0); }
             else DesktopPose(dt, out targetPos, out targetRot, desktopParry);
             hasTarget = true;
 

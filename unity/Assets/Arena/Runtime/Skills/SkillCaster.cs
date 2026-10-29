@@ -20,6 +20,8 @@ namespace Arena
         // Mirando Bola de Fogo ou Raízes (a habilidade da arma não carrega nem solta nesse meio tempo).
         public bool Aiming => fireCharge > 0f || rootAim;
         ArenaInput I => player.Input;
+        // Com arma de fogo na mão o gatilho atira (GunController) e não solta a habilidade do gatilho.
+        bool Trig => I.TriggerPressed && !(player.Weapon.Held && player.Weapon.Def.IsGun);
 
         void Awake() { player = GetComponent<ArenaPlayer>(); }
 
@@ -33,7 +35,7 @@ namespace Arena
             if (dt > 0f) { handVel = player.trackingSpace.TransformDirection((handLocal - handPrev) / dt); handPrev = handLocal; }
             if (player.TreeOpen) { CancelAims(); return; }
             // Grip perto de uma arma no chão: pega (em vez de arremessar a da mão).
-            if (I.PickupPressed && ((ArenaGame.Instance && ArenaGame.Instance.Sanctuary && ArenaGame.Instance.Sanctuary.TryInteract(player)) || TreasureChest.TryOpen(player) || WeaponPickup.TryPickup(player))) { CancelAims(); return; }
+            if (I.PickupPressed && ((ArenaGame.Instance && ArenaGame.Instance.Sanctuary && ArenaGame.Instance.Sanctuary.TryInteract(player)) || TreasureChest.TryOpen(player) || RescueCage.TryOpen(player) || WeaponPickup.TryPickup(player))) { CancelAims(); return; }
             if (player.IsVr) GripHold();
             if (S.Class.Id == ClassId.Lamina) Lamina(); else Elementalista(dt);
         }
@@ -91,7 +93,7 @@ namespace Arena
         {
             var w = player.Weapon;
             if (I.APressed) Investida();
-            if (I.TriggerPressed)
+            if (Trig || (I.TriggerPressed && !w.Held))
             {
                 if (!w.Held) w.Recall();
                 else if (Cast(SkillIds.Contra))
@@ -163,7 +165,7 @@ namespace Arena
             if (!Proficiency.CanCastSpells(S.Class.Id, w.Def.Kind))
             {
                 CancelAims();
-                if (I.TriggerPressed || I.APressed || I.BPressed) Hint("Magias precisam do cajado (troque a arma)");
+                if (Trig || I.APressed || I.BPressed) Hint("Magias precisam do cajado (troque a arma)");
                 return;
             }
             // Bola de Fogo: segurar carrega, soltar arremessa

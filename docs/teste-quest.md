@@ -9,6 +9,13 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000000000000000000000000. NOVO — armas de fogo, forja, Xamã, NPCs, pets e mercenário
+- [ ] **Pistola / Bacamarte** (aparecem no loot; para testar rápido, compre na loja quando aparecer): o cano aponta para onde o controle aponta? (se ficar torto, diga quanto: é o `GunPitch`). Gatilho atira? O coice é gostoso? **Recarregar**: aponte para cima e dê um tranco — é natural? Muito fácil ou difícil?
+- [ ] **Forja de fusão** (santuário, ao lado da bigorna): com 2 armas, grip na forja. A raridade sobe?
+- [ ] **Goblin Xamã** (chapéu roxo, cajado com caveira): rebata o orbe verde com a espada. Vai para os inimigos? Explode?
+- [ ] **Jaula** na dungeon: limpe a sala, grip na jaula. O NPC aparece no santuário (parede sul)?
+- [ ] **Domadora** (fada) / **Capitão** (mercenário) / **Alquimista** (elixir). A fada atrapalha a visão? O mercenário é útil ou só enfeite?
+
 ## 00000000000000000000000000. NOVO — leva Soul Knight (bênçãos, destrutíveis, elites, salas especiais, armas)
 - [ ] **Bênçãos**: na dungeon, limpe a 1ª sala de combate → altar com 3 orbes. Dá para ler os nomes? Tocar o orbe com a mão escolhe (com a espada na mão também)? Na arena aparece no centro a cada 6 abates.
 - [ ] **Caixas e barris**: quebram com um golpe normal? Solta ouro às vezes? **Barril vermelho** explode e leva os vizinhos? Bola de fogo também quebra?

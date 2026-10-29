@@ -37,6 +37,16 @@ namespace Arena.Core
     }
 
     // Flechas do goblin arqueiro.
+    // Orbe de magia do Xamã: lento, curva um pouco atrás de você; qualquer golpe da arma (≥ 1,5 m/s) rebate.
+    // Rebatido vai para onde você golpeou (procura um inimigo nesse cone) e explode com dano alto.
+    public static class MagicOrbRules
+    {
+        public const float Speed = 6.5f, ReflectSpeed = 11f, TurnDegPerSec = 35f, Life = 5f, Radius = 0.18f;
+        public const float DeflectSpeed = 1.5f, DeflectRadius = 0.25f;
+        public const float ReflectedDamage = 35f, ReflectRadius = 2f, AimConeDeg = 35f, Cooldown = 3f;
+        public const float PreferredMin = 6f, PreferredMax = 11f;
+    }
+
     public static class ArrowRules
     {
         public const float Speed = 14f;

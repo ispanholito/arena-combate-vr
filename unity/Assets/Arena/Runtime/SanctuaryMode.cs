@@ -14,8 +14,9 @@ namespace Arena
         public bool Active => root;
 
         ArenaGame game;
-        Transform root, anvil;
-        TextMesh anvilText;
+        Transform root, anvil, forge;
+        TextMesh anvilText, forgeText;
+        static readonly System.Random fuseRng = new System.Random();
         readonly List<(Transform t, ArenaGame.GameMode mode)> portals = new List<(Transform, ArenaGame.GameMode)>();
         readonly Dictionary<ArenaGame.GameMode, (TextMesh label, string title, string desc)> portalLabels = new Dictionary<ArenaGame.GameMode, (TextMesh, string, string)>();
         readonly List<(Transform t, ArenaGame.GameMode mode)> resetStones = new List<(Transform, ArenaGame.GameMode)>();
@@ -58,6 +59,7 @@ namespace Arena
             ArenaUtil.Prim(PrimitiveType.Cube, anvil, new Vector3(0, 0.3f, 0), new Vector3(0.35f, 0.6f, 0.35f), ArenaUtil.Lit(new Color(0.3f, 0.2f, 0.1f)), keepCollider: true);
             ArenaUtil.Prim(PrimitiveType.Cube, anvil, new Vector3(0, 0.72f, 0), new Vector3(0.7f, 0.22f, 0.3f), iron, keepCollider: true);
             ArenaUtil.Prim(PrimitiveType.Cube, anvil, new Vector3(0.42f, 0.76f, 0), new Vector3(0.2f, 0.12f, 0.14f), iron);
+            BuildForge(iron);
             anvilText = ArenaFx.MakeText(anvil, "", 0.005f, new Color(1f, 0.85f, 0.4f));
             anvilText.transform.localPosition = new Vector3(0, 1.6f, 0);
 
@@ -210,6 +212,147 @@ namespace Arena
                         return;
                     }
             UpdateAnvilText();
+            UpdateForgeText();
+            UpdateNpcTexts();
+        }
+
+        // ---------- NPCs resgatados na dungeon (parede sul) ----------
+        readonly System.Collections.Generic.List<(NpcId id, Transform t, TextMesh text)> npcs = new System.Collections.Generic.List<(NpcId, Transform, TextMesh)>();
+        static Vector3 NpcSpot(NpcId n) => n switch
+        {
+            NpcId.Domadora => new Vector3(2.2f, 0f, -6.6f),
+            NpcId.Capitao => new Vector3(-0.2f, 0f, -6.8f),
+            _ => new Vector3(-2.6f, 0f, -6.6f),
+        };
+
+        void BuildNpcs()
+        {
+            npcs.Clear();
+            var s = game.Player.State;
+            foreach (NpcId n in System.Enum.GetValues(typeof(NpcId)))
+            {
+                if (!s.Rescued.Contains(n)) continue;
+                var t = NpcFigure.Build(root, n);
+                t.position = NpcSpot(n);
+                t.rotation = Quaternion.LookRotation(Vector3.forward);
+                var text = ArenaFx.MakeText(t, "", 0.008f, new Color(1f, 0.9f, 0.6f));
+                text.transform.localPosition = new Vector3(0f, 2.5f, 0f);
+                npcs.Add((n, t, text));
+            }
+            UpdateNpcTexts();
+        }
+
+        void UpdateNpcTexts()
+        {
+            var s = game.Player.State;
+            var cam = Camera.main;
+            foreach (var (n, t, text) in npcs)
+            {
+                if (!text) continue;
+                if (cam) text.transform.rotation = Quaternion.LookRotation(text.transform.position - cam.transform.position);
+                text.text = AllyRules.Name(n).ToUpper() + "\n<size=40>" + (n switch
+                {
+                    NpcId.Domadora => s.Pet == PetKind.Nenhum ? "Fada Faísca: " + AllyRules.PetPrice + " ouro\n(ataca com raio pequeno)"
+                                      : "Seu pet: " + AllyRules.PetName(s.Pet) + "\ngrip / E troca de fada (grátis)",
+                    NpcId.Capitao => s.MercenaryHired ? "Mercenário contratado:\nvai com você na próxima ida"
+                                      : "Mercenário: " + AllyRules.MercenaryPrice + " ouro\n(luta com você na próxima ida)",
+                    _ => s.ExtraPotionSlots >= AllyRules.MaxExtraPotions ? "Elixires: todos comprados"
+                                      : "Elixir (+1 poção máx.): " + AllyRules.ElixirPrice(s.ExtraPotionSlots) + " ouro",
+                }) + "\nvocê tem " + s.Gold + " ouro</size>";
+            }
+        }
+
+        bool TryNpc(ArenaPlayer player)
+        {
+            var s = player.State;
+            foreach (var (n, t, text) in npcs)
+            {
+                if (!t || !Near(player, t.position, 1.5f, 1.8f)) continue;
+                bool ok = true; string msg;
+                switch (n)
+                {
+                    case NpcId.Domadora:
+                        if (s.Pet == PetKind.Nenhum)
+                        {
+                            ok = s.Gold >= AllyRules.PetPrice;
+                            if (ok) { s.SpendGold(AllyRules.PetPrice); s.Pet = PetKind.FadaFaisca; }
+                            msg = ok ? "A Fada Faísca vai com você!" : "Custa " + AllyRules.PetPrice + " de ouro";
+                        }
+                        else { s.Pet = s.Pet == PetKind.FadaFaisca ? PetKind.FadaCurandeira : PetKind.FadaFaisca; msg = "Agora: " + AllyRules.PetName(s.Pet); }
+                        break;
+                    case NpcId.Capitao:
+                        if (s.MercenaryHired) { msg = "Já contratado para a próxima ida"; ok = false; break; }
+                        ok = s.Gold >= AllyRules.MercenaryPrice;
+                        if (ok) { s.SpendGold(AllyRules.MercenaryPrice); s.MercenaryHired = true; }
+                        msg = ok ? "Mercenário contratado: entre num portal (arena ou dungeon)" : "Custa " + AllyRules.MercenaryPrice + " de ouro";
+                        break;
+                    default:
+                        if (s.ExtraPotionSlots >= AllyRules.MaxExtraPotions) { msg = "Já comprou todos os elixires"; ok = false; break; }
+                        int price = AllyRules.ElixirPrice(s.ExtraPotionSlots);
+                        ok = s.Gold >= price;
+                        if (ok) { s.SpendGold(price); s.ExtraPotionSlots++; s.AddPotion(); }
+                        msg = ok ? "Elixir! Agora você carrega até " + s.PotionCap + " poções" : "Custa " + price + " de ouro";
+                        break;
+                }
+                game.Message(msg, 1.8f);
+                ArenaAudio.Play2D(ok ? Sfx.Level : Sfx.Deny, 0.7f, ok ? 1.2f : 1f);
+                if (ok) { game.RequestSave(); UpdatePotionText(); }
+                UpdateNpcTexts();
+                return true;
+            }
+            return false;
+        }
+
+        // ---------- Forja de fusão (ao lado da bigorna) ----------
+        void BuildForge(Material iron)
+        {
+            forge = new GameObject("Forja de fusao").transform;
+            forge.SetParent(root, false);
+            forge.position = new Vector3(-4f, 0f, -0.6f);
+            var stone = ArenaUtil.Lit(new Color(0.35f, 0.3f, 0.32f));
+            ArenaUtil.Prim(PrimitiveType.Cylinder, forge, new Vector3(0f, 0.45f, 0f), new Vector3(0.9f, 0.45f, 0.9f), stone, keepCollider: true);
+            ArenaUtil.Prim(PrimitiveType.Cylinder, forge, new Vector3(0f, 0.92f, 0f), new Vector3(0.7f, 0.03f, 0.7f), ArenaUtil.Unlit(new Color(1f, 0.45f, 0.1f)));
+            var l = new GameObject("Brasa").AddComponent<Light>();
+            l.transform.SetParent(forge, false);
+            l.transform.localPosition = Vector3.up * 1.3f;
+            l.type = LightType.Point; l.color = new Color(1f, 0.45f, 0.15f); l.range = 3f; l.intensity = 1.5f;
+            forgeText = ArenaFx.MakeText(forge, "", 0.007f, new Color(1f, 0.6f, 0.3f));
+            forgeText.transform.localPosition = new Vector3(0f, 1.7f, 0f);
+        }
+
+        void UpdateForgeText()
+        {
+            if (!forgeText) return;
+            var cam = Camera.main;
+            if (cam) forgeText.transform.rotation = Quaternion.LookRotation(forgeText.transform.position - cam.transform.position);
+            bool near = (forge.position - game.Player.FeetPosition).Flat().magnitude < 4f;
+            forgeText.gameObject.SetActive(near);
+            if (!near) return;
+            var s = game.Player.State;
+            var keep = s.Loadout[s.ActiveSlot]; var food = s.Loadout[1 - s.ActiveSlot];
+            if (keep == null || food == null) { forgeText.text = "FORJA DE FUSÃO\n<size=44>Junte a arma da mão com a 2ª arma\n(precisa das duas)</size>"; return; }
+            var r = Fusion.ResultRarity(keep, food);
+            forgeText.text = "FORJA DE FUSÃO\n<size=44>" + keep.DisplayName + " + " + food.DisplayName + "\n→ " + keep.Base.Name + " " + ItemInstance.RarityName(r)
+                + "\n" + Fusion.Cost(keep, food) + " ouro (você tem " + s.Gold + ") · grip / E</size>";
+        }
+
+        bool TryFuse(ArenaPlayer player)
+        {
+            if (!forge || !Near(player, forge.position, 1.3f, 1.6f)) return false;
+            var s = player.State;
+            var keep = s.Loadout[s.ActiveSlot]; var food = s.Loadout[1 - s.ActiveSlot];
+            if (keep == null || food == null) { game.Message("A forja junta a arma da mão com a 2ª arma", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
+            if (!Fusion.TryFuse(s, fuseRng, out var result))
+            {
+                game.Message("Custa " + Fusion.Cost(keep, food) + " de ouro (você tem " + s.Gold + ")", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true;
+            }
+            player.EquipActive();
+            ArenaAudio.Play(Sfx.Explosion, forge.position + Vector3.up, 0.6f, 1.4f);
+            ArenaFx.Burst(forge.position + Vector3.up, new Color(1f, 0.6f, 0.2f), 30, 4f);
+            ArenaInput.Haptic(1f, 0.2f);
+            game.Message("Fundiu: " + result.DisplayName + " (" + ItemInstance.RarityName(result.Rarity) + ")", 2f);
+            game.RequestSave();
+            return true;
         }
 
         void UpdateAnvilText()
@@ -249,6 +392,7 @@ namespace Arena
                 game.Message(ps.LostItems.Count + " arma(s) na estante temporária (oeste): pegue ou venda antes de sair", 3f);
             BuildMerchant();
             BuildShop();
+            BuildNpcs();
         }
 
         // Banca: 3 armas e poções. O estoque renova a cada volta ao santuário.
@@ -286,7 +430,7 @@ namespace Arena
         void UpdatePotionText()
         {
             if (potionText) potionText.text = "POÇÃO DE CURA  " + Merchant.PotionPrice + " ouro\n<size=40>cura " + Mathf.RoundToInt(PlayerState.PotionHeal * 100f)
-                + "% · máx. " + PlayerState.MaxPotions + " · restam " + Shop.PotionsLeft + "\nbeber: mão esquerda na boca · B</size>";
+                + "% · máx. " + game.Player.State.PotionCap + " · restam " + Shop.PotionsLeft + "\nbeber: mão esquerda na boca · B</size>";
         }
 
         bool TryBuyPotion(ArenaPlayer player)
@@ -295,12 +439,12 @@ namespace Arena
             var s = player.State;
             if (!Shop.TryBuyPotion(s))
             {
-                string why = Shop.PotionsLeft <= 0 ? "Acabaram as poções (volte depois)" : s.Potions >= PlayerState.MaxPotions ? "Você já carrega " + PlayerState.MaxPotions + " poções"
+                string why = Shop.PotionsLeft <= 0 ? "Acabaram as poções (volte depois)" : s.Potions >= s.PotionCap ? "Você já carrega " + s.PotionCap + " poções"
                     : "Custa " + Merchant.PotionPrice + " de ouro (você tem " + s.Gold + ")";
                 game.Message(why, 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true;
             }
             ArenaAudio.Play(Sfx.Pickup, potionStand.position + Vector3.up, 1f, 1.1f);
-            game.Message("Comprou uma poção (" + s.Potions + "/" + PlayerState.MaxPotions + ")", 1.2f);
+            game.Message("Comprou uma poção (" + s.Potions + "/" + s.PotionCap + ")", 1.2f);
             UpdatePotionText();
             game.RequestSave();
             return true;
@@ -390,7 +534,7 @@ namespace Arena
         public bool TryInteract(ArenaPlayer player)
         {
             if (!root || !anvil) return false;
-            if (TryResetStone(player) || TryStore(player) || TryBuyPotion(player) || TrySell(player)) return true;
+            if (TryResetStone(player) || TryStore(player) || TryBuyPotion(player) || TrySell(player) || TryFuse(player) || TryNpc(player)) return true;
             float d = player.IsVr
                 ? Mathf.Min(Vector3.Distance(player.RightHand.position, anvil.position + Vector3.up * 0.75f), (player.FeetPosition - anvil.position).Flat().magnitude)
                 : (player.FeetPosition - anvil.position).Flat().magnitude;

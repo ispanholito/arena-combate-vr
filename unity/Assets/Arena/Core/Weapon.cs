@@ -5,7 +5,7 @@ namespace Arena.Core
     public enum WeaponKind { Espada, Machado, Cajado, Maca, Lanca, Adaga }
     // Visual da arma. O "Kind" decide como ela funciona (corta, crava, pancada, magia); o "Look" só muda o modelo,
     // a massa e o equilíbrio. Assim uma arma nova não precisa mexer em todo o combate.
-    public enum WeaponLook { Padrao, Katana, Rapieira, Martelo, Machadinha, Bacalhau, Frigideira, Tocha, Vassoura }
+    public enum WeaponLook { Padrao, Katana, Rapieira, Martelo, Machadinha, Bacalhau, Frigideira, Tocha, Vassoura, Pistola, Bacamarte }
 
     // Peso: com pouca Força a arma pesada "atrasa" na mão (lag no follow).
     public sealed class WeaponDef
@@ -62,8 +62,13 @@ namespace Arena.Core
         public static readonly WeaponDef Tocha = new WeaponDef("tocha", "Tocha", WeaponKind.Maca, 2.5f, 0.7f, 4f, 0.72f) { Look = WeaponLook.Tocha, MassKg = 1.0f, HeatPerHit = 35f };
         public static readonly WeaponDef Vassoura = new WeaponDef("vassoura", "Vassoura de Bruxa", WeaponKind.Cajado, 2f, 0.45f, 4f, 1.45f) { Look = WeaponLook.Vassoura, MassKg = 0.9f, Funny = true };
 
+        // Armas de fogo (Core/Guns.cs): batem como maça leve; o tiro vem do GunSpec.
+        public static readonly WeaponDef Pistola = new WeaponDef("pistola", "Pistola de Pederneira", WeaponKind.Maca, 2f, 0.6f, 3f, 0.32f) { Look = WeaponLook.Pistola, MassKg = 1.1f };
+        public static readonly WeaponDef Bacamarte = new WeaponDef("bacamarte", "Bacamarte", WeaponKind.Maca, 5f, 0.8f, 5f, 0.66f) { Look = WeaponLook.Bacamarte, MassKg = 2.8f };
+
         public static readonly WeaponDef[] All = { EspadaLonga, MachadoPesado, CajadoArcano, MacaPesada, Lanca, Adaga,
-                                                   Katana, Rapieira, Martelo, Machadinha, Bacalhau, Frigideira, Tocha, Vassoura };
+                                                   Katana, Rapieira, Martelo, Machadinha, Bacalhau, Frigideira, Tocha, Vassoura, Pistola, Bacamarte };
+        public bool IsGun => Look == WeaponLook.Pistola || Look == WeaponLook.Bacamarte;
 
         // Arma contundente: o "fio" não importa e não corta partes do esqueleto.
         public bool Blunt => Kind == WeaponKind.Maca || Kind == WeaponKind.Cajado;

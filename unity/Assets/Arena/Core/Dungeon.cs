@@ -123,6 +123,7 @@ namespace Arena.Core
         public int EnteredFrom = -1;   // sala anterior (para os inimigos nascerem longe da entrada)
         public bool IsChallenge;       // sala de desafio: limpar dentro do tempo = baú raro
         public bool HasMerchant;       // mercador perdido (fogueira do andar 2)
+        public bool HasCage;           // jaula com um NPC para resgatar (aparece quando a sala é limpa)
     }
 
     // Salas especiais (inspiração Soul Knight).
@@ -231,6 +232,7 @@ namespace Arena.Core
             if (combatRooms.Count > 1 && rng.NextDouble() < SpecialRooms.ChallengeChance) combatRooms[1 + rng.Next(combatRooms.Count - 1)].IsChallenge = true;
             foreach (var r in f.Rooms) if (r.Kind == RoomKind.Fogueira && last && rng.NextDouble() < SpecialRooms.MerchantChance) r.HasMerchant = true;
             if (rng.NextDouble() < SpecialRooms.SecretChance) PlaceSecret(f, cells, rng);
+            if (combatRooms.Count > 1 && rng.NextDouble() < AllyRules.CageChance) combatRooms[1 + rng.Next(combatRooms.Count - 1)].HasCage = true;
             f.FullArea = f.Secret != null ? new WalkArea(f.Rooms.Select(r => r.Rect).Concat(f.Corridors).Append(f.Secret.Rect).Append(f.SecretCorridor)) : f.Area;
             return f;
         }
@@ -336,8 +338,8 @@ namespace Arena.Core
             for (int i = 0; i < n; i++)
             {
                 double r = rng.NextDouble();
-                if (floor <= 1) list.Add(r < 0.45 ? EnemyDef.Slime(1f) : r < 0.85 ? EnemyDef.Goblin : EnemyDef.Arqueiro);
-                else list.Add(r < 0.12 ? EnemyDef.Slime(1f) : r < 0.4 ? EnemyDef.Goblin : r < 0.7 ? EnemyDef.Esqueleto : r < 0.88 ? EnemyDef.Arqueiro : EnemyDef.Orc);
+                if (floor <= 1) list.Add(r < 0.45 ? EnemyDef.Slime(1f) : r < 0.8 ? EnemyDef.Goblin : r < 0.93 ? EnemyDef.Arqueiro : EnemyDef.Xama);
+                else list.Add(r < 0.12 ? EnemyDef.Slime(1f) : r < 0.4 ? EnemyDef.Goblin : r < 0.68 ? EnemyDef.Esqueleto : r < 0.82 ? EnemyDef.Arqueiro : r < 0.9 ? EnemyDef.Xama : EnemyDef.Orc);
             }
             return list;
         }

@@ -347,6 +347,18 @@ namespace Arena
                     if (cleared != null && cleared.HasChest)
                         TreasureChest.Spawn(new Vector3(cleared.Rect.CenterX, 0f, cleared.Rect.CenterZ), game.Player.FeetPosition - new Vector3(cleared.Rect.CenterX, 0f, cleared.Rect.CenterZ), Run.Floor.Number, root, cleared.ChestIsMimic);
                     game.Message("Sala limpa", 1.2f);
+                    if (cleared != null && cleared.HasCage)
+                    {
+                        var st = game.Player.State;
+                        var who = AllyRules.NextToRescue(n => st.Rescued.Contains(n));
+                        if (who.HasValue)
+                        {
+                            var cc = new Vector3(cleared.Rect.CenterX, 0f, cleared.Rect.CenterZ);
+                            var toPl = (game.Player.FeetPosition - cc).Flat();
+                            toPl = toPl.sqrMagnitude > 0.01f ? toPl.normalized : Vector3.forward;
+                            RescueCage.Spawn(cc - Vector3.Cross(Vector3.up, toPl) * 2.5f, who.Value, root);
+                        }
+                    }
                     if (cleared != null && cleared.Kind == RoomKind.Combate && RunBlessings.AltarAfterRoom(++combatCleared))
                     {
                         // Altar ao lado do centro (o baú fica no centro), do lado de onde o jogador está.

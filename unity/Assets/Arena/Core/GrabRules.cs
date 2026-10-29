@@ -14,7 +14,7 @@ namespace Arena.Core
 
         // Leves dá para agarrar; orc, chefe, mímico (baú) e boneco não.
         public static bool CanGrab(EnemyKind k) =>
-            k == EnemyKind.Slime || k == EnemyKind.Goblin || k == EnemyKind.Arqueiro || k == EnemyKind.Esqueleto;
+            k == EnemyKind.Slime || k == EnemyKind.Goblin || k == EnemyKind.Arqueiro || k == EnemyKind.Esqueleto || k == EnemyKind.Xama;
 
         // Quanto o arremesso amplifica a velocidade da mão (slime é leve e voa longe).
         public static float ThrowMultiplier(EnemyKind k) => k == EnemyKind.Slime ? 1.8f : k == EnemyKind.Esqueleto ? 1.4f : 1.3f;

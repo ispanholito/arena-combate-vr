@@ -270,8 +270,15 @@ namespace Arena.Core
         public const float PotionHeal = 0.45f, PotionCooldown = 1f;
         public int Potions { get; private set; } = 1;
         float potionCd;
-        public bool AddPotion() { if (Potions >= MaxPotions) return false; Potions++; return true; }
-        public void SetPotions(int n) => Potions = Math.Clamp(n, 0, MaxPotions);
+        public int PotionCap => MaxPotions + ExtraPotionSlots;   // elixir da Alquimista: +1 por compra
+        public bool AddPotion() { if (Potions >= PotionCap) return false; Potions++; return true; }
+        public void SetPotions(int n) => Potions = Math.Clamp(n, 0, PotionCap);
+
+        // Aliados: NPCs resgatados (moram no santuário), pet escolhido, elixires e mercenário contratado (só a próxima ida).
+        public HashSet<NpcId> Rescued { get; } = new HashSet<NpcId>();
+        public PetKind Pet { get; set; }
+        public int ExtraPotionSlots { get; set; }
+        public bool MercenaryHired { get; set; }
         public bool TryDrinkPotion()
         {
             if (Potions <= 0 || potionCd > 0f || Hp.Current >= Hp.Max) return false;

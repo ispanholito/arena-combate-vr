@@ -110,6 +110,8 @@ namespace Arena
             if (!GetComponent<HandPointer>()) gameObject.AddComponent<HandPointer>();   // ponteiro do dedo + pinça nos menus
             if (!GetComponent<SpellBook>()) gameObject.AddComponent<SpellBook>();
             if (!GetComponent<FlameBlade>()) gameObject.AddComponent<FlameBlade>();
+            if (!GetComponent<GunController>()) gameObject.AddComponent<GunController>();   // pistola e bacamarte
+            if (!GetComponent<PetCompanion>()) gameObject.AddComponent<PetCompanion>();   // fada da Domadora
             if (!GetComponent<Muralha>()) gameObject.AddComponent<Muralha>();   // punho na palma: aura vermelha, só soco forte
             if (!GetComponent<SkyBolt>()) gameObject.AddComponent<SkyBolt>();   // mão fechada ao céu e abrir: raio em cadeia   // arma mergulhada na bola de fogo pega fogo   // livro de magias (abre pela pausa)
             ResetCharacter(startClass);
@@ -230,7 +232,7 @@ namespace Arena
             State.Tick(dt);
             vignette = Mathf.MoveTowards(vignette, 0f, dt * 2f);
             Weapon.Tick(dt, IsVr, !IsVr && Input.DesktopParry);
-            if (!IsVr && !TreeOpen && Input.DesktopSwing) Weapon.DesktopSwing();
+            if (!IsVr && !TreeOpen && Input.DesktopSwing && !Weapon.Def.IsGun) Weapon.DesktopSwing();   // arma de fogo: o clique atira (GunController)
             if (!IsVr && !TreeOpen && Input.DesktopThrust) Weapon.DesktopThrust();
             if (!IsVr) Weapon.DesktopThrustHold(Input.DesktopThrustHeld);
         }

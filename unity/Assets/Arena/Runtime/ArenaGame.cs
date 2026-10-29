@@ -201,6 +201,7 @@ namespace Arena
         {
             // Trocar de modo encerra a partida: as bênçãos acabam.
             BlessingAltar.ClearAll();
+            Mercenary.Clear();
             player.State?.ClearBlessings();
             character?.ClearBlessings();
             ClearEnemies();
@@ -228,6 +229,8 @@ namespace Arena
             }
             player.UseCharacter(character);
             character.Penalty = SaveSystem.Options.DeathPenalty;
+            // Mercenário contratado com o Capitão: vai junto nesta ida (arena ou dungeon) e o contrato acaba.
+            if ((mode == GameMode.Arena || mode == GameMode.Dungeon) && character.MercenaryHired) { character.MercenaryHired = false; Mercenary.Spawn(player); }
             SaveNow();
             if (mode == GameMode.Santuario)
             {
@@ -388,6 +391,7 @@ namespace Arena
                 EnemyKind.Esqueleto => go.AddComponent<SkeletonEnemy>(),
                 EnemyKind.Mimico => go.AddComponent<MimicEnemy>(),
                 EnemyKind.Arqueiro => go.AddComponent<ArcherEnemy>(),
+                EnemyKind.Xama => go.AddComponent<ShamanEnemy>(),
                 EnemyKind.Orc => go.AddComponent<OrcEnemy>(),
                 _ => go.AddComponent<GoblinKing>(),
             };
@@ -482,7 +486,7 @@ namespace Arena
                 Message($"Você morreu: {lossText} e a dungeon recomeça da profundidade 1", 3.5f);
                 return;
             }
-            if (Mode == GameMode.Arena) { player.State.ArenaTier = 1; st.ClearBlessings(); BlessingAltar.ClearAll(); }   // morrer na arena acaba a partida
+            if (Mode == GameMode.Arena) { player.State.ArenaTier = 1; st.ClearBlessings(); BlessingAltar.ClearAll(); Mercenary.Clear(); }   // morrer na arena acaba a partida
             foreach (var e in ArenaEnemy.All.ToArray()) if (e) Destroy(e.gameObject);
             ArenaEnemy.All.Clear();
             RagdollGoblin.ClearAll();

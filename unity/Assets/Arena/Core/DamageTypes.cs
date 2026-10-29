@@ -101,6 +101,6 @@ namespace Arena.Core
         // Golpe fatal: estocada funda (rápida) na cabeça mata inimigo comum na hora.
         public const float FatalStabMinSpeed = 1.6f;   // estocada na cabeça (cérebro) mata goblin/arqueiro, como no B&S
         public static bool IsFatalStab(EnemyKind k, bool head, float tipSpeed) =>
-            head && tipSpeed >= FatalStabMinSpeed && (k == EnemyKind.Goblin || k == EnemyKind.Arqueiro);
+            head && tipSpeed >= FatalStabMinSpeed && (k == EnemyKind.Goblin || k == EnemyKind.Arqueiro || k == EnemyKind.Xama);
     }
 }
