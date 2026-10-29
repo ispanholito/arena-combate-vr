@@ -159,8 +159,9 @@ namespace Arena
                 HandLock.Hold(side, "mao", 0.4f);
             }
             if (Muralha.Active) { h.BeamCharge = 0f; ChargeDot(h, Vector3.zero, -1f); return; }   // na Muralha: só soco
-            // Palma aberta rápida = corte.
-            if (h.Shape == HandShape.Aberta && h.ShapeT > 0.1f && h.WristVel.magnitude > HandPowers.PalmMinSpeed)
+            // Palma aberta rápida varrendo para o LADO = corte (2026-10-29: frente/trás é o balanço da corrida e não corta).
+            float palmLateral = Vector3.Dot(h.WristVel, Vector3.Cross(Vector3.up, player.HeadForward).normalized);
+            if (h.Shape == HandShape.Aberta && h.ShapeT > 0.1f && h.WristVel.magnitude > HandPowers.PalmMinSpeed && PalmSweepRules.IsSweep(palmLateral, h.WristVel.magnitude))
             {
                 Palm(h.WristPrev, h.WristVel, h.IsRight ? 1 : 0);
                 HandLock.Hold(side, "mao", 0.4f);

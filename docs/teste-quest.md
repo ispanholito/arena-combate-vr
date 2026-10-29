@@ -9,6 +9,12 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000000000000000000000000. NOVO — correr balançando os braços
+- [ ] Larga os DOIS controles e balança os braços como quem corre: anda para onde você olha? A velocidade acompanha o balanço? Para logo quando você para?
+- [ ] Correndo, sai corte de vento, soco ou bola de fogo sem querer? (não deveria)
+- [ ] O **corte da palma** agora é varrida para o LADO: ainda é fácil de soltar quando você quer?
+- [ ] Enjoa? (a vinheta liga junto; dá para desligar a corrida na pausa)
+
 ## 000000000000000000000000000000. NOVO — movimento dos inimigos, armas da mão, ganchos da dungeon
 - [ ] **Inimigos** (Arena/Dungeon): chegam em curva e ziguezagueando? Aceleram/freiam em vez de deslizar? Dão um tranco para trás quando você acerta (maior com golpe forte)? Às vezes desviam do seu golpe? Ficou melhor ou exagerado?
 - [ ] **Pegar arma com o GATILHO**: encoste a mão na arma do chão/estante e aperte o gatilho. A nova vai para a mão?

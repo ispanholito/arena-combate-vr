@@ -46,6 +46,7 @@ namespace Arena
             rows.Add(("Volume: " + Mathf.RoundToInt(o.volume * 100f) + "%", () => { o.CycleVolume(); return true; }));
             rows.Add(("Giro (com dois controles): " + o.TurnLabel, () => { o.CycleTurn(); return true; }));
             rows.Add(("Vinheta ao andar: " + (o.moveVignette ? "ligada" : "desligada"), () => { o.moveVignette = !o.moveVignette; return true; }));
+            rows.Add(("Correr balançando os braços (sem controle): " + (o.armSwingRun ? "ligado" : "desligado"), () => { o.armSwingRun = !o.armSwingRun; return true; }));
             rows.Add(("Modo sentado: " + (o.seated ? "ligado (+45 cm)" : "desligado"), () => { o.seated = !o.seated; return true; }));
             rows.Add(("HUD: " + (o.wristHud ? "no pulso esquerdo (olhe para o relógio)" : "na frente da visão"), () => { o.wristHud = !o.wristHud; return true; }));
             rows.Add(("Dificuldade: " + DifficultyRules.Label(o.Difficulty) + Note + "(dano recebido e vida dos inimigos)</color></size>", () => { o.CycleDifficulty(); return true; }));

@@ -39,6 +39,7 @@ namespace Arena.Core
         public float volume = 0.8f;
         public int turn = (int)TurnMode.Rapido30;
         public bool moveVignette = true;     // escurece as bordas ao andar/girar com o analógico (menos enjoo)
+        public bool armSwingRun = true;      // sem controle nenhum: correr balançando os braços (ArmSwingRun)
         public bool seated = false;          // jogar sentado: sobe a câmera
         public bool wristHud = false;        // HUD no pulso esquerdo (como um relógio) em vez de preso à cabeça
         public bool showFps = false;         // mostra quadros por segundo e nº de inimigos (medir desempenho no Quest)
