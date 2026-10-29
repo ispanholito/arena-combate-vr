@@ -816,8 +816,25 @@ namespace Arena
             if (!w || !w.Body || c.rigidbody != w.Body) return;
             Bone bone = null;
             if (c.contactCount == 0 || (id != RagBone.Clava && !bones.TryGetValue(id, out bone))) return;
-            var contact = c.GetContact(0).point;
-            float speed = c.relativeVelocity.magnitude;
+            WeaponContact(pl, w, id, bone, c.GetContact(0).point, c.relativeVelocity, slicing: false);
+        }
+
+        // Arma em chamas atravessando o corpo (FlameBlade: sem colisão física, detectado por sobreposição da lâmina).
+        public void OnWeaponSlice(RagBone id, Vector3 contact)
+        {
+            var pl = Player;
+            if (!pl || id == RagBone.Clava) return;
+            var w = pl.Weapon;
+            if (!w || !w.Body || !bones.TryGetValue(id, out var bone)) return;
+            WeaponContact(pl, w, id, bone, contact, w.PhysTipVelocity, slicing: true);
+        }
+
+        // Colisores do corpo (e da clava): FlameBlade ignora a colisão deles com a arma enquanto ela queima.
+        public List<Collider> Colliders() => BodyColliders();
+
+        void WeaponContact(ArenaPlayer pl, PlayerWeapon w, RagBone id, Bone bone, Vector3 contact, Vector3 relVel, bool slicing)
+        {
+            float speed = relVel.magnitude;
             // A clava bateu na arma: aparo (durante o ataque), bloqueio (na guarda) ou desarme (golpe forte nela).
             if (id == RagBone.Clava)
             {
@@ -833,9 +850,9 @@ namespace Arena
                     ArenaFx.FloatText("BLOQUEOU", contact + Vector3.up * 0.2f, new Color(0.8f, 0.8f, 0.8f), 0.8f);
                     ArenaAudio.Play(Sfx.Block, contact, 0.9f);
                     ArenaInput.Haptic(0.5f, 0.06f);
-                    if (speed >= ActiveRagdollRules.DisarmSpeed * 1.6f) Disarm(-c.relativeVelocity);   // pancada muito forte na guarda arranca a clava
+                    if (speed >= ActiveRagdollRules.DisarmSpeed * 1.6f) Disarm(-relVel);   // pancada muito forte na guarda arranca a clava
                 }
-                else if (ActiveRagdollRules.Disarms(id, speed / spec.DisarmMultiplier)) Disarm(-c.relativeVelocity);
+                else if (ActiveRagdollRules.Disarms(id, speed / spec.DisarmMultiplier)) Disarm(-relVel);
                 return;
             }
             // Peça arrancada no chão (esqueleto): golpe quebra a peça — aí ela não volta mais.
@@ -850,14 +867,14 @@ namespace Arena
             // Velocidade da ponta medida ANTES do impacto (depois do contato a colisão já freou a lâmina) — igual ao inimigo antigo.
             var tipVel = w.PhysTipVelocity;
             float tipSpeed = tipVel.magnitude;
-            var vel = tipVel.sqrMagnitude > c.relativeVelocity.sqrMagnitude ? tipVel : c.relativeVelocity;
+            var vel = tipVel.sqrMagnitude > relVel.sqrMagnitude ? tipVel : relVel;
             speed = Mathf.Max(speed, tipSpeed);
             float align = tipSpeed > 0.01f ? Vector3.Dot(bladeDir, tipVel / tipSpeed) : 0f;
             var tipWorld = w.Body.position + w.Body.rotation * new Vector3(0f, 0f, def.Length);
             float fromTip = Vector3.Distance(contact, tipWorld);
             if (PlayerWeapon.DebugStab) Debug.Log($"[GoblinFisico] contato {id} vel={tipSpeed:0.0} alinh={align:0.00} ponta={fromTip:0.00}");
-            // Perfurar
-            if (StabRules.CanPierce(def.Kind) && ActiveRagdollRules.CanStab(tipSpeed, align, fromTip) && w.Held && !IsStuckBy(w))
+            // Perfurar (a lâmina em chamas passa direto: não crava)
+            if (!slicing && StabRules.CanPierce(def.Kind) && ActiveRagdollRules.CanStab(tipSpeed, align, fromTip) && w.Held && !IsStuckBy(w))
             {
                 Stab(bone, contact, w, tipSpeed);
                 return;

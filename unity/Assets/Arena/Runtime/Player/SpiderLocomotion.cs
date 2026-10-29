@@ -65,7 +65,7 @@ namespace Arena
                     ArenaFx.FloatText("DASH", player.HeadPosition + player.HeadForward * 0.8f, new Color(0.8f, 0.9f, 1f), 0.5f);
                 }
                 // Mão esticada em direção ao ponto aceso + fechar = lança a teia.
-                if (fistOnset && !ropeActive && target && HandLock.Free(side, "teia") && World(hand, XRHandJointID.Palm, out var palm) && AimsAt(palm, target.Position))
+                if (fistOnset && !ropeActive && target && !Muralha.Active && HandLock.Free(side, "teia") && World(hand, XRHandJointID.Palm, out var palm) && AimsAt(palm, target.Position))
                     Shoot(side, palm, target.Position);
             }
         }

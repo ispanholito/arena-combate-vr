@@ -7,6 +7,9 @@ namespace Arena
     // Espada flamejante (ideia do Pablo, 2026-10-28): mergulhe a lâmina numa bola de fogo — a que está carregando na
     // mão livre (ela é consumida e gasta a mana dela) ou uma voando — e a arma pega fogo por 12 s: +30% de dano e cada
     // golpe põe calor no inimigo (FlameBladeRules). Chamas e faíscas ao longo da lâmina + uma luz pequena.
+    // ATRAVESSA TUDO (pedido do Pablo): enquanto queima, a lâmina não bate nos corpos dos inimigos (ignora a colisão) e
+    // os acertos são vistos por sobreposição ao longo da lâmina a cada passo de física — corta passando direto, com
+    // dano, desmembrar e calor. Paredes e chão continuam sólidos.
     [RequireComponent(typeof(ArenaPlayer))]
     public sealed class FlameBlade : MonoBehaviour
     {
@@ -15,6 +18,9 @@ namespace Arena
         ArenaPlayer player;
         float flameT, sparkT;
         readonly List<Transform> flames = new List<Transform>();
+        readonly HashSet<Collider> ignored = new HashSet<Collider>();
+        readonly Collider[] overlap = new Collider[16];
+        float ignoreRefreshT;
         Light glow;
         Material flameMat;
         const int FlameCount = 6;
@@ -30,16 +36,62 @@ namespace Arena
         }
 
         void Awake() { player = GetComponent<ArenaPlayer>(); Instance = this; }
-        void OnDestroy() { if (Instance == this) Instance = null; Clear(); }
+        void OnDestroy() { if (Instance == this) Instance = null; Clear(); Restore(); }
 
         void Update()
         {
             var w = player.Weapon;
             bool usable = w && w.Def != null && w.Held && FlameBladeRules.CanIgnite(w.Def.Kind);
-            if (!usable) { if (flameT > 0f) { flameT = 0f; Clear(); } return; }
+            if (!usable) { if (flameT > 0f) { flameT = 0f; Clear(); } Restore(); return; }
             if (flameT > 0f) flameT -= Time.deltaTime;
             TryDip(w);
-            if (flameT > 0f) Draw(w); else if (flames.Count > 0) { Clear(); ArenaAudio.Play(Sfx.Wind, w.TipPoint, 0.4f, 0.7f); }
+            if (flameT > 0f)
+            {
+                Draw(w);
+                ignoreRefreshT -= Time.deltaTime;
+                if (ignoreRefreshT <= 0f) { ignoreRefreshT = 0.4f; IgnoreEnemies(w); }   // pega também os que nasceram depois
+            }
+            else if (flames.Count > 0) { Clear(); Restore(); ArenaAudio.Play(Sfx.Wind, w.TipPoint, 0.4f, 0.7f); }
+        }
+
+        // Corte que atravessa: ossos dos inimigos físicos encostados na lâmina recebem o golpe (cada um tem a sua recarga).
+        void FixedUpdate()
+        {
+            if (flameT <= 0f) return;
+            var w = player.Weapon;
+            if (!w || !w.Held || w.Def == null) return;
+            int n = Physics.OverlapCapsuleNonAlloc(w.BasePoint, w.TipPoint, 0.05f, overlap, ~0, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < n; i++)
+            {
+                var bone = overlap[i].GetComponent<RagdollBone>();
+                if (bone && bone.Owner) bone.Owner.OnWeaponSlice(bone.Id, overlap[i].ClosestPoint(Vector3.Lerp(w.BasePoint, w.TipPoint, 0.5f)));
+            }
+        }
+
+        // A arma deixa de bater nos corpos dos inimigos (físicos e antigos); o dano dos antigos já vem da varredura.
+        void IgnoreEnemies(PlayerWeapon w)
+        {
+            if (!w.Body) return;
+            var mine = w.Body.GetComponentsInChildren<Collider>();
+            void Ignore(Collider c)
+            {
+                if (!c || !ignored.Add(c)) return;
+                foreach (var m in mine) Physics.IgnoreCollision(m, c, true);
+            }
+            foreach (var g in RagdollGoblin.All) if (g) foreach (var c in g.Colliders()) Ignore(c);
+            foreach (var e in ArenaEnemy.All) if (e) Ignore(e.BodyCollider);
+        }
+
+        void Restore()
+        {
+            if (ignored.Count == 0) return;
+            var w = player ? player.Weapon : null;
+            if (w && w.Body)
+            {
+                var mine = w.Body.GetComponentsInChildren<Collider>();
+                foreach (var c in ignored) if (c) foreach (var m in mine) Physics.IgnoreCollision(m, c, false);
+            }
+            ignored.Clear();
         }
 
         // Lâmina passando por uma bola de fogo (na mão ou voando).

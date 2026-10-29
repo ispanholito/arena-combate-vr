@@ -109,7 +109,9 @@ namespace Arena
             if (!GetComponent<HandMagic>()) gameObject.AddComponent<HandMagic>();   // mago sem controle: raízes, Kamehameha, bola de fogo
             if (!GetComponent<HandPointer>()) gameObject.AddComponent<HandPointer>();   // ponteiro do dedo + pinça nos menus
             if (!GetComponent<SpellBook>()) gameObject.AddComponent<SpellBook>();
-            if (!GetComponent<FlameBlade>()) gameObject.AddComponent<FlameBlade>();   // arma mergulhada na bola de fogo pega fogo   // livro de magias (abre pela pausa)
+            if (!GetComponent<FlameBlade>()) gameObject.AddComponent<FlameBlade>();
+            if (!GetComponent<Muralha>()) gameObject.AddComponent<Muralha>();   // punho na palma: aura vermelha, só soco forte
+            if (!GetComponent<SkyBolt>()) gameObject.AddComponent<SkyBolt>();   // mão fechada ao céu e abrir: raio em cadeia   // arma mergulhada na bola de fogo pega fogo   // livro de magias (abre pela pausa)
             ResetCharacter(startClass);
             yaw = rigRoot.eulerAngles.y;
         }
@@ -399,6 +401,7 @@ namespace Arena
         // ---------- Dano ----------
         public void TakeDamage(float amount, Vector3 from, bool ignoreGuardCooldown = false)
         {
+            if (Muralha.TryGuard(from)) return;   // Muralha Impenetrável: as mãos bloqueiam/aparam
             amount *= DifficultyRules.DamageTaken(SaveSystem.Options.Difficulty) * ArcadeRules.DamageMultiplier(ArenaGame.Instance ? ArenaGame.Instance.CurrentTier : 1);
             if (!State.TakeDamage(amount)) return;
             Hurt?.Invoke(amount);

@@ -65,6 +65,7 @@ namespace Arena
             bool rightFree = player.Input.RightHandFree && h[1].Tracked;
 
             // Trava de mão (HandLock): duas mãos só com as duas livres; bola de fogo só na mão livre para ela.
+            if (Muralha.Active) { MuralhaClap(dt); CancelFire(0); CancelFire(1); HideKameOrb(); return; }   // na Muralha: só soco e ondas
             if (leftFree && rightFree && HandLock.BothFree("duas") && TwoHandMagic(dt)) { CancelFire(0); CancelFire(1); return; }
             if (kameCharging) { kameCharging = false; kameT = 0f; }
             HideKameOrb();
@@ -84,6 +85,28 @@ namespace Arena
             d.PalmLocalPrev = local; d.HasPrev = true;
         }
 
+        // Mão rastreada para os outros poderes (Muralha, raio do céu): palma, velocidade relativa ao corpo e formato.
+        public bool GetHand(int side, out Vector3 palm, out Vector3 vel, out HandShape shape)
+        {
+            var d = h[side];
+            palm = d.Palm; vel = d.Vel; shape = d.Shape;
+            return d.Tracked;
+        }
+
+        // Muralha: palma batida (as duas abertas) = onda de choque para frente.
+        void MuralhaClap(float dt)
+        {
+            var L = h[0]; var R = h[1];
+            if (!L.Tracked || !R.Tracked || !player.Input.LeftHandFree || !player.Input.RightHandFree) return;
+            float palmsApart = Vector3.Distance(L.Palm, R.Palm);
+            float closing = dt > 0f ? (prevPalmsApart - palmsApart) / dt : 0f;
+            prevPalmsApart = palmsApart;
+            clapCd -= dt;
+            if (clapCd > 0f || L.Shape == HandShape.Punho || R.Shape == HandShape.Punho || !HandMagicRules.IsClap(palmsApart, closing)) return;
+            clapCd = HandMagicRules.ClapCooldown;
+            Muralha.Instance.ClapWave((L.Palm + R.Palm) * 0.5f);
+        }
+
         // ---------- Duas mãos: raízes e Kamehameha. Retorna true se as duas mãos estão ocupadas com isso. ----------
         bool TwoHandMagic(float dt)
         {
@@ -93,7 +116,7 @@ namespace Arena
             prevPalmsApart = palmsApart;
             clapWindow -= dt; clapCd -= dt;
             // Palma batida: abre a janela das magias de duas mãos.
-            if (clapCd <= 0f && HandMagicRules.IsClap(palmsApart, closing))
+            if (clapCd <= 0f && L.Shape != HandShape.Punho && R.Shape != HandShape.Punho && HandMagicRules.IsClap(palmsApart, closing))   // punho na palma é a Muralha
             {
                 clapWindow = HandMagicRules.ClapWindow; clapCd = HandMagicRules.ClapCooldown;
                 var at = (L.Palm + R.Palm) * 0.5f;

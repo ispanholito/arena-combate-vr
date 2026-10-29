@@ -133,7 +133,7 @@ namespace Arena
             bool hasPalm = World(xh, XRHandJointID.Palm, out var palm);
 
             // Agarrar: fechou a mão perto de um inimigo. Enquanto fechada segura; abriu (0,12 s) solta com a velocidade da mão.
-            if (grabber && hasPalm)
+            if (grabber && hasPalm && !Muralha.Active)   // na Muralha: só soco
             {
                 if (grabber.Holding(side))
                 {
@@ -158,6 +158,7 @@ namespace Arena
                 Punch(h.WristPrev, h.WristVel.normalized, h.IsRight);
                 HandLock.Hold(side, "mao", 0.4f);
             }
+            if (Muralha.Active) { h.BeamCharge = 0f; ChargeDot(h, Vector3.zero, -1f); return; }   // na Muralha: só soco
             // Palma aberta rápida = corte.
             if (h.Shape == HandShape.Aberta && h.ShapeT > 0.1f && h.WristVel.magnitude > HandPowers.PalmMinSpeed)
             {
@@ -276,8 +277,10 @@ namespace Arena
             if (player.State.TryHandPower(HandPowers.Punch, rightHand ? 1 : 0) != SkillCastResult.Ok) return false;
             TutorialEvents.Raise("soco");
             var at = target.Center - dir * target.Radius * 0.8f;
-            target.ApplyDamage(HandPowers.PunchDamage, HandPowers.PunchPosture, dir, HandPowers.PunchKnock, new Color(1f, 0.82f, 0.56f));
+            float boost = Muralha.Active ? MuralhaRules.PunchDamageMultiplier : 1f;   // Muralha: soco muito mais forte
+            target.ApplyDamage(HandPowers.PunchDamage * boost, HandPowers.PunchPosture, dir, HandPowers.PunchKnock, Muralha.Active ? new Color(1f, 0.35f, 0.25f) : new Color(1f, 0.82f, 0.56f));
             target.PhysicalImpact(12f, dir);
+            Muralha.EmpowerPunch(target, dir);
             ArenaFx.Burst(at, new Color(1f, 0.82f, 0.56f), 16, 3.5f, 1.2f);
             ArenaFx.Ring(at, new Color(1f, 0.85f, 0.6f), 0.5f, 0.2f);
             ArenaAudio.Play(Sfx.Impact, at, 1f, 1.2f);

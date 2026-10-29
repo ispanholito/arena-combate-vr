@@ -37,9 +37,15 @@ namespace Arena
 
         void Awake() => player = GetComponent<ArenaPlayer>();
 
+        // Cor das mãos (Muralha Impenetrável = vermelho); null volta à pele.
+        static Material skinMat;
+        static readonly Color SkinColor = new Color(0.86f, 0.66f, 0.52f);
+        public static void Tint(Color? c) { if (skinMat) skinMat.color = c ?? SkinColor; }
+
         void Start()
         {
-            var skin = ArenaUtil.Lit(new Color(0.86f, 0.66f, 0.52f));
+            var skin = ArenaUtil.Lit(SkinColor);
+            skinMat = skin;
             var knuckle = ArenaUtil.Lit(new Color(0.78f, 0.58f, 0.46f));
             left = Build("MaoRastreadaEsquerda", skin, knuckle);
             right = Build("MaoRastreadaDireita", skin, knuckle);

@@ -9,6 +9,11 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000000000000000000. NOVO — Muralha Impenetrável, Raio do céu, lâmina que atravessa
+- [ ] **Muralha**: soque o punho na palma aberta da outra mão → aura vermelha (anel nos pés, mãos vermelhas). Soco joga goblin longe? Orc atordoa rápido? Ponha a mão no caminho da clava (bloqueio) e vá rápido contra ela (aparo). Palma batida = onda para frente; punho na palma = onda em volta.
+- [ ] **Raio do céu**: olhe para cima, mão fechada acima da cabeça, abra → relâmpago desce na mão. Estique o braço para frente → raio pula entre os inimigos. Algum conflito com a teia (olhando para um gancho aceso)?
+- [ ] **Lâmina em chamas atravessa**: com a espada acesa, o golpe passa pelos inimigos sem parar e ainda corta/queima? Arranca membro?
+
 ## 000000000000000000000000. NOVO — Kamehameha como no anime e arma em chamas
 - [ ] **Kamehameha**: palma na frente → puxe as mãos juntas para o lado do corpo (a esfera carrega) → abra um pouco em garra e espere (pulsa forte + som) → jogue para frente. Fica natural? A garra é reconhecida? Dispara sem querer?
 - [ ] **Arma em chamas** (Lâmina com a mão esquerda livre): carregue a bola de fogo na mão esquerda e passe a espada nela. A espada pega fogo 12 s? Os inimigos pegam fogo em 2 golpes? Também funciona passando a espada numa bola do cajado voando (difícil, mas possível).
