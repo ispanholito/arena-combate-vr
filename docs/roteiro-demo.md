@@ -8,9 +8,9 @@ Inspiração de monstros: SAO temporada 1 (conceito e clima, nunca copiar desenh
 | # | Cena | O que acontece | Ensina | Já temos? |
 |---|------|----------------|---------|-----------|
 | 0 | **Despertar** | Acorda numa caverna, **amarrado** (pulsos presos). Separar as mãos com força rompe a corda. | Que o corpo/mãos importam | Não (corda + início roteirizado) |
-| 1 | **A espada no cadáver** | Corpo de um aventureiro com uma espada **cravada**. Segurar o cabo e **puxar** arranca. | Pegar arma física | Sim (`StuckSword`, sai aos poucos) — falta o cadáver com arte |
+| 1 | **A espada no cadáver** | Corpo de um aventureiro com uma espada **cravada** e um **escudo** do lado. Segurar o cabo e **puxar** arranca; o escudo vai na mão esquerda ou nas costas. | Pegar arma física | Sim (`StuckSword`, sai aos poucos) — falta o cadáver com arte |
 | 2 | **Esqueleto** | 1º inimigo, sozinho. | Golpe, aparo, peso da arma; membros saem e voltam | Sim (esqueleto físico) |
-| 3 | **Estátua do fogo** | Estátua segura uma chama. Tocar com a **mão livre** passa a chama para a mão → Bola de Fogo. Depois: **mergulhar a espada** na bola = lâmina em chamas. | Soltar o controle esquerdo, magia da mão, combo arma+magia | Parcial (bola e lâmina em chamas existem; falta a estátua/desbloqueio) |
+| 3 | **Estátua do fogo** (depois de matar o esqueleto) | Estátua segura uma chama. Tocar com a **mão livre** passa a chama para a mão → Bola de Fogo. Depois: **mergulhar a espada** na bola = lâmina em chamas. | Soltar o controle esquerdo, magia da mão, combo arma+magia | Parcial (bola e lâmina em chamas existem; falta a estátua/desbloqueio) |
 | 4 | **3 goblins** | Sala de grupo, só corpo a corpo. | Lutar contra vários (fichas, cerco), usar o fogo | Sim |
 | 5 | **Orc + apoio** | Orc **com escudo** + 1 arqueiro + 1 xamã. | Prioridade de alvo, rebater orbe/flecha, escudo que racha | Parcial (falta escudo quebrável) |
 | 5b | **Recompensa do orc** | Ao matar o orc: **aura vermelha** (substitui a Postura de Contra) — quebra defesas e escudos. | Quebrar escudo | Não |
@@ -25,6 +25,9 @@ Inspiração de monstros: SAO temporada 1 (conceito e clima, nunca copiar desenh
 - **Escudos quebráveis** nos inimigos (orc da sala 5 e Rei Goblin). O orc ensina antes do chefe.
 - **Na demo ficam escondidos**: árvore de habilidades (sobe de nível só para vida/estamina), Investida, poderes da mão fora da Bola de Fogo, outros chefes, modos, biomas, pets, NPCs, armas de fogo, Elementalista.
 - Desbloqueios da demo são **roteirizados** (estátua, orc, baú), não pela árvore.
+
+- **Escudo vira item** (não fica mais preso na mão esquerda): achado junto com a espada do cadáver. A mão esquerda segura qualquer arma.
+- **Coldres estilo Blade & Sorcery**: 2 nos OMBROS (qualquer tamanho, inclusive grandes: escudo, arco, lança, martelo) e 2 na CINTURA (pequenas e médias: espada, adaga, maça, machadinha, pistola). Mão perto do coldre + grip = pega; soltar a arma perto do coldre = guarda.
 
 ## Críticas / pontos a decidir
 1. ~~Aura × lâmina em chamas~~ — fechado: aura quebra defesas/escudos, fogo é dano ao longo do tempo.
