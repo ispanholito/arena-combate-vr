@@ -77,20 +77,26 @@ namespace Arena
             inner.localPosition = new Vector3(0, 0, -item.Base.Length * 0.5f);
             foreach (var col in model.GetComponentsInChildren<Collider>()) Destroy(col);
 
-            // Corpo físico: uma cápsula ao longo da arma (cabeça de maça/machado mais grossa), massa real.
-            transform.rotation = Quaternion.Euler(Random.Range(-10f, 10f), Random.Range(0f, 360f), Random.Range(-30f, 30f));
-            if (!floorMat) floorMat = new PhysicsMaterial("ArmaNoChao") { dynamicFriction = 0.7f, staticFriction = 0.9f, bounciness = 0.1f,
-                                                                          frictionCombine = PhysicsMaterialCombine.Maximum };
-            var cap = gameObject.AddComponent<CapsuleCollider>();
-            cap.direction = 2; cap.height = item.Base.Length; cap.material = floorMat;
-            cap.radius = item.Base.Kind == WeaponKind.Maca || item.Base.Kind == WeaponKind.Machado ? 0.07f : 0.035f;
+            // Corpo físico: uma CAIXA do tamanho do modelo (achatada como a lâmina) e massa real. Era uma cápsula, que
+            // rola sem parar sobre o próprio eixo — as armas "saíam correndo" pelo chão (Pablo, 2026-10-30).
+            var bounds = new Bounds(transform.position, Vector3.zero);
+            bool any = false;
+            foreach (var r in model.GetComponentsInChildren<Renderer>()) { if (any) bounds.Encapsulate(r.bounds); else { bounds = r.bounds; any = true; } }
+            if (!floorMat) floorMat = new PhysicsMaterial("ArmaNoChao") { dynamicFriction = 0.8f, staticFriction = 1f, bounciness = 0.05f,
+                                                                          frictionCombine = PhysicsMaterialCombine.Maximum, bounceCombine = PhysicsMaterialCombine.Minimum };
+            var box = gameObject.AddComponent<BoxCollider>();
+            box.center = bounds.center - transform.position;
+            box.size = new Vector3(Mathf.Max(0.04f, bounds.size.x), Mathf.Max(0.03f, bounds.size.y), Mathf.Max(0.1f, bounds.size.z));
+            box.material = floorMat;
+            transform.rotation = Quaternion.Euler(Random.Range(-10f, 10f), Random.Range(0f, 360f), Random.Range(-10f, 10f));
             body = gameObject.AddComponent<Rigidbody>();
             body.mass = WeaponPhysics.Mass(item.Base);
-            body.linearDamping = 0.1f; body.angularDamping = 0.6f;
+            body.linearDamping = 0.2f; body.angularDamping = 2f;
+            body.maxDepenetrationVelocity = 1f;   // nascendo encostada em algo, não sai disparada
             body.interpolation = RigidbodyInterpolation.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             body.linearVelocity = velocity;
-            body.angularVelocity = velocity.sqrMagnitude > 0.01f ? Random.insideUnitSphere * 6f : Vector3.zero;
+            body.angularVelocity = velocity.sqrMagnitude > 0.01f ? Random.insideUnitSphere * 3f : Vector3.zero;
 
             // O rótulo não fica preso à arma (ela gira): segue por cima, sempre em pé.
             label = ArenaFx.MakeText(null, Describe(item), 0.006f, c);

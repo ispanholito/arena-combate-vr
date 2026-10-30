@@ -746,6 +746,7 @@ namespace Arena
                 case Mode.Dead:
                     muscle = 0f;
                     if (!GrabbedOrStuck) deadT += dt;
+                    SettleCorpse();
                     if (deadT > 10f) { Destroy(gameObject); return; }
                     break;
             }
@@ -1318,10 +1319,41 @@ namespace Arena
             mode = Mode.Stand; standT = getUpTotal; attackCd = 1f;
         }
 
+        // Corpo morto (Pablo, 2026-10-30: "alguns bugam, saem voando e travam"): ossos sem força nenhuma ficam leves
+        // diante da arma do jogador (presa à mão por mola forte) e das colisões encavaladas — o motor de física os
+        // empurrava para fora em alta velocidade e eles tremiam. Agora: saída de colisão lenta, mais iterações do solver,
+        // limite de velocidade e, parado, o corpo assenta.
+        public const float CorpseMaxSpeed = 10f, CorpseMaxSpin = 18f;
+        void PrepareCorpse()
+        {
+            foreach (var b in boneList)
+            {
+                if (!b.Rb) continue;
+                b.Rb.maxDepenetrationVelocity = 1f;
+                b.Rb.solverIterations = 12; b.Rb.solverVelocityIterations = 4;
+                b.Rb.angularDamping = Mathf.Max(b.Rb.angularDamping, 1.5f);
+                b.Rb.sleepThreshold = 0.05f;
+            }
+        }
+        void SettleCorpse()
+        {
+            bool still = deadT > 1.2f;
+            foreach (var b in boneList)
+            {
+                var rb = b.Rb;
+                if (!rb || rb.isKinematic) continue;
+                if (rb.linearVelocity.sqrMagnitude > CorpseMaxSpeed * CorpseMaxSpeed) rb.linearVelocity = rb.linearVelocity.normalized * CorpseMaxSpeed;
+                if (rb.angularVelocity.sqrMagnitude > CorpseMaxSpin * CorpseMaxSpin) rb.angularVelocity = rb.angularVelocity.normalized * CorpseMaxSpin;
+                if (still && rb.linearVelocity.sqrMagnitude < 0.25f) rb.linearDamping = 2f;   // quase parado: assenta (sem tremer)
+                else rb.linearDamping = 0.05f;
+            }
+        }
+
         void Die()
         {
             if (mode == Mode.Dead) return;
             mode = Mode.Dead; attack = Attack.None;
+            PrepareCorpse();
             // Morreu espetado: o corpo fica mais leve para a espada conseguir segurar pendurado (igual ao inimigo antigo).
             if (stabs.Count > 0) foreach (var b in boneList) if (b.Rb) b.Rb.mass *= StabRules.PinnedCorpseMassScale;
             ArenaGame.Tokens.Release(TokenId);

@@ -9,6 +9,10 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000000000000000000000000000000000000000000. NOVO — armas no chão param, corpos não voam
+- Armas caídas param em ~1,5 s e não rolam mais pelo chão (antes saíam rodando).
+- Goblin morrendo não pode sair voando nem ficar tremendo no chão (mate vários, inclusive com a espada encostada no corpo).
+
 ## 00000000000000000000000000000000000000000000. NOVO — golpe na cabeça por região e arma
 - **Espada/lâmina no crânio**: não derruba mais (só dano). Com capacete: às vezes (30%) "ATORDOADO!".
 - **Lâmina no rosto/boca**: "CORTOU!" e bastante dano, sem derrubar.
