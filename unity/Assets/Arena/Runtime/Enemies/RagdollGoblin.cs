@@ -470,35 +470,68 @@ namespace Arena
         // ---------- Pose ("animação" que os músculos seguem) ----------
         readonly Dictionary<RagBone, Vector3> pose = new Dictionary<RagBone, Vector3>();
 
-        // Passo pela direção REAL do movimento (2026-10-30, Pablo: "parece que são arrastados para o lado"): para frente/trás
-        // as pernas balançam; de lado, cada perna levanta e abre alternada (passo lateral). Antes as pernas só balançavam
-        // para frente e o corpo deslizava de lado.
+        // ---------- Andar (2ª versão, 2026-10-30, Pablo: "o jeito que ele anda não tem nada a ver") ----------
+        // Ciclo de passo pela direção REAL do movimento: a coxa vai e volta, o joelho dobra na hora que a perna passa por
+        // baixo do corpo (levanta o pé), o tronco inclina com a velocidade e gira contra as pernas, os braços balançam
+        // opostos às pernas (o da clava menos) e a bacia sobe e desce a cada passo. De lado = passo lateral.
         float gaitF, gaitS;
+
+        // ---------- Pescoço (2026-10-30: "tá muito travado") ----------
+        // A cabeça procura o jogador (ou o ponto da vitrine) dentro do limite do pescoço, com atraso, e mexe um pouco sozinha
+        // (olhadas rápidas e respiração). Passando do limite, o tronco ajuda a virar.
+        float headYaw, headPitch;
+        void UpdateLook(Vector3? target, float dt)
+        {
+            if (!bones.TryGetValue(RagBone.Tronco, out var tr) || !tr.Rb || !bones.TryGetValue(RagBone.Cabeca, out var hd) || !hd.Rb) return;
+            float wantYaw = 0f, wantPitch = 0f;
+            if (target.HasValue)
+            {
+                var local = Quaternion.Inverse(tr.Rb.rotation) * (target.Value - hd.Rb.position);
+                wantYaw = Mathf.Atan2(local.x, Mathf.Max(0.05f, local.z)) * Mathf.Rad2Deg;
+                wantPitch = Mathf.Atan2(local.y, new Vector2(local.x, local.z).magnitude) * Mathf.Rad2Deg;
+            }
+            float t = Time.time + (GetInstanceID() & 255);
+            wantYaw += (Mathf.PerlinNoise(t * 0.35f, 1.3f) - 0.5f) * 24f;     // olhadas
+            wantPitch += (Mathf.PerlinNoise(1.7f, t * 0.3f) - 0.5f) * 10f;
+            headYaw = Mathf.Lerp(headYaw, Mathf.Clamp(wantYaw, -70f, 70f), dt * 6f);
+            headPitch = Mathf.Lerp(headPitch, Mathf.Clamp(wantPitch, -30f, 30f), dt * 6f);
+        }
+
+        float Bob(float speed01) => -0.035f * k * (1f - Mathf.Abs(Mathf.Cos(phase))) * speed01;   // bacia mais baixa entre os passos
 
         void BuildPose(float speed01)
         {
             pose.Clear();
-            float s = Mathf.Sin(phase);
+            float s = Mathf.Sin(phase), c = Mathf.Cos(phase);
             float f = Mathf.Clamp(gaitF / 1.6f, -1f, 1f) * speed01;
             float side = Mathf.Clamp(gaitS / 1.0f, -1f, 1f) * speed01;
             float lift = Mathf.Abs(side);
-            float swing = s * 35f * f;
+            float af = Mathf.Abs(f);
+            float run = Mathf.Clamp01((new Vector2(gaitF, gaitS).magnitude - 1.4f) / 1.2f);   // correndo: passos maiores
+            float stride = 30f + 15f * run;
+            float swing = s * stride * f;
+            // Pernas: coxa vai e volta; joelho dobra quando a perna está indo para frente (pé no ar) e um pouco no apoio.
             pose[RagBone.CoxaE] = new Vector3(swing - Mathf.Max(0f, s) * 25f * lift, 0, side * Mathf.Max(0f, s) * 20f);
             pose[RagBone.CoxaD] = new Vector3(-swing - Mathf.Max(0f, -s) * 25f * lift, 0, side * Mathf.Max(0f, -s) * 20f);
-            pose[RagBone.CanelaE] = new Vector3(10f + Mathf.Max(0f, -s) * 45f * Mathf.Abs(f) + Mathf.Max(0f, s) * 40f * lift, 0, 0);
-            pose[RagBone.CanelaD] = new Vector3(10f + Mathf.Max(0f, s) * 45f * Mathf.Abs(f) + Mathf.Max(0f, -s) * 40f * lift, 0, 0);
-            pose[RagBone.BracoE] = new Vector3(-swing * 0.6f - 10f, 0, -12f);
-            pose[RagBone.AntebracoE] = new Vector3(-25f, 0, 0);
-            pose[RagBone.Tronco] = new Vector3(-8f, 0, 0);
-            pose[RagBone.Cabeca] = new Vector3(8f, 0, 0);
-            // Braço da clava: parado à frente; ataque = pose de aviso (de cima ou de um dos lados) e golpe; guarda = clava na frente.
+            float kneeAmp = 50f + 30f * run;
+            pose[RagBone.CanelaE] = new Vector3(8f + 6f * af + Mathf.Max(0f, -c * Mathf.Sign(f + 1e-4f)) * kneeAmp * af + Mathf.Max(0f, s) * 40f * lift, 0, 0);
+            pose[RagBone.CanelaD] = new Vector3(8f + 6f * af + Mathf.Max(0f, c * Mathf.Sign(f + 1e-4f)) * kneeAmp * af + Mathf.Max(0f, -s) * 40f * lift, 0, 0);
+            // Tronco: inclina com a velocidade, gira contra as pernas e balança de lado; parado respira.
+            float breathe = Mathf.Sin(Time.time * 2.1f) * 2f * (1f - speed01);
+            pose[RagBone.Tronco] = new Vector3(-8f - 10f * af - 8f * run + breathe, -s * 8f * af + Mathf.Sign(headYaw) * Mathf.Clamp(Mathf.Abs(headYaw) - 45f, 0f, 25f), c * 4f * speed01);
+            // Cabeça: olha (UpdateLook) e compensa a inclinação do tronco e o balanço do passo.
+            pose[RagBone.Cabeca] = new Vector3(8f + 10f * af + headPitch - c * 3f * speed01, Mathf.Clamp(headYaw, -55f, 55f), -c * 3f * speed01);
+            // Braço livre: balança oposto à perna do mesmo lado.
+            pose[RagBone.BracoE] = new Vector3(-swing * 0.8f - 10f, 0, -12f - 4f * speed01);
+            pose[RagBone.AntebracoE] = new Vector3(-25f - 15f * af - Mathf.Max(0f, -s) * 20f * af, 0, 0);
+            // Braço da clava: parado à frente (balança um pouco andando); ataque = pose de aviso e golpe; guarda = clava na frente.
             (System.Numerics.Vector3 arm, System.Numerics.Vector3 fore) p;
             if (guardT > 0f && attack == Attack.None) p = ActiveRagdollPoses.Guard;
             else switch (attack)
             {
                 case Attack.Windup: p = ActiveRagdollPoses.Windup(curAttack); break;
                 case Attack.Strike: p = ActiveRagdollPoses.Strike(curAttack); break;
-                default: p = (new System.Numerics.Vector3(-30f, 0f, 8f), new System.Numerics.Vector3(-50f, 0f, 0f)); break;
+                default: p = (new System.Numerics.Vector3(-30f + swing * 0.35f, 0f, 8f), new System.Numerics.Vector3(-50f, 0f, 0f)); break;
             }
             pose[RagBone.BracoD] = p.arm.ToU();
             pose[RagBone.AntebracoD] = p.fore.ToU();
@@ -507,24 +540,48 @@ namespace Arena
             if (standT > 0f) GetUpPose(1f - Mathf.Clamp01(standT / ActiveRagdollRules.StandUpSeconds));
         }
 
-        // Levantar (2026-10-30, Pablo: "a animação de se levantar tá uma bosta"): ajoelha com uma perna, apoia a mão e sobe.
-        // A bacia começa baixa (ponto da IA rebaixado) e sobe junto com a pose; antes ia direto da pose de pé, puxado para cima.
+        // ---------- Levantar (2ª versão, 2026-10-30: "levantar usando as mãos, dobrando o joelho") ----------
+        // 1) De quatro: joelhos dobrados no chão, tronco à frente, as DUAS mãos apoiadas na frente empurrando o chão.
+        // 2) Ajoelhado numa perna: pé da frente plantado, mão esquerda apoiada no joelho, a da clava solta.
+        // 3) Empurra e fica de pé. A bacia acompanha: começa bem baixa, sobe um pouco no ajoelhado e depois de vez.
+        static readonly (RagBone, Vector3)[] AllFours =
+        {
+            (RagBone.CoxaE, new Vector3(-95f, 0f, 0f)), (RagBone.CanelaE, new Vector3(125f, 0f, 0f)),
+            (RagBone.CoxaD, new Vector3(-95f, 0f, 0f)), (RagBone.CanelaD, new Vector3(125f, 0f, 0f)),
+            (RagBone.Tronco, new Vector3(-35f, 0f, 0f)), (RagBone.Cabeca, new Vector3(30f, 0f, 0f)),
+            (RagBone.BracoE, new Vector3(-70f, 0f, -12f)), (RagBone.AntebracoE, new Vector3(-5f, 0f, 0f)),
+            (RagBone.BracoD, new Vector3(-70f, 0f, 12f)), (RagBone.AntebracoD, new Vector3(-5f, 0f, 0f)),
+        };
         static readonly (RagBone, Vector3)[] Kneel =
         {
             (RagBone.CoxaE, new Vector3(-85f, 0f, 0f)), (RagBone.CanelaE, new Vector3(95f, 0f, 0f)),
-            (RagBone.CoxaD, new Vector3(-15f, 0f, 0f)), (RagBone.CanelaD, new Vector3(115f, 0f, 0f)),
-            (RagBone.Tronco, new Vector3(-35f, 0f, 0f)), (RagBone.Cabeca, new Vector3(18f, 0f, 0f)),
-            (RagBone.BracoE, new Vector3(-50f, 0f, -15f)), (RagBone.AntebracoE, new Vector3(-10f, 0f, 0f)),
-            (RagBone.BracoD, new Vector3(-40f, 0f, 10f)), (RagBone.AntebracoD, new Vector3(-40f, 0f, 0f)),
+            (RagBone.CoxaD, new Vector3(-10f, 0f, 0f)), (RagBone.CanelaD, new Vector3(115f, 0f, 0f)),
+            (RagBone.Tronco, new Vector3(-28f, 0f, 0f)), (RagBone.Cabeca, new Vector3(20f, 0f, 0f)),
+            (RagBone.BracoE, new Vector3(-35f, 0f, -18f)), (RagBone.AntebracoE, new Vector3(-55f, 0f, 0f)),
+            (RagBone.BracoD, new Vector3(-40f, 0f, 14f)), (RagBone.AntebracoD, new Vector3(-40f, 0f, 0f)),
         };
-        const float KneelDrop = 0.32f;   // quanto a bacia começa abaixo da altura de pé (× escala)
+        const float AllFoursDrop = 0.36f, KneelDrop = 0.27f;   // quanto a bacia fica abaixo da altura de pé (× escala)
 
-        static float GetUpBlend(float p) => Mathf.SmoothStep(0f, 1f, (p - 0.35f) / 0.65f);   // fica ajoelhado ~35% do tempo
+        // p: 0..1 do tempo de levantar. 0-0,35 de quatro, 0,35-0,65 ajoelhado, 0,65-1 de pé.
+        static float GetUpDrop(float p)
+        {
+            if (p < 0.35f) return Mathf.Lerp(AllFoursDrop, AllFoursDrop * 0.95f, p / 0.35f);
+            if (p < 0.65f) return Mathf.Lerp(AllFoursDrop * 0.95f, KneelDrop, Mathf.SmoothStep(0f, 1f, (p - 0.35f) / 0.3f));
+            return Mathf.Lerp(KneelDrop, 0f, Mathf.SmoothStep(0f, 1f, (p - 0.65f) / 0.35f));
+        }
 
         void GetUpPose(float p)
         {
-            float b = GetUpBlend(p);
-            foreach (var (id, v) in Kneel) pose[id] = Vector3.Lerp(v, pose.TryGetValue(id, out var st) ? st : Vector3.zero, b);
+            var stand = new Dictionary<RagBone, Vector3>(pose);
+            for (int i = 0; i < AllFours.Length; i++)
+            {
+                var (id, a) = AllFours[i];
+                var kn = Kneel[i].Item2;
+                var st = stand.TryGetValue(id, out var v) ? v : Vector3.zero;
+                pose[id] = p < 0.35f ? a
+                         : p < 0.65f ? Vector3.Lerp(a, kn, Mathf.SmoothStep(0f, 1f, (p - 0.35f) / 0.3f))
+                         : Vector3.Lerp(kn, st, Mathf.SmoothStep(0f, 1f, (p - 0.65f) / 0.35f));
+            }
         }
 
         void ApplyMuscles()
@@ -592,7 +649,7 @@ namespace Arena
                 standT -= dt;
                 float p = 1f - Mathf.Clamp01(standT / ActiveRagdollRules.StandUpSeconds);
                 SetAnchorStrength(Mathf.Lerp(0.35f, 1f, Mathf.SmoothStep(0f, 1f, p)));
-                float drop = KneelDrop * k * (1f - GetUpBlend(p));
+                float drop = GetUpDrop(p) * k;
                 anchor.MovePosition(new Vector3(anchor.position.x, groundY - drop, anchor.position.z));
             }
             else if (mode == Mode.Stand)
@@ -601,6 +658,7 @@ namespace Arena
                 float want = GrabbedOrStuck ? ActiveRagdollRules.StuckStandStrength : 1f;
                 if (!Mathf.Approximately(want, anchorStrength)) SetAnchorStrength(want);
             }
+            if (mode == Mode.Stand) UpdateLook(Showcase ? ShowcaseLook + Vector3.up * 1.5f : pl ? pl.HeadPosition : (Vector3?)null, dt);
             BuildPose(speed01);
             ApplyMuscles();
         }
@@ -684,7 +742,9 @@ namespace Arena
             if (move.sqrMagnitude > 1e-6f)
             {
                 if (State.Elite == EliteKind.Furioso) move *= EliteRules.FuriousSpeed;   // elite furioso anda mais rápido
-                anchor.MovePosition(ArenaUtil.ClampToArena(anchor.position + move * dt));
+                var np = ArenaUtil.ClampToArena(anchor.position + move * dt);
+                np.y = baseY + Bob(Mathf.Clamp01(speed / 1.6f));
+                anchor.MovePosition(np);
                 phase += dt * (4f + 3.5f * Mathf.Min(speed, 2f));   // passos mais rápidos quanto mais rápido anda
             }
             // Guarda: a arma do jogador vem rápida perto do corpo.
@@ -1071,7 +1131,9 @@ namespace Arena
             gaitF = lm.z; gaitS = lm.x;
             if (speed > 1e-3f)
             {
-                anchor.MovePosition(ArenaUtil.ClampToArena(anchor.position + move * dt));
+                var np = ArenaUtil.ClampToArena(anchor.position + move * dt);
+                np.y = baseY + Bob(Mathf.Clamp01(speed / 1.6f));
+                anchor.MovePosition(np);
                 phase += dt * (4f + 3.5f * Mathf.Min(speed, 2f));
             }
             return speed > 0.05f ? Mathf.Clamp01(0.35f + speed / 1.6f) : 0f;
@@ -1081,7 +1143,7 @@ namespace Arena
         {
             var p = bones[RagBone.Bacia].Rb.position;
             groundY = baseY;
-            anchor.position = ArenaUtil.ClampToArena(new Vector3(p.x, groundY - KneelDrop * k, p.z));
+            anchor.position = ArenaUtil.ClampToArena(new Vector3(p.x, groundY - AllFoursDrop * k, p.z));
             var pl = Player;
             if (pl) { var to = pl.FeetPosition - anchor.position; to.y = 0f; if (to.sqrMagnitude > 1e-4f) anchor.rotation = Quaternion.LookRotation(to); }   // levanta já virado para você
             mode = Mode.Stand; standT = ActiveRagdollRules.StandUpSeconds; attackCd = 1f;

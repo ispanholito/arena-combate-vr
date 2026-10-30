@@ -16,11 +16,11 @@ namespace Arena
             base.BuildVisual();
             // Troca a clava por um arco (o braço continua sendo o `arm`, para o brilho de aviso).
             var old = new System.Collections.Generic.List<GameObject>();
-            foreach (Transform c in arm) old.Add(c.gameObject);
+            foreach (Transform c in arm) if (c.name != ArmModelName) old.Add(c.gameObject);
             foreach (var go in old) DestroyImmediate(go);   // já: os renderers do inimigo são lidos logo depois
             bow = new GameObject("Arco").transform;
             bow.SetParent(arm, false);
-            bow.localPosition = new Vector3(0, 0.45f, 0);
+            bow.localPosition = new Vector3(0, 0.45f + HandY * 0.4f, 0);
             clubMat = ArenaUtil.Lit(new Color(0.45f, 0.3f, 0.15f));
             for (int i = -2; i <= 2; i++)   // arco curvo em 5 segmentos
             {

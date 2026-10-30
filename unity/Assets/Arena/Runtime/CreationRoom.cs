@@ -42,7 +42,7 @@ namespace Arena
             root = new GameObject("SalaDeCriacao").transform;
             // O Treino coloca o boneco no centro: aqui ele sai.
             foreach (var e in ArenaEnemy.All.ToArray()) if (e is TrainingDummy) Destroy(e.gameObject);
-            Label(FallSpot, "QUEDA E LEVANTAR", "cai sozinho a cada 4 s");
+            Label(FallSpot, "QUEDA E LEVANTAR", "cai sozinho, levanta e fica 2,5 s de pé");
             Label(WalkSpot, "ANDAR", "frente, lado, trás e correndo");
             Label(HelmetSpot, "CAPACETES", "goblin · esqueleto · orc");
             Label(KingSpot, "REI GOBLIN", "chefe da demo (imune)");
@@ -73,7 +73,9 @@ namespace Arena
 
             // Queda e levantar
             fallT -= dt;
-            if (faller && faller.Standing && fallT <= 0f) { faller.ForceKnockDown(); fallT = 4f; }
+            // Conta o tempo DE PÉ: fica 2,5 s em pé (dá para ver o fim do levantar) e cai de novo.
+            if (faller && !faller.Standing) fallT = 2.5f;
+            else if (faller && fallT <= 0f) faller.ForceKnockDown();
 
             // Andar: ciclo de 12 s olhando para o centro (frente, direita, trás, esquerda) + corrida ida e volta.
             if (walker)

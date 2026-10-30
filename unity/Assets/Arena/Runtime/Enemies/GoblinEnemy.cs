@@ -143,6 +143,60 @@ namespace Arena
             arm.localPosition = new Vector3(0.28f, 0.85f, 0f);
             clubMat = ArenaUtil.Lit(clubColor);
             ArenaUtil.Prim(PrimitiveType.Cylinder, arm, new Vector3(0, 0.45f, 0), new Vector3(0.14f, 0.4f, 0.14f), clubMat);
+            if (Def.Kind == EnemyKind.Goblin || Def.Kind == EnemyKind.Arqueiro || Def.Kind == EnemyKind.Xama) DressGoblinModel();
+        }
+
+        // ---------- Modelo do goblin físico (gerado por IA) também nos goblins simples (2026-10-30, pedido do Pablo) ----------
+        // Goblin comum, arqueiro e xamã usam as mesmas malhas do goblin físico (Resources/Models/Goblin), montadas na pose
+        // de repouso: corpo parado em "Modelo" e o braço direito preso ao `arm` (o mesmo que levanta a clava). As formas
+        // simples continuam lá (hitbox da cabeça, brilho), só invisíveis. A clava fica mais curta e sai da mão.
+        public const string ArmModelName = "BracoModelo";
+        protected bool Dressed { get; private set; }
+        // Altura da mão no `arm` com o modelo (a arma começa aqui). Sem modelo = 0 (a clava sai do ombro, como antes).
+        protected float HandY => Dressed ? 0.42f : 0f;
+        static Material goblinModelMat;
+        const float ModelScale = 0.93f;   // o goblin simples é um pouco menor que o físico
+        static readonly RagBone[] BodyPieces = { RagBone.Bacia, RagBone.Tronco, RagBone.Cabeca, RagBone.BracoE, RagBone.AntebracoE, RagBone.CoxaE, RagBone.CanelaE, RagBone.CoxaD, RagBone.CanelaD };
+        static readonly RagBone[] ArmPieces = { RagBone.BracoD, RagBone.AntebracoD };
+
+        void DressGoblinModel()
+        {
+            if (!goblinModelMat)
+            {
+                var tex = Resources.Load<Texture2D>("Models/Goblin/Goblin_cor");
+                if (!tex) return;
+                goblinModelMat = new Material(Shader.Find("Standard")) { mainTexture = tex, color = Color.white };
+                goblinModelMat.SetFloat("_Glossiness", 0.12f);
+            }
+            if (!Resources.Load<Mesh>("Models/Goblin/Goblin_" + RagBone.Tronco)) return;
+            foreach (var r in model.GetComponentsInChildren<Renderer>()) if (!r.transform.IsChildOf(arm)) r.enabled = false;
+            var body = new GameObject("CorpoModelo").transform;
+            body.SetParent(model, false);
+            body.localScale = Vector3.one * ModelScale;
+            foreach (var id in BodyPieces) AddPiece(body, id);
+            // Braço direito: no `arm`, de cabeça para baixo (no `arm` o "para cima" é para onde a clava aponta) e com o
+            // ombro do modelo no pivô do `arm`.
+            var armHolder = new GameObject(ArmModelName).transform;
+            armHolder.SetParent(arm, false);
+            armHolder.localRotation = Quaternion.Euler(180f, 0f, 0f);
+            armHolder.localScale = Vector3.one * ModelScale;
+            var shoulder = new Vector3(0.23f, 0.93f, 0f) * ModelScale;
+            armHolder.localPosition = new Vector3(-shoulder.x, shoulder.y, 0f);
+            foreach (var id in ArmPieces) AddPiece(armHolder, id);
+            // Clava mais curta saindo da mão (mesmo alcance de antes: a ponta continua em ~0,88).
+            foreach (Transform c in arm)
+                if (c != armHolder) { c.localPosition = new Vector3(0f, 0.66f, 0f); c.localScale = new Vector3(0.15f, 0.23f, 0.15f); }
+            Dressed = true;
+        }
+
+        static void AddPiece(Transform parent, RagBone id)
+        {
+            var mesh = Resources.Load<Mesh>("Models/Goblin/Goblin_" + id);
+            if (!mesh) return;
+            var v = new GameObject("Modelo_" + id);
+            v.transform.SetParent(parent, false);
+            v.AddComponent<MeshFilter>().sharedMesh = mesh;
+            v.AddComponent<MeshRenderer>().sharedMaterial = goblinModelMat;
         }
 
         protected readonly List<Transform> headParts = new List<Transform>();

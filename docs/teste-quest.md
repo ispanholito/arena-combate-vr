@@ -9,6 +9,12 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000000000000000000000000000000. NOVO — animações do goblin e modelo nos goblins simples (ver na Sala de Criação)
+- [ ] **Levantar**: de quatro com as mãos no chão → ajoelhado → de pé. Convence?
+- [ ] **Pescoço**: a cabeça segue você e olha em volta?
+- [ ] **Andar**: joelhos, braços balançando, corpo subindo e descendo. Melhorou?
+- [ ] **Goblin comum, arqueiro e xamã** com o modelo novo (estação INIMIGOS). O braço com a clava/arco/cajado ficou certo?
+
 ## 000000000000000000000000000000000000. NOVO — Sala de Criação e IA
 - [ ] **Sala de Criação** (portal CRIAÇÃO no santuário, canto sudoeste; também dá para ver no PC): as estações aparecem e funcionam (queda, andar, capacetes, Rei Goblin, inimigos, armas, paleta)?
 - [ ] **Inimigos chegando**: vêm reto de longe e só rondam/cercam quando estão perto?

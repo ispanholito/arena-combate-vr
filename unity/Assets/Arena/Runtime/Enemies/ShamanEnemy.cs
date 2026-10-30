@@ -18,10 +18,12 @@ namespace Arena
         {
             base.BuildVisual();
             var old = new System.Collections.Generic.List<GameObject>();
-            foreach (Transform c in arm) old.Add(c.gameObject);
+            foreach (Transform c in arm) if (c.name != ArmModelName) old.Add(c.gameObject);
             foreach (var go in old) DestroyImmediate(go);
             clubMat = ArenaUtil.Lit(new Color(0.35f, 0.22f, 0.12f));
-            var staff = ArenaUtil.Prim(PrimitiveType.Cylinder, arm, new Vector3(0, 0.45f, 0), new Vector3(0.04f, 0.45f, 0.04f), clubMat).transform;
+            // Com o modelo, o cajado sai da mão (HandY) até a mesma ponta.
+            float h0 = HandY * 0.7f;
+            var staff = ArenaUtil.Prim(PrimitiveType.Cylinder, arm, new Vector3(0, (h0 + 0.9f) * 0.5f, 0), new Vector3(0.04f, (0.9f - h0) * 0.5f, 0.04f), clubMat).transform;
             staffTip = ArenaUtil.Prim(PrimitiveType.Sphere, arm, new Vector3(0, 0.95f, 0), Vector3.one * 0.13f,
                                       ArenaUtil.Lit(new Color(0.85f, 0.85f, 0.75f), new Color(0.3f, 0.6f, 0.2f))).transform;
             // Capuz e penas: dá para reconhecer de longe.
