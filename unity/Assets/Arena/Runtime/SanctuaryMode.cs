@@ -69,6 +69,7 @@ namespace Arena
             Portal(new Vector3(0f, 0, 6.5f), ArenaGame.GameMode.Dungeon, "DUNGEON", "2 andares, baús e o chefe", new Color(0.55f, 0.35f, 1f));
             Portal(new Vector3(4.5f, 0, 6f), ArenaGame.GameMode.Treino, "TREINO", "boneco; nível 10 (não salva)", new Color(0.4f, 0.9f, 0.5f));
             Portal(new Vector3(4.5f, 0, -5.5f), ArenaGame.GameMode.Menu, "TUTORIAL", "aprenda os gestos e poderes", new Color(1f, 0.85f, 0.4f));   // Menu = marcador do tutorial
+            Portal(new Vector3(-5f, 0, -5.5f), ArenaGame.GameMode.Santuario, "CRIAÇÃO", "veja arte e animações em teste", new Color(0.4f, 0.85f, 1f));   // Santuario = marcador da Sala de Criação
             // Ganchos de teia (pedido do Pablo, 2026-10-29): acima de cada portal, nos cantos e no meio das paredes,
             // para atravessar o santuário voando e cair na frente do portal.
             foreach (var g in new[] { new Vector3(-4.5f, 3.6f, 6.6f), new Vector3(0f, 3.6f, 7.1f), new Vector3(4.5f, 3.6f, 6.6f), new Vector3(4.5f, 3.6f, -6.4f),
@@ -214,6 +215,7 @@ namespace Arena
                     {
                         ArenaAudio.Play2D(Sfx.Skill, 0.8f, 0.6f);
                         if (mode == ArenaGame.GameMode.Menu) { game.SaveNow(); game.StartTutorial(); }
+                        else if (mode == ArenaGame.GameMode.Santuario) { game.SaveNow(); game.StartCreationRoom(); }
                         else game.EnterFromSanctuary(mode);
                         return;
                     }

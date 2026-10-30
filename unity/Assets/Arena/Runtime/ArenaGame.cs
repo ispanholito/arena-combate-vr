@@ -142,6 +142,14 @@ namespace Arena
             new GameObject("Tutorial").AddComponent<TutorialMode>();
         }
 
+        // Sala de Criação: vitrine para avaliar arte e animações (roda dentro do Treino, como o tutorial).
+        public void StartCreationRoom(PlayerState character = null)
+        {
+            StartMode(GameMode.Treino, character ?? player.State);
+            if (ragdollSpawner) Destroy(ragdollSpawner.gameObject);
+            new GameObject("SalaDeCriacaoModo").AddComponent<CreationRoom>();
+        }
+
         public void FinishTutorial()
         {
             SaveSystem.Options.tutorialSeen = true;
@@ -200,6 +208,7 @@ namespace Arena
             LeaveDungeon();
             Mode = GameMode.Menu;
             if (TutorialMode.Instance) Destroy(TutorialMode.Instance.gameObject);
+            if (CreationRoom.Instance) Destroy(CreationRoom.Instance.gameObject);
             SetTrainingHall(true);   // fundo do menu inicial com a arte
             spawnWaves = false;
             player.TreeOpen = false;
@@ -344,6 +353,7 @@ namespace Arena
             ClearEnemies();
             LeaveDungeon();
             if (TutorialMode.Instance) Destroy(TutorialMode.Instance.gameObject);
+            if (CreationRoom.Instance) Destroy(CreationRoom.Instance.gameObject);
             Mode = mode;
             SetTrainingHall(mode == GameMode.Treino || mode == GameMode.Arena);
             NavObstacles.SetFromArena(arenaWorld, mode == GameMode.Arena || mode == GameMode.Treino);

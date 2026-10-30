@@ -14,16 +14,22 @@ namespace Arena.Core
     {
         public const float Accel = 9f, Decel = 14f;
 
-        // Ângulo de chegada (graus) sorteado por inimigo: lados alternados, 20° a 45°.
+        // Chegada RETA (Pablo, 2026-10-30: "não precisam vir pelas laterais, podem vir reto"). Só dentro de EngageRange
+        // eles rondam: ziguezague de lado, se afastam e se aproximam (Pace) e, em grupo, cercam (vagas).
+        public const float EngageRange = 3.5f;
+        public static bool Engaged(float distance) => distance <= EngageRange;
+        // Mantidos para compatibilidade: o ângulo de chegada agora é sempre 0 (reto).
         public static float PickApproachAngle(double roll) => (float)((roll < 0.5 ? -1 : 1) * (20 + 25 * Math.Abs(roll * 2 - 1)));
-        // Some conforme chega perto (abaixo de 2,2 m vem de frente).
-        public static float ApproachAngle(float pickedDeg, float distance) => pickedDeg * Clamp01((distance - 2.2f) / 5f);
+        public static float ApproachAngle(float pickedDeg, float distance) => 0f;
+        // Vai e volta (m/s, ao longo da linha até o jogador) enquanto ronda de perto: + = se aproxima.
+        public static float Pace(float time, float seed, float distance) =>
+            distance > 1.4f && distance <= EngageRange ? (float)Math.Sin(time * 1.3f + seed * 1.7f) * 0.6f : 0f;
 
         // Velocidade relativa: corre de longe, anda desconfiado na média distância.
         public static float SpeedFactor(float distance) => distance > 6f ? 1.3f : distance > 3.5f ? 1f : 0.8f;
         // Ziguezague lateral (0..±0,5 da velocidade) na média distância.
         public static float Weave(float time, float seed, float distance) =>
-            distance > 2f && distance < 6.5f ? (float)Math.Sin(time * 2.2f + seed) * 0.5f : 0f;
+            distance > 1.4f && distance <= EngageRange ? (float)Math.Sin(time * 2.2f + seed) * 0.5f : 0f;
 
         // Esquiva de golpe corpo a corpo.
         public const float DodgeSpeed = 4.5f, DodgeSeconds = 0.3f, DodgeCooldown = 2.2f, DodgeTipSpeed = 4f, DodgeRange = 1.4f;

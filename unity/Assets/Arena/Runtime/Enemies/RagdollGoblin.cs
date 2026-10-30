@@ -35,7 +35,7 @@ namespace Arena
         readonly Dictionary<RagBone, Bone> bones = new Dictionary<RagBone, Bone>();
         readonly List<Bone> boneList = new List<Bone>();
         public EnemyState State { get; private set; }
-        float approachDeg = float.NaN;   // ângulo de chegada (EnemyMotion)
+        float paceSeed => (GetInstanceID() & 1023) * 0.01f;   // vai-e-volta próprio de cada um (EnemyMotion.Pace)
         Vector3 smoothMove;
         Rigidbody anchor;
         ConfigurableJoint anchorJoint;
@@ -161,6 +161,7 @@ namespace Arena
             foreach (var b in boneList) totalMass += b.Rb.mass;
             if (State.Def.Kind == EnemyKind.Esqueleto) DressSkeleton();
             else if (State.Def.Kind == EnemyKind.Goblin) DressModel("Goblin");
+            baseY = transform.position.y;
             helmet = Random.value < spec.HelmetChance;
             if (helmet) BuildHelmet();
 
@@ -567,7 +568,7 @@ namespace Arena
             {
                 case Mode.Stand:
                     muscle = flopT > 0f ? ActiveRagdollRules.MuscleHit : ActiveRagdollRules.MuscleNormal;
-                    speed01 = pl && standT <= 0f ? Think(pl, dt) : 0f;   // levantando: não anda nem ataca
+                    speed01 = standT > 0f ? 0f : Showcase ? ShowcaseStep(dt) : pl ? Think(pl, dt) : 0f;   // levantando: não anda nem ataca
                     // Arrastado para longe do ponto da IA (agarrado e puxado, empurrado forte): perde o pé.
                     // (agarrado ou espetado perde o pé mais fácil: dá para levantar do chão)
                     float dragOff = GrabbedOrStuck ? ActiveRagdollRules.DragOffDistanceHeld : ActiveRagdollRules.DragOffDistance;
@@ -639,14 +640,19 @@ namespace Arena
                 if (hasToken && dist > reach - 0.15f)
                 {
                     // Chega em curva e corre de longe (EnemyMotion, 2026-10-29: antes vinha reto).
-                    if (float.IsNaN(approachDeg)) approachDeg = EnemyMotion.PickApproachAngle(Random.value);
-                    move = Quaternion.Euler(0f, EnemyMotion.ApproachAngle(approachDeg, dist), 0f) * dir * 1.3f * EnemyMotion.SpeedFactor(dist);
+                    move = dir * 1.3f * EnemyMotion.SpeedFactor(dist);   // vem reto (2026-10-30)
+                }
+                else if (!hasToken && !EnemyMotion.Engaged(dist))
+                {
+                    move = dir * 1.3f * EnemyMotion.SpeedFactor(dist);   // longe: vem reto; só ronda/cerca quando chega perto
                 }
                 else if (!hasToken)
                 {
                     // Ronda numa VAGA do arco na frente do jogador (CombatSteering.AssignSlots); parado na vaga, balança de lado.
                     circling = true;
-                    var target = pl.FeetPosition + Quaternion.Euler(0f, MySlotAngle(pl), 0f) * pl.HeadForward * CombatSteering.SlotRadius;
+                    // A vaga respira: se afasta e se aproxima (Pace) em volta do raio da ronda.
+                    float radius = CombatSteering.SlotRadius - EnemyMotion.Pace(Time.time, paceSeed, dist) * 0.8f;
+                    var target = pl.FeetPosition + Quaternion.Euler(0f, MySlotAngle(pl), 0f) * pl.HeadForward * radius;
                     var toSlot = target - anchor.position; toSlot.y = 0f;
                     move = Vector3.ClampMagnitude(toSlot * 1.5f, ActiveRagdollRules.CircleSpeed * 1.6f);
                     strafeT -= dt;
@@ -1045,12 +1051,36 @@ namespace Arena
             ArenaFx.FloatText("CAIU!", Center + Vector3.up * 0.5f, new Color(1f, 0.85f, 0.4f), 0.9f);
         }
 
-        float groundY;
+        float groundY, baseY;   // baseY = chão onde nasceu (o ponto da IA desce enquanto levanta; não pode acumular)
+
+        // ---------- Vitrine (Sala de Criação): sem IA; anda com a velocidade dada e olha para um ponto ----------
+        public bool Showcase;
+        public Vector3 ShowcaseVelocity, ShowcaseLook;
+        public bool Standing => mode == Mode.Stand && standT <= 0f;
+        public void ForceKnockDown() => KnockDown();
+        public void ForceHelmet() { if (!helmet) { helmet = true; BuildHelmet(); } }
+
+        float ShowcaseStep(float dt)
+        {
+            var face = ShowcaseLook - anchor.position; face.y = 0f;
+            if (face.sqrMagnitude > 1e-4f) anchor.MoveRotation(Quaternion.Slerp(anchor.rotation, Quaternion.LookRotation(face.normalized), dt * 5f));
+            smoothMove = Vector3.MoveTowards(smoothMove, ShowcaseVelocity, EnemyMotion.Accel * dt);
+            var move = smoothMove;
+            float speed = move.magnitude;
+            var lm = Quaternion.Inverse(anchor.rotation) * move;
+            gaitF = lm.z; gaitS = lm.x;
+            if (speed > 1e-3f)
+            {
+                anchor.MovePosition(ArenaUtil.ClampToArena(anchor.position + move * dt));
+                phase += dt * (4f + 3.5f * Mathf.Min(speed, 2f));
+            }
+            return speed > 0.05f ? Mathf.Clamp01(0.35f + speed / 1.6f) : 0f;
+        }
 
         void StandUp()
         {
             var p = bones[RagBone.Bacia].Rb.position;
-            groundY = transform.position.y;
+            groundY = baseY;
             anchor.position = ArenaUtil.ClampToArena(new Vector3(p.x, groundY - KneelDrop * k, p.z));
             var pl = Player;
             if (pl) { var to = pl.FeetPosition - anchor.position; to.y = 0f; if (to.sqrMagnitude > 1e-4f) anchor.rotation = Quaternion.LookRotation(to); }   // levanta já virado para você

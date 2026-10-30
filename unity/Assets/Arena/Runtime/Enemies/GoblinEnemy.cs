@@ -317,7 +317,7 @@ namespace Arena
                         want = toSpot.magnitude > 0.35f ? toSpot.normalized * Def.MoveSpeed * 0.9f : Vector3.zero;
                         if (d < 0.9f * k) want -= dir;
                     }
-                    else if (d < 2.2f * k) want += side;
+                    else if (EnemyMotion.Engaged(d / k)) want += side + dir * EnemyMotion.Pace(Time.time, weaveSeed, d / k) * Def.MoveSpeed;   // de perto: de lado e vai-e-volta
                     // Sem ficha de ataque: fica rondando a ~2 m, esperando a vez.
                     if (TokensFull && d < 2f * k) want = -dir * Def.MoveSpeed * 0.5f + side;
                     Steer(want, dt);

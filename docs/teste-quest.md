@@ -9,6 +9,10 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000000000000000000000000000000000. NOVO — Sala de Criação e IA
+- [ ] **Sala de Criação** (portal CRIAÇÃO no santuário, canto sudoeste; também dá para ver no PC): as estações aparecem e funcionam (queda, andar, capacetes, Rei Goblin, inimigos, armas, paleta)?
+- [ ] **Inimigos chegando**: vêm reto de longe e só rondam/cercam quando estão perto?
+
 ## 00000000000000000000000000000000000. NOVO — polimento da demo
 - [ ] **Teletransporte** (pausa → Locomoção): analógico para frente mostra o arco; soltar teleporta. Confortável? O arco sai do controle certo?
 - [ ] **Baú**: põe a mão embaixo da frente da tampa e levanta — abre?

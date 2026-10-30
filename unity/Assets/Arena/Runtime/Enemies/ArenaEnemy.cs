@@ -12,6 +12,7 @@ namespace Arena
         public EnemyState State { get; private set; }
         public EnemyDef Def => State.Def;
         public bool Dead => State == null || State.Dead;
+        public bool Showcase;      // Sala de Criação: parado, sem IA (só para olhar)
         public float SpawnGrace;   // segundos sem levar dano logo ao nascer (filhos do slime)
 
         protected ArenaPlayer Player => ArenaGame.Instance ? ArenaGame.Instance.Player : null;
@@ -378,7 +379,7 @@ namespace Arena
             knock *= Mathf.Exp(-4f * dt);
             if (!Impaled) transform.position = ArenaUtil.ClampToArena(transform.position + knock * dt);
             if (Impaled) return;   // espetado na espada: quem move é a arma, e ele não ataca
-            if (Player == null || State.Frozen > 0f) return;
+            if (Player == null || State.Frozen > 0f || Showcase) return;
             var to = (Player.FeetPosition - transform.position).Flat();
             Think(dt, to, to.magnitude);
         }
