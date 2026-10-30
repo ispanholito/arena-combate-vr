@@ -273,7 +273,9 @@ namespace Arena
             if (weapon.HeatPerHit > 0f && !Dead) State.Status.AddHeat(weapon.HeatPerHit);   // tocha
             if (weapon.Funny) WeaponModels.FunnyHit(weapon, Center);
             // Nocaute: pancada forte na cabeça atordoa.
-            if (!Dead && DamageTypes.Knocksout(Def.Kind, type, head, tipSpeed))
+            // (2026-10-30) só arma de pancada, e com chance: 85% nos pequenos, 65% nos grandes (HeadHitRules).
+            if (!Dead && weapon.Blunt && DamageTypes.Knocksout(Def.Kind, type, head, tipSpeed)
+                && Random.value < (Def.Kind == EnemyKind.Orc ? HeadHitRules.BluntStunChanceBig : HeadHitRules.BluntKnockChanceSmall))
             {
                 State.ApplyStun(DamageTypes.KnockoutSeconds);
                 ArenaFx.FloatText("NOCAUTE!", Center + Vector3.up * (0.9f + bodyTop * 0.3f), new Color(1f, 0.85f, 0.4f), 1.2f);

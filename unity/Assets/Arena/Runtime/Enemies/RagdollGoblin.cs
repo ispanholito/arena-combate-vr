@@ -49,6 +49,8 @@ namespace Arena
 
         enum Mode { Stand, Down, Dead }
         Mode mode = Mode.Stand;
+        Vector3 faceLocal = Vector3.forward;
+        float footT;   // logo depois de um golpe que NÃO derruba: ser empurrado não faz perder o pé
         float muscle = 1f, flopT, downT, standT, deadT, hitCd, phase, attackT = -1f, attackCd = 1.5f, bleedAcc;
         enum Attack { None, Windup, Strike, Recover }
         Attack attack;
@@ -132,6 +134,7 @@ namespace Arena
             AddBox(RagBone.Bacia, null, new Vector3(0, 0.55f, 0), new Vector3(0.30f, 0.16f, 0.18f), 6f, cloth, Vector3.zero);
             AddBox(RagBone.Tronco, RagBone.Bacia, new Vector3(0, 0.80f, 0), new Vector3(0.34f, 0.32f, 0.20f), 8f, cloth, new Vector3(0, 0.63f, 0));
             AddSphere(RagBone.Cabeca, RagBone.Tronco, new Vector3(0, 1.13f, 0), 0.19f, 3f, new Vector3(0, 0.97f, 0));
+            faceLocal = Quaternion.Inverse(bones[RagBone.Cabeca].Rb.rotation) * transform.forward;   // para onde a cara olha (regiões da cabeça)
             foreach (int s in new[] { -1, 1 })
             {
                 bool right = s > 0;
@@ -709,7 +712,7 @@ namespace Arena
         {
             if (bones.Count == 0) return;
             float dt = Time.fixedDeltaTime;
-            hitCd -= dt; flopT -= dt;
+            hitCd -= dt; flopT -= dt; footT -= dt;
             var pl = Player;
             if (mode != Mode.Dead)
             {
@@ -732,7 +735,8 @@ namespace Arena
                     float dragOff = GrabbedOrStuck ? ActiveRagdollRules.DragOffDistanceHeld : ActiveRagdollRules.DragOffDistance;
                     // Levantando (standT > 0) a bacia ainda está no chão, longe do ponto da IA: não conta como "arrastado".
                     // Antes contava, e ele caía de novo no mesmo instante em que levantava (nunca mais ficava de pé).
-                    if (standT <= 0f && (bones[RagBone.Bacia].Rb.position - anchor.transform.TransformPoint(PelvisOffset)).magnitude > dragOff) KnockDown();
+                    // Golpe que não derruba (ex.: espada na cabeça): o tranco não vale como "arrastado" (antes caíam sempre).
+                    if (standT <= 0f && (footT <= 0f || GrabbedOrStuck) && (bones[RagBone.Bacia].Rb.position - anchor.transform.TransformPoint(PelvisOffset)).magnitude > dragOff) KnockDown();
                     break;
                 case Mode.Down:
                     muscle = ActiveRagdollRules.MuscleDown;
@@ -1117,25 +1121,84 @@ namespace Arena
             float edge = Geometry.EdgeAlignment(bladeDir.ToN(), vel.ToN());
             // Desmembrar; golpe forte no braço da clava desarma (B&S: mão atingida solta a arma)
             bool canSever = !spec.SeverNeedsHeavy || def.Weight > 5f;   // orc: só arma pesada arranca membro
-            if (canSever && !(helmet && id == RagBone.Cabeca) && ActiveRagdollRules.Severs(id, speed / spec.SeverMultiplier, edge, def.Blunt)) { Sever(bone, vel); }   // capacete: a cabeça não sai
-            else if (Armed && ActiveRagdollRules.Disarms(id, speed / spec.DisarmMultiplier)) Disarm(vel);
-            // Tipo de dano × material (maça no osso, machado/estocada na armadura) — igual aos inimigos antigos.
             var dtype = DamageTypes.Classify(def.Kind, edge, align);
+            // Cabeça (e o alto do tronco, no pescoço): regra por região — HeadHitRules.
+            bool headHit = id == RagBone.Cabeca || (id == RagBone.Tronco && NearNeck(contact));
+            var zone = headHit ? HeadZoneAt(contact) : HeadZone.Cranio;
+            var headOut = HeadOutcome.Nada;
+            if (headHit)
+            {
+                bool decap = canSever && spec.HeadKills && DismemberRules.Decapitates(Kind, dtype, true, speed / spec.SeverMultiplier, edge);
+                if (!spec.HeadKills) decap = canSever && !def.Blunt && edge >= DismemberRules.DecapMinEdge && speed / spec.SeverMultiplier >= DismemberRules.DecapMinSpeed;
+                headOut = HeadHitRules.Resolve(zone, def.Blunt, helmet && zone != HeadZone.Pescoco, Kind == EnemyKind.Orc, spec.Reassembles,
+                                               decap, speed, edge, Random.value);
+            }
+            else if (canSever && ActiveRagdollRules.Severs(id, speed / spec.SeverMultiplier, edge, def.Blunt)) { Sever(bone, vel); }
+            if (!headHit && Armed && !bone.Severed && ActiveRagdollRules.Disarms(id, speed / spec.DisarmMultiplier)) Disarm(vel);
+            // Tipo de dano × material (maça no osso, machado/estocada na armadura) — igual aos inimigos antigos.
+            float zoneMul = headHit ? HeadHitRules.DamageMultiplier(zone, def.Blunt, helmet && zone != HeadZone.Pescoco) : ActiveRagdollRules.DamageMultiplier(id);
             float dmg = Combat.MeleeDamage(speed, def, Combat.SharpEdge(pl.State.Has(SkillIds.FioAfiado), def), true, def.Blunt ? 1f : edge)
-                        * ActiveRagdollRules.DamageMultiplier(id) * DamageTypes.Multiplier(DamageTypes.MaterialOf(Kind), dtype)
-                        * (helmet && id == RagBone.Cabeca ? 0.5f : 1f);   // capacete segura metade
+                        * zoneMul * DamageTypes.Multiplier(DamageTypes.MaterialOf(Kind), dtype);
             dmg *= FlameBlade.DamageMultiplier;   // arma em chamas: +30% e põe calor
             FlameBlade.OnHit(State);
             if (def.HeatPerHit > 0f && mode != Mode.Dead) State.Status.AddHeat(def.HeatPerHit);   // tocha
             if (def.Funny) WeaponModels.FunnyHit(def, contact);
             if (dmg > 0f && mode != Mode.Dead) Damage(dmg, contact);
             flopT = ActiveRagdollRules.HitFlopSeconds;
-            bool bluntHit = def.Blunt || dtype == DamageType.Contusao;   // concussão: arma de pancada, ou bater sem o fio
-            if (mode == Mode.Stand && ActiveRagdollRules.Knocksdown(id, speed / spec.KnockdownMultiplier, def.Weight > 5f, bluntHit, helmet)) KnockDown();
+            bool fell = false;
+            if (headHit && mode != Mode.Dead)
+            {
+                if (zone == HeadZone.Rosto && !def.Blunt) ArenaFx.FloatText("CORTOU!", contact + Vector3.up * 0.25f, new Color(1f, 0.4f, 0.35f), 0.8f);
+                switch (headOut)
+                {
+                    case HeadOutcome.Decapita: Sever(bones[RagBone.Cabeca], vel); break;
+                    case HeadOutcome.Mata:
+                        ArenaFx.FloatText("JUGULAR!", contact + Vector3.up * 0.35f, new Color(1f, 0.2f, 0.2f), 1.2f);
+                        ArenaFx.Burst(contact, new Color(0.7f, 0.08f, 0.12f), 22, 3f, 1.2f);
+                        ArenaInput.Haptic(1f, 0.12f);
+                        State.TakeDamage(State.Hp + 1f, 0f, false); Die();
+                        break;
+                    case HeadOutcome.Atordoa:
+                        State.ApplyStun(HeadHitRules.StunSeconds);
+                        attack = Attack.None; guardT = 0f;
+                        ArenaFx.FloatText("ATORDOADO!", Center + Vector3.up * 0.55f, new Color(1f, 1f, 0.55f), 1f);
+                        break;
+                    case HeadOutcome.Derruba: if (mode == Mode.Stand) { KnockDown(); fell = true; } break;
+                }
+            }
+            else if (!headHit)
+            {
+                // Tronco/bacia: arma pesada ou de pancada derruba (como antes).
+                bool bluntHit = def.Blunt || dtype == DamageType.Contusao;   // concussão: arma de pancada, ou bater sem o fio
+                if (mode == Mode.Stand && ActiveRagdollRules.Knocksdown(id, speed / spec.KnockdownMultiplier, def.Weight > 5f, bluntHit, false)) { KnockDown(); fell = true; }
+            }
+            if (!fell) footT = 0.7f;
             ArenaAudio.Play(def.Weight > 5f ? Sfx.HitHeavy : Sfx.Hit, contact, 0.4f + speed / 10f);
         }
 
         bool CanHitCorpse => false;
+
+        // Região da cabeça: altura a partir da junta do pescoço e quanto está para a frente da cara.
+        Vector3 NeckPoint()
+        {
+            var h = bones[RagBone.Cabeca];
+            return h.Rb.transform.TransformPoint(h.AnchorLocal);
+        }
+        HeadZone HeadZoneAt(Vector3 contact)
+        {
+            var h = bones[RagBone.Cabeca];
+            var neck = NeckPoint();
+            var center = h.Rb.worldCenterOfMass;
+            var upv = center - neck;
+            float r = Mathf.Max(0.03f, upv.magnitude);
+            upv /= r;
+            float up01 = Vector3.Dot(contact - neck, upv) / (2f * r);
+            var face = Vector3.ProjectOnPlane(h.Rb.transform.rotation * faceLocal, upv).normalized;
+            float fwd = Vector3.Dot(contact - center, face) / r;
+            return HeadHitRules.Zone(up01, fwd);
+        }
+        // Golpe no alto do tronco colado no pescoço também é pescoço.
+        bool NearNeck(Vector3 contact) => !bones[RagBone.Cabeca].Severed && Vector3.Distance(contact, NeckPoint()) < 0.09f * k;
 
         void Damage(float dmg, Vector3 at)
         {

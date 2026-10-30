@@ -9,6 +9,13 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000000000000000000000000000000000000000000. NOVO — golpe na cabeça por região e arma
+- **Espada/lâmina no crânio**: não derruba mais (só dano). Com capacete: às vezes (30%) "ATORDOADO!".
+- **Lâmina no rosto/boca**: "CORTOU!" e bastante dano, sem derrubar.
+- **Lâmina no pescoço**: corte forte e de fio arranca a cabeça; mais fraco pega a veia ("JUGULAR!") e mata. Esqueleto não tem veia (só decapita); orc não morre pela veia.
+- **Maça/martelo/frigideira na cabeça**: goblin/esqueleto caem em ~85%; orc fica "ATORDOADO!" em ~65%.
+- Golpe que não derruba não faz mais o inimigo cair pelo tranco (antes qualquer golpe na cabeça derrubava).
+
 ## 0000000000000000000000000000000000000000000. NOVO — perna arrancada mata
 - Arranque a perna de um goblin ou orc: ele morre na hora (antes ficava vivo e paralisado no chão). Esqueleto não: a perna volta em 4 s e ele levanta.
 
