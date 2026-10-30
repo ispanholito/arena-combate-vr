@@ -42,4 +42,50 @@ namespace Arena.Core
 
         static float Clamp01(float v) => v < 0f ? 0f : v > 1f ? 1f : v;
     }
+
+    // Ciclo de passo dos inimigos físicos (2026-10-30, roteiro biomecânico de andar/correr mandado pelo Pablo).
+    // O tamanho e o RITMO do passo saem da velocidade, para o pé no chão andar para trás na mesma velocidade em que o
+    // corpo vai para frente (sem escorregar). Um ciclo = 2 passos = 2π de fase.
+    //   Andar: passo médio, joelho de apoio quase reto, o da perna no ar dobra ~55°, cotovelos levemente dobrados.
+    //   Correr (Run → 1): passo maior até o limite da coxa, calcanhar sobe (joelho no ar ~105°), cotovelos ~85°,
+    //   tronco inclina mais, a bacia afunda no apoio médio (não entre os passos, como no andar).
+    public static class GaitRules
+    {
+        public const float LegLength = 0.46f;        // quadril → pé do goblin (× escala)
+        public const float MaxThighDeg = 42f;        // amplitude máxima da coxa (para frente e para trás)
+        public const float MinSpeed = 0.08f;
+
+        public static float Run(float speed) => Clamp01((speed - 1.3f) / 1.1f);
+        // Passo desejado (m): cresce com a velocidade; limitado pelo que a coxa alcança.
+        public static float StepLength(float speed, float scale)
+        {
+            float want = (0.24f + 0.3f * speed) * scale;
+            float max = 2f * LegLength * scale * (float)Math.Sin(MaxThighDeg * Math.PI / 180.0);
+            return Math.Min(want, max);
+        }
+        // Velocidade da fase (rad/s): um passo (meio ciclo) a cada StepLength andado.
+        public static float PhaseRate(float speed, float scale) =>
+            speed < MinSpeed ? 0f : (float)Math.PI * speed / Math.Max(0.05f, StepLength(speed, scale));
+        // Amplitude da coxa (graus) para o passo dar StepLength.
+        public static float ThighAmplitudeDeg(float speed, float scale)
+        {
+            if (speed < MinSpeed) return 0f;
+            double half = StepLength(speed, scale) * 0.5 / (LegLength * scale);
+            return (float)(Math.Asin(Math.Min(0.95, half)) * 180.0 / Math.PI);
+        }
+        public static float SwingKneeDeg(float speed) => 50f + 55f * Run(speed);        // perna no ar
+        public static float StanceKneeDeg(float speed) => 6f + 12f * Run(speed);        // perna de apoio (absorve)
+        public static float ElbowDeg(float speed) => 25f + 60f * Run(speed);            // cotovelos
+        public static float TorsoLeanDeg(float speed) => Math.Min(24f, 4f + 6f * speed + 6f * Run(speed));
+        // Altura da bacia (m, negativo = desce) na fase: andar = mais baixa entre os passos; correr = no apoio médio.
+        public static float PelvisBob(float phase, float speed, float scale)
+        {
+            if (speed < MinSpeed) return 0f;
+            float c = Math.Abs((float)Math.Cos(phase));
+            float run = Run(speed);
+            float walk = -(1f - c) * 0.03f, runB = -c * 0.05f;
+            return (walk + (runB - walk) * run) * scale * Clamp01(speed / 0.6f);
+        }
+        static float Clamp01(float v) => v < 0f ? 0f : v > 1f ? 1f : v;
+    }
 }

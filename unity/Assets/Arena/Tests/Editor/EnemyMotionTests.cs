@@ -20,6 +20,24 @@ namespace Arena.Core.Tests
         }
 
         [Test]
+        public void GaitMatchesSpeed_NoFootSliding()
+        {
+            foreach (float v in new[] { 0.6f, 1f, 1.6f, 2.4f, 3.2f })
+            {
+                // Pé no chão: a coxa varre 2·A durante meio ciclo (π de fase) → velocidade do pé = velocidade do corpo.
+                float a = GaitRules.ThighAmplitudeDeg(v, 1f) * (float)System.Math.PI / 180f;
+                float footTravel = 2f * GaitRules.LegLength * (float)System.Math.Sin(a);
+                float halfCycleSeconds = (float)System.Math.PI / GaitRules.PhaseRate(v, 1f);
+                Assert.AreEqual(v, footTravel / halfCycleSeconds, v * 0.08f, "v=" + v);
+                Assert.LessOrEqual(GaitRules.ThighAmplitudeDeg(v, 1f), GaitRules.MaxThighDeg + 0.5f);
+            }
+            Assert.Greater(GaitRules.PhaseRate(3f, 1f), GaitRules.PhaseRate(1f, 1f));      // correndo: passos mais rápidos
+            Assert.Greater(GaitRules.SwingKneeDeg(3f), GaitRules.SwingKneeDeg(1f));        // calcanhar sobe correndo
+            Assert.Greater(GaitRules.ElbowDeg(3f), 70f);                                     // cotovelos ~85° correndo
+            Assert.AreEqual(0f, GaitRules.PhaseRate(0f, 1f));
+        }
+
+        [Test]
         public void BiggerHitsFlinchLongerAndHarder()
         {
             Assert.Less(EnemyMotion.FlinchSeconds(0.03f), EnemyMotion.FlinchSeconds(0.2f));

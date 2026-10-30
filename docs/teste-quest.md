@@ -9,6 +9,9 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000000000000000000000000000000000000. NOVO — andar e correr 3ª versão (Sala de Criação → ANDAR)
+- [ ] Andando: passos no ritmo do corpo, sem escorregar? Correndo: calcanhar sobe, cotovelos dobrados, tronco inclinado?
+
 ## 00000000000000000000000000000000000000. NOVO — juntas corrigidas e levantar 3ª versão (Sala de Criação)
 - [ ] **Andar**: agora o joelho dobra de verdade. O goblin dá passos?
 - [ ] **Levantar**: caiu de barriga = mãos no chão → de quatro → meio-ajoelhado → de pé; de costas = rola de lado antes. Convence?

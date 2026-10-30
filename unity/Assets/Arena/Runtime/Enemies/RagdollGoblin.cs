@@ -500,33 +500,39 @@ namespace Arena
             headPitch = Mathf.Lerp(headPitch, Mathf.Clamp(wantPitch, -30f, 30f), dt * 6f);
         }
 
-        float Bob(float speed01) => -0.035f * k * (1f - Mathf.Abs(Mathf.Cos(phase))) * speed01;   // bacia mais baixa entre os passos
-
         void BuildPose(float speed01)
         {
             pose.Clear();
+            // Velocidade real e direção do passo (no espaço do corpo). GaitRules dá amplitude e ritmo sem o pé escorregar.
+            float v = new Vector2(gaitF, gaitS).magnitude * (speed01 > 0f ? 1f : 0f);
+            float dirF = v > 0.01f ? gaitF / v : 0f, dirS = v > 0.01f ? gaitS / v : 0f;
+            float on = Mathf.Clamp01(v / 0.25f);                       // some suave ao parar
+            float run = GaitRules.Run(v);
+            float A = GaitRules.ThighAmplitudeDeg(v, k) * on;
             float s = Mathf.Sin(phase), c = Mathf.Cos(phase);
-            float f = Mathf.Clamp(gaitF / 1.6f, -1f, 1f) * speed01;
-            float side = Mathf.Clamp(gaitS / 1.0f, -1f, 1f) * speed01;
-            float lift = Mathf.Abs(side);
-            float af = Mathf.Abs(f);
-            float run = Mathf.Clamp01((new Vector2(gaitF, gaitS).magnitude - 1.4f) / 1.2f);   // correndo: passos maiores
-            float stride = 30f + 15f * run;
-            float swing = s * stride * f;
-            // Pernas: coxa vai e volta; joelho dobra quando a perna está indo para frente (pé no ar) e um pouco no apoio.
-            pose[RagBone.CoxaE] = new Vector3(swing - Mathf.Max(0f, s) * 25f * lift, 0, side * Mathf.Max(0f, s) * 20f);
-            pose[RagBone.CoxaD] = new Vector3(-swing - Mathf.Max(0f, -s) * 25f * lift, 0, side * Mathf.Max(0f, -s) * 20f);
-            float kneeAmp = 50f + 30f * run;
-            pose[RagBone.CanelaE] = new Vector3(8f + 6f * af + Mathf.Max(0f, -c * Mathf.Sign(f + 1e-4f)) * kneeAmp * af + Mathf.Max(0f, s) * 40f * lift, 0, 0);
-            pose[RagBone.CanelaD] = new Vector3(8f + 6f * af + Mathf.Max(0f, c * Mathf.Sign(f + 1e-4f)) * kneeAmp * af + Mathf.Max(0f, -s) * 40f * lift, 0, 0);
-            // Tronco: inclina com a velocidade, gira contra as pernas e balança de lado; parado respira.
-            float breathe = Mathf.Sin(Time.time * 2.1f) * 2f * (1f - speed01);
-            pose[RagBone.Tronco] = new Vector3(-8f - 10f * af - 8f * run + breathe, -s * 8f * af + Mathf.Sign(headYaw) * Mathf.Clamp(Mathf.Abs(headYaw) - 45f, 0f, 25f), c * 4f * speed01);
-            // Cabeça: olha (UpdateLook) e compensa a inclinação do tronco e o balanço do passo.
-            pose[RagBone.Cabeca] = new Vector3(8f + 10f * af + headPitch - c * 3f * speed01, Mathf.Clamp(headYaw, -55f, 55f), -c * 3f * speed01);
-            // Braço livre: balança oposto à perna do mesmo lado.
-            pose[RagBone.BracoE] = new Vector3(-swing * 0.8f - 10f, 0, -12f - 4f * speed01);
-            pose[RagBone.AntebracoE] = new Vector3(-25f - 15f * af - Mathf.Max(0f, -s) * 20f * af, 0, 0);
+            float back = Mathf.Sign(dirF + 1e-4f);                      // andando de costas: o joelho dobra na outra metade
+            // Coxa (+ = para trás): esquerda e direita em oposição. A parte de lado abre a perna que está no ar.
+            float swingF = s * A * dirF;
+            float sideOpen = A * 0.6f * dirS;
+            pose[RagBone.CoxaE] = new Vector3(swingF, 0, Mathf.Max(0f, -c * back) * sideOpen);
+            pose[RagBone.CoxaD] = new Vector3(-swingF, 0, Mathf.Max(0f, c * back) * sideOpen);
+            // Joelho: perna no ar (coxa indo para frente) dobra muito; na de apoio, pouco (absorve o peso).
+            float kSwing = GaitRules.SwingKneeDeg(v) * on, kStance = GaitRules.StanceKneeDeg(v) * on;
+            float liftE = Mathf.Max(0f, -c * back), liftD = Mathf.Max(0f, c * back);
+            pose[RagBone.CanelaE] = new Vector3(6f + kStance * (1f - liftE) + kSwing * Mathf.Pow(liftE, 0.8f), 0, 0);
+            pose[RagBone.CanelaD] = new Vector3(6f + kStance * (1f - liftD) + kSwing * Mathf.Pow(liftD, 0.8f), 0, 0);
+            // Tronco: inclinado à frente pela velocidade, gira de leve contra as pernas (ombros acompanham os braços),
+            // quase sem balanço lateral; parado respira. Além de 45° de pescoço o tronco ajuda a virar.
+            float lean = GaitRules.TorsoLeanDeg(v) * on * Mathf.Max(0f, dirF);
+            float breathe = Mathf.Sin(Time.time * 2.1f) * 2f * (1f - on);
+            pose[RagBone.Tronco] = new Vector3(-6f - lean + breathe, -s * (5f + 4f * run) * on * dirF + Mathf.Sign(headYaw) * Mathf.Clamp(Mathf.Abs(headYaw) - 45f, 0f, 25f), c * 1.5f * on);
+            // Cabeça estável: compensa a inclinação e o giro do tronco e olha (UpdateLook).
+            pose[RagBone.Cabeca] = new Vector3(8f + lean * 0.8f + headPitch, Mathf.Clamp(headYaw + s * (5f + 4f * run) * on * dirF, -55f, 55f), 0f);
+            // Braço livre: oposto à perna do mesmo lado; cotovelo dobra mais correndo (mão passa do quadril ao peito).
+            float elbow = GaitRules.ElbowDeg(v) * on + 10f * (1f - on);
+            float swing = swingF;   // usado pelo braço da clava
+            pose[RagBone.BracoE] = new Vector3(-swingF * 0.9f - 8f - 6f * run, 0, -10f);
+            pose[RagBone.AntebracoE] = new Vector3(-elbow - Mathf.Max(0f, -s * dirF) * 15f * on, 0, 0);
             // Braço da clava: parado à frente (balança um pouco andando); ataque = pose de aviso e golpe; guarda = clava na frente.
             (System.Numerics.Vector3 arm, System.Numerics.Vector3 fore) p;
             if (guardT > 0f && attack == Attack.None) p = ActiveRagdollPoses.Guard;
@@ -534,7 +540,7 @@ namespace Arena
             {
                 case Attack.Windup: p = ActiveRagdollPoses.Windup(curAttack); break;
                 case Attack.Strike: p = ActiveRagdollPoses.Strike(curAttack); break;
-                default: p = (new System.Numerics.Vector3(-30f + swing * 0.35f, 0f, 8f), new System.Numerics.Vector3(-50f, 0f, 0f)); break;
+                default: p = (new System.Numerics.Vector3(-30f + swing * 0.5f, 0f, 8f), new System.Numerics.Vector3(-50f - 30f * run, 0f, 0f)); break;
             }
             pose[RagBone.BracoD] = p.arm.ToU();
             pose[RagBone.AntebracoD] = p.fore.ToU();
@@ -835,9 +841,9 @@ namespace Arena
             {
                 if (State.Elite == EliteKind.Furioso) move *= EliteRules.FuriousSpeed;   // elite furioso anda mais rápido
                 var np = ArenaUtil.ClampToArena(anchor.position + move * dt);
-                np.y = baseY + Bob(Mathf.Clamp01(speed / 1.6f));
+                np.y = baseY + GaitRules.PelvisBob(phase, speed, k);
                 anchor.MovePosition(np);
-                phase += dt * (4f + 3.5f * Mathf.Min(speed, 2f));   // passos mais rápidos quanto mais rápido anda
+                phase += dt * GaitRules.PhaseRate(speed, k);   // um passo a cada StepLength andado (pé não escorrega)
             }
             // Guarda: a arma do jogador vem rápida perto do corpo.
             guardT -= dt; guardCd -= dt;
@@ -1224,9 +1230,9 @@ namespace Arena
             if (speed > 1e-3f)
             {
                 var np = ArenaUtil.ClampToArena(anchor.position + move * dt);
-                np.y = baseY + Bob(Mathf.Clamp01(speed / 1.6f));
+                np.y = baseY + GaitRules.PelvisBob(phase, speed, k);
                 anchor.MovePosition(np);
-                phase += dt * (4f + 3.5f * Mathf.Min(speed, 2f));
+                phase += dt * GaitRules.PhaseRate(speed, k);
             }
             return speed > 0.05f ? Mathf.Clamp01(0.35f + speed / 1.6f) : 0f;
         }
