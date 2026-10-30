@@ -1284,6 +1284,9 @@ namespace Arena
             ArenaFx.FloatText(name, at + Vector3.up * 0.4f, new Color(1f, 0.25f, 0.25f), 1.2f);
             if (b.Id == RagBone.Cabeca && spec.HeadKills) { State.TakeDamage(State.Hp + 1f, 0f, false); Die(); return; }
             if (ActiveRagdollRules.IsWeaponArm(b.Id)) { canAttack = false; attack = Attack.None; }
+            // Perna arrancada mata (Pablo, 2026-10-30: caído sem perna ficava vivo e paralisado no chão). O esqueleto não:
+            // ela volta a se encaixar em 4 s e ele levanta.
+            if (ActiveRagdollRules.IsLeg(b.Id) && !spec.Reassembles) { State.TakeDamage(State.Hp + 1f, 0f, false); Die(); return; }
             if (ActiveRagdollRules.IsLeg(b.Id)) { canStand = false; KnockDown(); }
             if (spec.Reassembles) { pieces.Add(new Piece { Bone = b, T = RagdollSpec.ReassembleSeconds }); ArenaAudio.Play(Sfx.Bone, at, 1f); }
             State.TakeDamage(spec.Reassembles ? 6f : 15f, 0f, false);

@@ -9,6 +9,9 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000000000000000000000000000000000000. NOVO — perna arrancada mata
+- Arranque a perna de um goblin ou orc: ele morre na hora (antes ficava vivo e paralisado no chão). Esqueleto não: a perna volta em 4 s e ele levanta.
+
 ## 000000000000000000000000000000000000000000. NOVO — armas físicas no chão e espada cravada (Sala de Criação)
 - **ARMAS**: as armas caem e ficam deitadas no chão, sem feixe e sem girar; a sua espada empurra/vira elas. O nome aparece só com a mão perto (≈ 70 cm). Para pegar é preciso abaixar e levar a mão até a arma (grip, gatilho perto ou pinça). Dá para alcançar sem cansar? (Modo sentado ainda pega pelos pés.)
 - **ESPADA CRAVADA**: segure o cabo (grip do controle esquerdo, mão livre fechando, ou gatilho do direito perto do cabo) e puxe para cima ao longo da lâmina: ela tem que SAIR AOS POUCOS (mais presa no começo, vibra e range), não voltar para dentro, e ir para a sua mão quando a ponta sair. Mão longe do cabo (> 30 cm) = escorregou. Volta outra em 3 s.
