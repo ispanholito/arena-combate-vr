@@ -7,17 +7,22 @@ namespace Arena
 {
     public enum RackKind { Nenhuma, Permanente, Temporaria, Loja }
 
-    // Arma caída no chão (loot ou a arma trocada). Gira devagar com um feixe de luz na cor da raridade; perto dela
-    // aparece o nome e os atributos. Grip (VR, com a mão perto) ou E (desktop) pega: troca pela arma da mão,
-    // e a antiga fica no chão.
+    // Arma caída no chão (loot ou a arma trocada), como no Blade & Sorcery (Pablo, 2026-10-30: "não arma de Fortnite
+    // girando e brilhando"): é um OBJETO FÍSICO — cai, quica, rola, a sua arma empurra. Sem feixe e sem girar; a
+    // raridade aparece só na gema. Nome e atributos só com a mão perto (VR) ou chegando perto (desktop).
+    // Pegar: leve a mão até a arma (VR: grip, gatilho perto ou pinça da mão livre) ou E (desktop); a da mão vai para a
+    // 2ª vaga vazia ou fica no chão.
     public sealed class WeaponPickup : MonoBehaviour
     {
         public static readonly List<WeaponPickup> All = new List<WeaponPickup>();
-        public const float VrHandRange = 0.8f, FeetRange = 1.2f, DesktopRange = 2.2f, LabelRange = 4f;
+        // VR: a mão tem que chegar na arma (distância até a linha cabo→ponta), como pegar de verdade. Modo sentado
+        // também conta os pés (sentado não dá para alcançar o chão).
+        public const float VrHandRange = 0.5f, RackHandRange = 0.8f, FeetRange = 1.2f, DesktopRange = 2.2f;
+        public const float LabelHandRange = 0.7f, LabelDesktopRange = 2.5f;
 
         public ItemInstance Item { get; private set; }
         public bool Owned;   // arma do próprio jogador (trocada): se ficar para trás, volta no santuário
-        // Pendurada no suporte de armas do santuário: em pé, parada, sem feixe; o nome só aparece bem perto.
+        // Pendurada no suporte de armas do santuário: em pé, parada; o nome só aparece bem perto.
         public bool OnRack => Rack != RackKind.Nenhuma;
         public RackKind Rack { get; private set; }
         public Vector3 RackPos { get; private set; }
@@ -26,18 +31,29 @@ namespace Arena
         public WeaponPickup PlaceOnRack(Vector3 pos, Quaternion facing, RackKind kind = RackKind.Temporaria)
         {
             Rack = kind; RackPos = pos; RackRot = facing;
-            vel = Vector3.zero;
+            body.isKinematic = true;
+            foreach (var c in GetComponents<Collider>()) c.enabled = false;
             transform.SetPositionAndRotation(pos, facing);
             model.localRotation = Quaternion.Euler(-90f, 0f, 0f);
             model.localPosition = new Vector3(0, Item.Base.Length * 0.5f + 0.1f, 0);
-            if (beam) beam.gameObject.SetActive(false);
-            label.transform.localPosition = new Vector3(0, Item.Base.Length + 0.35f, 0);
             return this;
         }
-        Transform model, beam;
+        Transform model;
         TextMesh label;
-        float t, settle;
-        Vector3 vel;
+        Rigidbody body;
+        static PhysicsMaterial floorMat;
+
+        // Centro e pontas da arma no mundo (o modelo fica centrado no meio do comprimento).
+        Vector3 SegA => model.TransformPoint(new Vector3(0, 0, -Item.Base.Length * 0.5f));
+        Vector3 SegB => model.TransformPoint(new Vector3(0, 0, Item.Base.Length * 0.5f));
+        public Vector3 Center => OnRack ? RackPos + Vector3.up * (Item.Base.Length * 0.5f + 0.1f) : model.position;
+        float DistanceTo(Vector3 p)
+        {
+            if (OnRack) return Vector3.Distance(p, Center);
+            Vector3 a = SegA, ab = SegB - a;
+            float t = Mathf.Clamp01(Vector3.Dot(p - a, ab) / Mathf.Max(1e-6f, ab.sqrMagnitude));
+            return Vector3.Distance(p, a + ab * t);
+        }
 
         public static WeaponPickup Spawn(ItemInstance item, Vector3 pos, Vector3 velocity = default)
         {
@@ -51,24 +67,33 @@ namespace Arena
         void Init(ItemInstance item, Vector3 velocity)
         {
             Item = item;
-            vel = velocity;
             var c = WeaponModels.RarityColor(item.Rarity);
             model = new GameObject("Modelo").transform;
             model.SetParent(transform, false);
             var inner = new GameObject("Arma").transform;
             inner.SetParent(model, false);
             WeaponModels.Build(inner, item.Base, item.Rarity);
-            // Deitada, centrada no meio do comprimento.
-            inner.localRotation = Quaternion.Euler(0, 0, 0);
+            // Centrada no meio do comprimento.
             inner.localPosition = new Vector3(0, 0, -item.Base.Length * 0.5f);
-            model.localRotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
             foreach (var col in model.GetComponentsInChildren<Collider>()) Destroy(col);
 
-            float h = 0.8f + 0.5f * (int)item.Rarity;
-            beam = ArenaUtil.Prim(PrimitiveType.Cylinder, transform, new Vector3(0, h * 0.5f, 0), new Vector3(0.05f, h * 0.5f, 0.05f),
-                                  ArenaUtil.Unlit(new Color(c.r, c.g, c.b, 0.35f))).transform;
-            label = ArenaFx.MakeText(transform, Describe(item), 0.006f, c);
-            label.transform.localPosition = new Vector3(0, 0.75f, 0);
+            // Corpo físico: uma cápsula ao longo da arma (cabeça de maça/machado mais grossa), massa real.
+            transform.rotation = Quaternion.Euler(Random.Range(-10f, 10f), Random.Range(0f, 360f), Random.Range(-30f, 30f));
+            if (!floorMat) floorMat = new PhysicsMaterial("ArmaNoChao") { dynamicFriction = 0.7f, staticFriction = 0.9f, bounciness = 0.1f,
+                                                                          frictionCombine = PhysicsMaterialCombine.Maximum };
+            var cap = gameObject.AddComponent<CapsuleCollider>();
+            cap.direction = 2; cap.height = item.Base.Length; cap.material = floorMat;
+            cap.radius = item.Base.Kind == WeaponKind.Maca || item.Base.Kind == WeaponKind.Machado ? 0.07f : 0.035f;
+            body = gameObject.AddComponent<Rigidbody>();
+            body.mass = WeaponPhysics.Mass(item.Base);
+            body.linearDamping = 0.1f; body.angularDamping = 0.6f;
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            body.linearVelocity = velocity;
+            body.angularVelocity = velocity.sqrMagnitude > 0.01f ? Random.insideUnitSphere * 6f : Vector3.zero;
+
+            // O rótulo não fica preso à arma (ela gira): segue por cima, sempre em pé.
+            label = ArenaFx.MakeText(null, Describe(item), 0.006f, c);
             label.gameObject.SetActive(false);
             All.Add(this);
         }
@@ -87,33 +112,34 @@ namespace Arena
 
         void Update()
         {
-            float dt = Time.deltaTime;
-            t += dt;
-            if (OnRack) { UpdateLabel(1.3f); return; }
-            // Cai até o chão (loot arremessado do inimigo).
-            if (transform.position.y > 0.02f || vel.y > 0f)
+            // Caiu por um buraco no chão (não devia): volta para cima, dentro da área.
+            if (!OnRack && transform.position.y < -1f)
             {
-                vel += Physics.gravity * dt;
-                var p = transform.position + vel * dt;
-                if (p.y <= 0f) { p.y = 0f; vel = Vector3.zero; settle = 0.2f; }
-                transform.position = ArenaUtil.ClampToArena(p);
+                body.linearVelocity = Vector3.zero; body.angularVelocity = Vector3.zero;
+                body.position = ArenaUtil.ClampToArena(new Vector3(transform.position.x, 0.4f, transform.position.z));
             }
-            settle -= dt;
-            model.localPosition = new Vector3(0, 0.25f + Mathf.Sin(t * 2f) * 0.05f, 0);
-            model.Rotate(Vector3.up, 40f * dt, Space.World);
-            UpdateLabel(LabelRange);
+            UpdateLabel();
         }
 
-        void UpdateLabel(float range)
+        void UpdateLabel()
         {
             var cam = Camera.main;
-            if (!cam) return;
-            bool near = (cam.transform.position - transform.position).Flat().magnitude < range;
+            var player = ArenaGame.Instance ? ArenaGame.Instance.Player : null;
+            if (!cam || !player) { label.gameObject.SetActive(false); return; }
+            bool near = player.IsVr
+                ? Mathf.Min(DistanceTo(player.RightHand.position), DistanceTo(player.leftHand.position)) < (OnRack ? RackHandRange : LabelHandRange)
+                : (cam.transform.position - Center).Flat().magnitude < (OnRack ? 1.3f : LabelDesktopRange);
             label.gameObject.SetActive(near);
-            if (near) label.transform.rotation = Quaternion.LookRotation(label.transform.position - cam.transform.position);
+            if (!near) return;
+            label.transform.position = OnRack ? RackPos + Vector3.up * (Item.Base.Length + 0.35f) : Center + Vector3.up * 0.45f;
+            label.transform.rotation = Quaternion.LookRotation(label.transform.position - cam.transform.position);
         }
 
-        void OnDestroy() => All.Remove(this);
+        void OnDestroy()
+        {
+            All.Remove(this);
+            if (label) Destroy(label.gameObject);
+        }
 
         // À venda na banca do mercador: o rótulo mostra o preço.
         public WeaponPickup SetPriceTag(int price)
@@ -136,7 +162,7 @@ namespace Arena
         }
 
         // Pega a arma mais próxima ao alcance. Retorna true se pegou (o grip não arremessa a arma nesse quadro).
-        // handOnly (gatilho perto da arma): só conta a mão, bem perto (não pega sem querer pelos pés no meio da luta).
+        // handOnly (gatilho perto da arma): só conta a mão, bem perto (não pega sem querer no meio da luta).
         public const float TriggerHandRange = 0.45f;
         public static bool TryPickup(ArenaPlayer player, bool handOnly = false)
         {
@@ -148,15 +174,16 @@ namespace Arena
                 float d;
                 if (player.IsVr)
                 {
-                    var center = p.transform.position + Vector3.up * (p.OnRack ? p.Item.Base.Length * 0.5f + 0.1f : 0.25f);
-                    float hand = Vector3.Distance(player.RightHand.position, center);
-                    float feet = (player.FeetPosition - p.transform.position).Flat().magnitude;
-                    if (handOnly) { if (hand > TriggerHandRange) continue; d = hand; }
-                    else { if (hand > VrHandRange && feet > FeetRange) continue; d = Mathf.Min(hand, feet); }
+                    float hand = Mathf.Min(p.DistanceTo(player.RightHand.position), p.DistanceTo(player.leftHand.position));
+                    bool feetOk = SaveSystem.Options.seated && !handOnly;
+                    float feet = feetOk ? (player.FeetPosition - p.Center).Flat().magnitude : float.MaxValue;
+                    float range = handOnly ? TriggerHandRange : p.OnRack ? RackHandRange : VrHandRange;
+                    if (hand > range && feet > FeetRange) continue;
+                    d = Mathf.Min(hand, feet);
                 }
                 else
                 {
-                    var to = (p.transform.position - player.FeetPosition).Flat();
+                    var to = (p.Center - player.FeetPosition).Flat();
                     d = to.magnitude;
                     if (d > DesktopRange) continue;
                 }
@@ -177,22 +204,31 @@ namespace Arena
                 ArenaAudio.Play2D(Sfx.Level, 0.6f, 1.3f);
             }
             // A arma que sai cai onde estava a nova (ou onde a sua caiu, se você estava de mão vazia).
-            var pos = player.Weapon.Held ? best.transform.position : player.Weapon.Visual.position;
+            var pos = player.Weapon.Held ? best.Center : player.Weapon.Visual.position;
             All.Remove(best);
             Destroy(best.gameObject);
             if (best.Rack == RackKind.Permanente) player.State.Stash.Remove(item);
             else if (best.Rack != RackKind.Loja) player.State.LostItems.Remove(item);   // era uma arma esquecida: achou
+            var dropped = GiveToPlayer(player, item, pos);
+            if (dropped && best.OnRack && best.Rack != RackKind.Loja)   // troca na estante: a sua fica pendurada no mesmo gancho
+            {
+                dropped.PlaceOnRack(best.RackPos, best.RackRot, best.Rack);
+                if (best.Rack == RackKind.Permanente) player.State.AddToStash(dropped.Item); else player.State.AddLostItem(dropped.Item);
+            }
+            return true;
+        }
+
+        // Põe a arma na mão do jogador; a antiga vai para a 2ª vaga vazia ou cai em dropAt (devolvida). Usado ao pegar do
+        // chão/estante/loja e ao arrancar uma arma cravada.
+        public static WeaponPickup GiveToPlayer(ArenaPlayer player, ItemInstance item, Vector3 dropAt)
+        {
             var old = player.State.TakeItem(item, out bool toSecond);
             player.EquipActive();   // a nova sempre vai para a mão
+            WeaponPickup dropped = null;
             if (old != null)
             {
-                var dropped = Spawn(old, pos + Vector3.up * 0.05f);
+                dropped = Spawn(old, dropAt + Vector3.up * 0.05f);
                 dropped.Owned = true;
-                if (best.OnRack && best.Rack != RackKind.Loja)   // troca na estante: a sua fica pendurada no mesmo gancho
-                {
-                    dropped.PlaceOnRack(best.RackPos, best.RackRot, best.Rack);
-                    if (best.Rack == RackKind.Permanente) player.State.AddToStash(old); else player.State.AddLostItem(old);
-                }
             }
             ArenaAudio.Play2D(Sfx.Pickup, 0.9f);
             ArenaGame.Instance?.RequestSave();
@@ -201,7 +237,7 @@ namespace Arena
             ArenaGame.Instance?.Message(item.DisplayName
                 + (toSecond ? "\n<size=48>(a antiga foi para a 2ª arma)</size>" : "")
                 + (proficient ? "" : "\n<size=48>(fora da classe: -15% dano)</size>"), 1.6f);
-            return true;
+            return dropped;
         }
     }
 }

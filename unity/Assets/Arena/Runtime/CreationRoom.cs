@@ -12,7 +12,8 @@ namespace Arena
     //   - Capacetes: goblin, esqueleto e orc físicos parados, todos de capacete.
     //   - Rei Goblin: o chefe parado (imune) para ver o visual.
     //   - Inimigos: todos os tipos parados, na versão que o jogo está usando (físicos ou não, conforme a opção).
-    //   - Armas: todas as armas no chão (pegue para ver na mão).
+    //   - Armas: todas as armas no chão (objetos físicos; pegue para ver na mão).
+    //   - Espada cravada: cadáver com a espada no peito; segure o cabo e puxe (ela vai saindo). Volta 3 s depois.
     //   - Paleta: as cores da docs/biblia-de-arte.md.
     // REGRA: todo design novo ganha uma estação aqui.
     public sealed class CreationRoom : MonoBehaviour
@@ -25,6 +26,7 @@ namespace Arena
         static readonly Vector3 HelmetSpot = new Vector3(5f, 0f, 3f);
         static readonly Vector3 KingSpot = new Vector3(6f, 0f, -3f);
         static readonly Vector3 WeaponSpot = new Vector3(-6.5f, 0f, -3f);
+        static readonly Vector3 StuckSpot = new Vector3(-2.6f, 0f, -3.6f);
         static readonly Vector3 LineStart = new Vector3(-4.8f, 0f, -6.5f);
 
         RagdollGoblin faller, walker;
@@ -33,8 +35,9 @@ namespace Arena
         ArenaEnemy king;
         readonly List<ArenaEnemy> line = new List<ArenaEnemy>();
         readonly List<WeaponPickup> weapons = new List<WeaponPickup>();
+        StuckSword stuck;
         Transform root;
-        float fallT = 2f, respawnT, walkT;
+        float fallT = 2f, respawnT, walkT, stuckT;
 
         void Awake()
         {
@@ -47,6 +50,7 @@ namespace Arena
             Label(HelmetSpot, "CAPACETES", "goblin · esqueleto · orc");
             Label(KingSpot, "REI GOBLIN", "chefe da demo (imune)");
             Label(WeaponSpot, "ARMAS", "pegue para ver na mão");
+            Label(StuckSpot, "ESPADA CRAVADA", "segure o cabo e puxe (desktop: segure E)");
             Label(LineStart + new Vector3(4.8f, 0f, 0f), "INIMIGOS", "como aparecem no jogo");
             Palette(new Vector3(-10.5f, 0f, 3.5f));
             SpawnWeapons();
@@ -62,6 +66,7 @@ namespace Arena
             foreach (var g in new[] { faller, walker }) if (g) Destroy(g.gameObject);
             foreach (var g in helmets) if (g) Destroy(g.gameObject);
             foreach (var w in weapons) if (w) Destroy(w.gameObject);
+            if (stuck) Destroy(stuck.gameObject);
         }
 
         void Update()
@@ -70,6 +75,8 @@ namespace Arena
             float dt = Time.deltaTime;
             respawnT -= dt;
             if (respawnT <= 0f) { respawnT = 1.5f; Respawn(); }
+            // Espada cravada: depois de arrancada, outro cadáver com espada aparece em 3 s.
+            if (!stuck || stuck.Freed) { stuckT -= dt; if (stuckT <= 0f) { if (stuck) Destroy(stuck.gameObject); stuck = StuckSword.Spawn(new ItemInstance(WeaponDef.EspadaLonga), StuckSpot, Vector3.forward, root); stuckT = 3f; } }
 
             // Queda e levantar
             fallT -= dt;
