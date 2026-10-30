@@ -31,7 +31,8 @@ namespace Arena.Core
             (float)Math.Round(35f * size), 999f, (int)Math.Round(12f * size), (float)Math.Round(6f * size + 2f), 0f,
             0.35f * size, 0.56f * size, 0.6f * size + 0.3f, 2.4f, size);
 
-        public const float SlimeSplitMinSize = 0.45f, SlimeChildScale = 0.62f;
+        // Divide só UMA vez (Pablo, 2026-10-30: dividir de novo cansava): o slime inteiro vira 2 filhos e eles não dividem.
+        public const float SlimeSplitMinSize = 0.7f, SlimeChildScale = 0.62f;
         public static bool SlimeSplits(float size) => size > SlimeSplitMinSize;
 
         public static readonly EnemyDef Goblin = new EnemyDef(EnemyKind.Goblin, "Goblin", 70f, 100f, 35, 15f, 0.75f, 0.32f, 1.15f, 1.2f, 1.6f);

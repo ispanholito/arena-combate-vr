@@ -161,7 +161,7 @@ namespace Arena.Core.Tests
         public void Slime_SplitsUntilSmall()
         {
             Assert.IsTrue(EnemyDef.SlimeSplits(1f));
-            Assert.IsTrue(EnemyDef.SlimeSplits(0.62f));
+            Assert.IsFalse(EnemyDef.SlimeSplits(0.62f));   // os filhos não dividem de novo
             Assert.IsFalse(EnemyDef.SlimeSplits(0.62f * 0.62f));
         }
 
