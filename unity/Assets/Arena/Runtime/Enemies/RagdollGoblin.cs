@@ -410,14 +410,17 @@ namespace Arena
         }
 
         // Limites das juntas (graus): X baixo/alto, Y, Z.
+        // Limites no ângulo da JUNTA, que na Unity tem o sinal oposto ao da pose (Euler local): pose +x = junta −x.
+        // Antes estavam invertidos nos membros assimétricos (2026-10-30): o joelho e o cotovelo só dobravam "para o lado
+        // errado" (travados retos) e a coxa ia só 60° à frente — o goblin deslizava sem passo e não conseguia ajoelhar.
         static (float, float, float, float) Limits(RagBone b) => b switch
         {
             RagBone.Tronco => (-35f, 35f, 35f, 25f),
             RagBone.Cabeca => (-40f, 40f, 60f, 30f),
             RagBone.BracoD or RagBone.BracoE => (-170f, 170f, 70f, 80f),
-            RagBone.AntebracoD or RagBone.AntebracoE => (-145f, 10f, 20f, 10f),
-            RagBone.CoxaD or RagBone.CoxaE => (-95f, 60f, 25f, 35f),
-            _ => (-5f, 140f, 10f, 5f),   // canelas: dobram para trás
+            RagBone.AntebracoD or RagBone.AntebracoE => (-10f, 145f, 20f, 10f),
+            RagBone.CoxaD or RagBone.CoxaE => (-60f, 110f, 25f, 35f),
+            _ => (-140f, 5f, 10f, 5f),   // canelas: dobram para trás
         };
 
         void AddBox(RagBone id, RagBone? parent, Vector3 center, Vector3 size, float mass, Material m, Vector3 joint)
@@ -537,51 +540,140 @@ namespace Arena
             pose[RagBone.AntebracoD] = p.fore.ToU();
             if (!Armed && attack == Attack.Windup) { pose[RagBone.BracoD] = new Vector3(-20f, 0f, 20f); pose[RagBone.AntebracoD] = new Vector3(-120f, 0f, 0f); }   // punho recolhido
             if (!Armed && attack == Attack.Strike) { pose[RagBone.BracoD] = new Vector3(-85f, 0f, -5f); pose[RagBone.AntebracoD] = new Vector3(-5f, 0f, 0f); }    // soco reto
-            if (standT > 0f) GetUpPose(1f - Mathf.Clamp01(standT / ActiveRagdollRules.StandUpSeconds));
+            if (standT > 0f) GetUpPose(1f - Mathf.Clamp01(standT / getUpTotal));
         }
 
-        // ---------- Levantar (2ª versão, 2026-10-30: "levantar usando as mãos, dobrando o joelho") ----------
-        // 1) De quatro: joelhos dobrados no chão, tronco à frente, as DUAS mãos apoiadas na frente empurrando o chão.
-        // 2) Ajoelhado numa perna: pé da frente plantado, mão esquerda apoiada no joelho, a da clava solta.
-        // 3) Empurra e fica de pé. A bacia acompanha: começa bem baixa, sobe um pouco no ajoelhado e depois de vez.
-        static readonly (RagBone, Vector3)[] AllFours =
+        // ---------- Levantar (3ª versão, 2026-10-30, roteiro biomecânico mandado pelo Pablo) ----------
+        // A bacia segue um CAMINHO de poses-chave (altura + orientação no mundo, pelo ponto da IA, que gira junto) e os
+        // músculos fazem a pose de cada etapa. Depende de como caiu:
+        //   De barriga: mãos no chão perto do peito → empurra e sobe o peito → joelhos para baixo do quadril (de quatro)
+        //               → uma perna à frente (meio-ajoelhado) → empurra o pé e fica de pé, com um ajuste de equilíbrio.
+        //   De costas:  dobra os joelhos → ROLA de lado (cabeça, ombros e quadril juntos) → fica de barriga com as mãos
+        //               apoiadas → e segue igual (de quatro → meio-ajoelhado → de pé).
+        // Assimetria: a perna esquerda vai um pouco antes; a mão esquerda é a de apoio no joelho.
+        struct GetUpKey
         {
-            (RagBone.CoxaE, new Vector3(-95f, 0f, 0f)), (RagBone.CanelaE, new Vector3(125f, 0f, 0f)),
-            (RagBone.CoxaD, new Vector3(-95f, 0f, 0f)), (RagBone.CanelaD, new Vector3(125f, 0f, 0f)),
-            (RagBone.Tronco, new Vector3(-35f, 0f, 0f)), (RagBone.Cabeca, new Vector3(30f, 0f, 0f)),
-            (RagBone.BracoE, new Vector3(-70f, 0f, -12f)), (RagBone.AntebracoE, new Vector3(-5f, 0f, 0f)),
-            (RagBone.BracoD, new Vector3(-70f, 0f, 12f)), (RagBone.AntebracoD, new Vector3(-5f, 0f, 0f)),
-        };
-        static readonly (RagBone, Vector3)[] Kneel =
-        {
-            (RagBone.CoxaE, new Vector3(-85f, 0f, 0f)), (RagBone.CanelaE, new Vector3(95f, 0f, 0f)),
-            (RagBone.CoxaD, new Vector3(-10f, 0f, 0f)), (RagBone.CanelaD, new Vector3(115f, 0f, 0f)),
-            (RagBone.Tronco, new Vector3(-28f, 0f, 0f)), (RagBone.Cabeca, new Vector3(20f, 0f, 0f)),
-            (RagBone.BracoE, new Vector3(-35f, 0f, -18f)), (RagBone.AntebracoE, new Vector3(-55f, 0f, 0f)),
-            (RagBone.BracoD, new Vector3(-40f, 0f, 14f)), (RagBone.AntebracoD, new Vector3(-40f, 0f, 0f)),
-        };
-        const float AllFoursDrop = 0.36f, KneelDrop = 0.27f;   // quanto a bacia fica abaixo da altura de pé (× escala)
+            public float T, Height;       // T = 0..1 do tempo; Height = altura da bacia (× escala)
+            public Quaternion Pelvis;     // orientação da bacia no mundo
+            public (RagBone, Vector3)[] Limbs;
+        }
+        GetUpKey[] getUp;
+        float getUpTotal;
+        Vector3 getUpXZ;
 
-        // p: 0..1 do tempo de levantar. 0-0,35 de quatro, 0,35-0,65 ajoelhado, 0,65-1 de pé.
-        static float GetUpDrop(float p)
+        static (RagBone, Vector3)[] L(params (RagBone, Vector3)[] l) => l;
+        static readonly (RagBone, Vector3)[] PoseLyingBack = L(
+            (RagBone.CoxaE, new Vector3(-55f, 0f, 0f)), (RagBone.CanelaE, new Vector3(85f, 0f, 0f)),
+            (RagBone.CoxaD, new Vector3(-45f, 0f, 0f)), (RagBone.CanelaD, new Vector3(75f, 0f, 0f)),
+            (RagBone.Tronco, new Vector3(-10f, 0f, 0f)), (RagBone.Cabeca, new Vector3(-15f, 0f, 0f)),
+            (RagBone.BracoE, new Vector3(-10f, 0f, -20f)), (RagBone.AntebracoE, new Vector3(-30f, 0f, 0f)),
+            (RagBone.BracoD, new Vector3(-90f, 0f, 35f)), (RagBone.AntebracoD, new Vector3(-20f, 0f, 0f)));   // braço direito cruza para rolar
+        static readonly (RagBone, Vector3)[] PoseProneHands = L(
+            (RagBone.CoxaE, new Vector3(0f, 0f, 0f)), (RagBone.CanelaE, new Vector3(10f, 0f, 0f)),
+            (RagBone.CoxaD, new Vector3(0f, 0f, 0f)), (RagBone.CanelaD, new Vector3(5f, 0f, 0f)),
+            (RagBone.Tronco, new Vector3(0f, 0f, 0f)), (RagBone.Cabeca, new Vector3(25f, 0f, 0f)),
+            (RagBone.BracoE, new Vector3(-40f, 0f, -25f)), (RagBone.AntebracoE, new Vector3(-110f, 0f, 0f)),   // mãos no chão perto do peito
+            (RagBone.BracoD, new Vector3(-40f, 0f, 25f)), (RagBone.AntebracoD, new Vector3(-110f, 0f, 0f)));
+        static readonly (RagBone, Vector3)[] PosePushUp = L(
+            (RagBone.CoxaE, new Vector3(-20f, 0f, 0f)), (RagBone.CanelaE, new Vector3(35f, 0f, 0f)),
+            (RagBone.CoxaD, new Vector3(-5f, 0f, 0f)), (RagBone.CanelaD, new Vector3(15f, 0f, 0f)),
+            (RagBone.Tronco, new Vector3(15f, 0f, 0f)), (RagBone.Cabeca, new Vector3(30f, 0f, 0f)),          // coluna estende, cabeça acompanha
+            (RagBone.BracoE, new Vector3(-75f, 0f, -12f)), (RagBone.AntebracoE, new Vector3(-30f, 0f, 0f)),     // cotovelos estendendo
+            (RagBone.BracoD, new Vector3(-75f, 0f, 12f)), (RagBone.AntebracoD, new Vector3(-25f, 0f, 0f)));
+        static readonly (RagBone, Vector3)[] PoseQuadruped = L(
+            (RagBone.CoxaE, new Vector3(-95f, 0f, 0f)), (RagBone.CanelaE, new Vector3(100f, 0f, 0f)),         // joelhos sob o quadril
+            (RagBone.CoxaD, new Vector3(-90f, 0f, 0f)), (RagBone.CanelaD, new Vector3(100f, 0f, 0f)),
+            (RagBone.Tronco, new Vector3(0f, 0f, 0f)), (RagBone.Cabeca, new Vector3(30f, 0f, 0f)),           // coluna neutra, olha à frente das mãos
+            (RagBone.BracoE, new Vector3(-88f, 0f, -8f)), (RagBone.AntebracoE, new Vector3(-8f, 0f, 0f)),      // mãos sob os ombros
+            (RagBone.BracoD, new Vector3(-88f, 0f, 8f)), (RagBone.AntebracoD, new Vector3(-8f, 0f, 0f)));
+        static readonly (RagBone, Vector3)[] PoseHalfKneel = L(
+            (RagBone.CoxaE, new Vector3(-80f, 0f, 0f)), (RagBone.CanelaE, new Vector3(85f, 0f, 0f)),          // pé da frente plantado, joelho a ~90°
+            (RagBone.CoxaD, new Vector3(5f, 0f, 0f)), (RagBone.CanelaD, new Vector3(95f, 0f, 0f)),            // joelho de trás no chão
+            (RagBone.Tronco, new Vector3(-15f, 0f, 0f)), (RagBone.Cabeca, new Vector3(15f, 0f, 0f)),
+            (RagBone.BracoE, new Vector3(-45f, 0f, -15f)), (RagBone.AntebracoE, new Vector3(-55f, 0f, 0f)),    // mão no joelho da frente
+            (RagBone.BracoD, new Vector3(-65f, 0f, 12f)), (RagBone.AntebracoD, new Vector3(-20f, 0f, 0f)));    // a outra ainda perto do chão
+        static readonly (RagBone, Vector3)[] PoseRising = L(
+            (RagBone.CoxaE, new Vector3(-40f, 0f, 0f)), (RagBone.CanelaE, new Vector3(45f, 0f, 0f)),
+            (RagBone.CoxaD, new Vector3(-15f, 0f, 0f)), (RagBone.CanelaD, new Vector3(40f, 0f, 0f)),
+            (RagBone.Tronco, new Vector3(-20f, 0f, 0f)), (RagBone.Cabeca, new Vector3(15f, 0f, 0f)),
+            (RagBone.BracoE, new Vector3(-30f, 0f, -20f)), (RagBone.AntebracoE, new Vector3(-30f, 0f, 0f)),    // braços ajudam no equilíbrio
+            (RagBone.BracoD, new Vector3(-40f, 0f, 20f)), (RagBone.AntebracoD, new Vector3(-40f, 0f, 0f)));
+
+        void BuildGetUp()
         {
-            if (p < 0.35f) return Mathf.Lerp(AllFoursDrop, AllFoursDrop * 0.95f, p / 0.35f);
-            if (p < 0.65f) return Mathf.Lerp(AllFoursDrop * 0.95f, KneelDrop, Mathf.SmoothStep(0f, 1f, (p - 0.35f) / 0.3f));
-            return Mathf.Lerp(KneelDrop, 0f, Mathf.SmoothStep(0f, 1f, (p - 0.65f) / 0.35f));
+            var pel = bones[RagBone.Bacia].Rb;
+            var spine = pel.rotation * Vector3.up;                     // de onde a cabeça aponta
+            var F = new Vector3(spine.x, 0f, spine.z);
+            if (F.sqrMagnitude < 0.05f) F = pel.rotation * Vector3.forward; F.y = 0f;
+            F = F.sqrMagnitude > 1e-4f ? F.normalized : Vector3.forward;
+            bool onBack = Vector3.Dot(pel.rotation * Vector3.forward, Vector3.up) > 0f;   // peito para cima = de costas
+            var right = Vector3.Cross(Vector3.up, F);
+            var prone = Quaternion.LookRotation(Vector3.down, F);       // peito para baixo, cabeça para F
+            var up = Quaternion.LookRotation(F, Vector3.up);
+            var keys = new List<GetUpKey>();
+            float t0 = 0f;
+            if (onBack)
+            {
+                var back = Quaternion.LookRotation(Vector3.up, F);     // peito para cima
+                var side = Quaternion.LookRotation(-right, F);          // de lado (rola para a esquerda)
+                keys.Add(new GetUpKey { T = 0.00f, Height = 0.13f, Pelvis = back, Limbs = PoseLyingBack });
+                keys.Add(new GetUpKey { T = 0.12f, Height = 0.14f, Pelvis = back, Limbs = PoseLyingBack });   // joelhos dobram, pés vêm
+                keys.Add(new GetUpKey { T = 0.24f, Height = 0.17f, Pelvis = side, Limbs = PoseLyingBack });   // rola de lado
+                t0 = 0.34f;
+            }
+            float S(float x) => t0 + (1f - t0) * x;                    // etapas de barriga no tempo que sobra
+            keys.Add(new GetUpKey { T = S(0.00f), Height = 0.13f, Pelvis = prone, Limbs = PoseProneHands });
+            keys.Add(new GetUpKey { T = S(0.20f), Height = 0.20f, Pelvis = Quaternion.Slerp(prone, up, 0.25f), Limbs = PosePushUp });
+            keys.Add(new GetUpKey { T = S(0.42f), Height = 0.30f, Pelvis = Quaternion.Slerp(prone, up, 0.12f), Limbs = PoseQuadruped });
+            keys.Add(new GetUpKey { T = S(0.52f), Height = 0.30f, Pelvis = Quaternion.Slerp(prone, up, 0.12f), Limbs = PoseQuadruped });   // segura de quatro
+            keys.Add(new GetUpKey { T = S(0.70f), Height = 0.33f, Pelvis = Quaternion.Slerp(prone, up, 0.7f), Limbs = PoseHalfKneel });
+            keys.Add(new GetUpKey { T = S(0.86f), Height = 0.46f, Pelvis = Quaternion.Slerp(prone, up, 0.88f), Limbs = PoseRising });
+            keys.Add(new GetUpKey { T = S(0.95f), Height = 0.56f, Pelvis = Quaternion.Slerp(up, Quaternion.LookRotation(F + right * 0.1f, Vector3.up), 0.5f), Limbs = null });   // ajuste de equilíbrio
+            keys.Add(new GetUpKey { T = 1.00f, Height = 0.55f, Pelvis = up, Limbs = null });
+            getUp = keys.ToArray();
+            getUpTotal = onBack ? 2.7f : 2.0f;
+            getUpXZ = new Vector3(pel.position.x, 0f, pel.position.z);
+        }
+
+        // Pose e caminho da bacia no instante p (0..1).
+        void SampleGetUp(float p, out float height, out Quaternion pelvis, out (RagBone, Vector3)[] a, out (RagBone, Vector3)[] b, out float w)
+        {
+            int i = 0;
+            while (i < getUp.Length - 2 && p > getUp[i + 1].T) i++;
+            var k0 = getUp[i]; var k1 = getUp[i + 1];
+            w = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(k0.T, k1.T, p));
+            height = Mathf.Lerp(k0.Height, k1.Height, w);
+            pelvis = Quaternion.Slerp(k0.Pelvis, k1.Pelvis, w);
+            a = k0.Limbs; b = k1.Limbs;
         }
 
         void GetUpPose(float p)
         {
+            if (getUp == null) return;
+            SampleGetUp(p, out _, out _, out var a, out var b, out var w);
             var stand = new Dictionary<RagBone, Vector3>(pose);
-            for (int i = 0; i < AllFours.Length; i++)
+            foreach (var id in new[] { RagBone.CoxaE, RagBone.CanelaE, RagBone.CoxaD, RagBone.CanelaD, RagBone.Tronco, RagBone.Cabeca, RagBone.BracoE, RagBone.AntebracoE, RagBone.BracoD, RagBone.AntebracoD })
             {
-                var (id, a) = AllFours[i];
-                var kn = Kneel[i].Item2;
-                var st = stand.TryGetValue(id, out var v) ? v : Vector3.zero;
-                pose[id] = p < 0.35f ? a
-                         : p < 0.65f ? Vector3.Lerp(a, kn, Mathf.SmoothStep(0f, 1f, (p - 0.35f) / 0.3f))
-                         : Vector3.Lerp(kn, st, Mathf.SmoothStep(0f, 1f, (p - 0.65f) / 0.35f));
+                var va = Find(a, id, stand); var vb = Find(b, id, stand);
+                // Assimetria: o lado direito chega um pouco depois.
+                float wi = id == RagBone.CoxaD || id == RagBone.CanelaD || id == RagBone.BracoD || id == RagBone.AntebracoD ? Mathf.Clamp01(w * 1.15f - 0.15f) : w;
+                pose[id] = Vector3.Lerp(va, vb, wi);
             }
+        }
+
+        static Vector3 Find((RagBone, Vector3)[] l, RagBone id, Dictionary<RagBone, Vector3> stand)
+        {
+            if (l != null) foreach (var (b, v) in l) if (b == id) return v;
+            return stand.TryGetValue(id, out var s) ? s : Vector3.zero;
+        }
+
+        // Move o ponto da IA para a bacia seguir o caminho (a bacia fica a PelvisOffset do ponto, no espaço dele).
+        void DriveGetUp(float p)
+        {
+            SampleGetUp(p, out var h, out var rot, out _, out _, out _);
+            var pelvisPos = new Vector3(getUpXZ.x, groundY + h * k, getUpXZ.z);
+            anchor.MoveRotation(rot);
+            anchor.MovePosition(pelvisPos - rot * PelvisOffset);
         }
 
         void ApplyMuscles()
@@ -647,10 +739,10 @@ namespace Arena
             if (mode == Mode.Stand && standT > 0f)
             {
                 standT -= dt;
-                float p = 1f - Mathf.Clamp01(standT / ActiveRagdollRules.StandUpSeconds);
-                SetAnchorStrength(Mathf.Lerp(0.35f, 1f, Mathf.SmoothStep(0f, 1f, p)));
-                float drop = GetUpDrop(p) * k;
-                anchor.MovePosition(new Vector3(anchor.position.x, groundY - drop, anchor.position.z));
+                float p = 1f - Mathf.Clamp01(standT / getUpTotal);
+                SetAnchorStrength(Mathf.Lerp(0.6f, 1f, p));   // firme desde o começo: a bacia segue o caminho das etapas
+                DriveGetUp(p);
+                if (standT <= 0f) { anchor.MoveRotation(Quaternion.LookRotation(getUp[getUp.Length - 1].Pelvis * Vector3.forward)); anchor.MovePosition(new Vector3(getUpXZ.x, groundY, getUpXZ.z)); }
             }
             else if (mode == Mode.Stand)
             {
@@ -1105,7 +1197,7 @@ namespace Arena
         void KnockDown()
         {
             if (mode != Mode.Stand) return;
-            mode = Mode.Down; downT = ActiveRagdollRules.DownSeconds; attack = Attack.None; guardT = 0f;
+            mode = Mode.Down; downT = ActiveRagdollRules.DownSeconds; attack = Attack.None; guardT = 0f; standT = 0f;
             ArenaGame.Tokens.Release(TokenId);
             SetAnchorStrength(0f);
             ArenaFx.FloatText("CAIU!", Center + Vector3.up * 0.5f, new Color(1f, 0.85f, 0.4f), 0.9f);
@@ -1141,12 +1233,13 @@ namespace Arena
 
         void StandUp()
         {
-            var p = bones[RagBone.Bacia].Rb.position;
             groundY = baseY;
-            anchor.position = ArenaUtil.ClampToArena(new Vector3(p.x, groundY - AllFoursDrop * k, p.z));
-            var pl = Player;
-            if (pl) { var to = pl.FeetPosition - anchor.position; to.y = 0f; if (to.sqrMagnitude > 1e-4f) anchor.rotation = Quaternion.LookRotation(to); }   // levanta já virado para você
-            mode = Mode.Stand; standT = ActiveRagdollRules.StandUpSeconds; attackCd = 1f;
+            BuildGetUp();
+            // Começa onde a bacia está (sem puxão): o ponto da IA vai para a primeira pose-chave.
+            var k0 = getUp[0];
+            anchor.rotation = k0.Pelvis;
+            anchor.position = new Vector3(getUpXZ.x, groundY + k0.Height * k, getUpXZ.z) - k0.Pelvis * PelvisOffset;
+            mode = Mode.Stand; standT = getUpTotal; attackCd = 1f;
         }
 
         void Die()

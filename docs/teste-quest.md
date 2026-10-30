@@ -9,6 +9,11 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000000000000000000000000000000000000. NOVO — juntas corrigidas e levantar 3ª versão (Sala de Criação)
+- [ ] **Andar**: agora o joelho dobra de verdade. O goblin dá passos?
+- [ ] **Levantar**: caiu de barriga = mãos no chão → de quatro → meio-ajoelhado → de pé; de costas = rola de lado antes. Convence?
+- [ ] **Ataques**: os cotovelos agora dobram — o golpe do goblin ficou melhor ou estranho?
+
 ## 0000000000000000000000000000000000000. NOVO — animações do goblin e modelo nos goblins simples (ver na Sala de Criação)
 - [ ] **Levantar**: de quatro com as mãos no chão → ajoelhado → de pé. Convence?
 - [ ] **Pescoço**: a cabeça segue você e olha em volta?
