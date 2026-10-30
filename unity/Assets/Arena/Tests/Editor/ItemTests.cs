@@ -52,7 +52,7 @@ namespace Arena.Core.Tests
             });
             var w = item.Resolve(ClassId.Lamina);
             Assert.AreEqual(14f * 0.8f, w.Weight, 1e-4);
-            Assert.AreEqual(14f * 0.75f, w.StaminaPerHit, 1e-4);
+            Assert.AreEqual(WeaponDef.MachadoPesado.StaminaPerHit * 0.75f, w.StaminaPerHit, 1e-4);
             Assert.AreEqual(1.3f, w.PostureBonus, 1e-4);
             Assert.Greater(w.FollowRate(10f), WeaponDef.MachadoPesado.FollowRate(10f));   // mais leve = segue melhor a mão
 

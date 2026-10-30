@@ -27,13 +27,25 @@ namespace Arena
             return t;
         }
 
+        // Em repouso as pontas aparecem 1,5 cm acima da placa (sinal clássico de armadilha).
+        const float RestY = -0.3f;
+
         void Build(float offset)
         {
             cycle = new SpikeTrapCycle(offset);
             last = cycle.Current;
             float s = SpikeTrapCycle.HalfSize * 2f;
             plateMat = ArenaUtil.Lit(PlateColor);
-            ArenaUtil.Prim(PrimitiveType.Cube, transform, new Vector3(0, 0.01f, 0), new Vector3(s, 0.03f, s), plateMat);
+            // Placa ACIMA do piso do KayKit (o topo dele fica a 5 cm; antes a placa ficava escondida embaixo — "somem no chão"),
+            // com moldura de metal claro para ler de longe.
+            ArenaUtil.Prim(PrimitiveType.Cube, transform, new Vector3(0, 0.07f, 0), new Vector3(s, 0.03f, s), plateMat);
+            var rim = ArenaUtil.Lit(new Color(0.55f, 0.5f, 0.42f), new Color(0.04f, 0.035f, 0.02f));
+            for (int k = 0; k < 4; k++)
+            {
+                bool x = k < 2; float side = (k % 2 == 0 ? -1f : 1f) * (s / 2f + 0.03f);
+                ArenaUtil.Prim(PrimitiveType.Cube, transform, x ? new Vector3(side, 0.075f, 0) : new Vector3(0, 0.075f, side),
+                    x ? new Vector3(0.06f, 0.05f, s + 0.12f) : new Vector3(s + 0.12f, 0.05f, 0.06f), rim);
+            }
             spikes = new GameObject("Pontas").transform;
             spikes.SetParent(transform, false);
             var metal = ArenaUtil.Lit(new Color(0.65f, 0.66f, 0.7f), new Color(0.05f, 0.05f, 0.06f));
@@ -43,7 +55,7 @@ namespace Arena
                     var p = new Vector3(-s / 2f + s * (i + 0.5f) / 4f, 0.2f, -s / 2f + s * (j + 0.5f) / 4f);
                     ArenaUtil.Prim(PrimitiveType.Cube, spikes, p, new Vector3(0.05f, 0.4f, 0.05f), metal).transform.localRotation = Quaternion.Euler(0, 45, 0);
                 }
-            spikes.localPosition = new Vector3(0, -0.42f, 0);
+            spikes.localPosition = new Vector3(0, RestY, 0);
         }
 
         void Update()
@@ -61,7 +73,7 @@ namespace Arena
             // Visual: placa pisca no aviso; espinhos sobem rápido e descem devagar.
             plateMat.color = phase == SpikeTrapCycle.Phase.Warning
                 ? Color.Lerp(PlateColor, new Color(0.9f, 0.15f, 0.05f), 0.5f + 0.5f * Mathf.Sin(Time.time * 25f)) : PlateColor;
-            float targetY = phase == SpikeTrapCycle.Phase.Up ? 0f : -0.42f;
+            float targetY = phase == SpikeTrapCycle.Phase.Up ? 0.08f : RestY;
             spikes.localPosition = new Vector3(0, Mathf.MoveTowards(spikes.localPosition.y, targetY, dt * (phase == SpikeTrapCycle.Phase.Up ? 8f : 1.5f)), 0);
 
             if (phase != SpikeTrapCycle.Phase.Up) return;

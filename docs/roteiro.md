@@ -10,6 +10,22 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 5. **Demo grátis** (itch.io/SideQuest) com o pedaço vendável → **acesso antecipado pago** (~US$ 10–15, Meta Horizon Store; Steam depois) com 2–3 h de conteúdo, arte coerente, sem bug que quebre a partida e conforto.
 6. **Obrigatório antes de vender**: renomear "Kamehameha" e "Freeza" (marcas de Dragon Ball) e não citar "Homem-Aranha"; conferir a licença do TRELLIS.2 (e do Hunyuan, se usar); KayKit é CC0; teto de receita do Unity Personal; conta de desenvolvedor, W-8BEN e de preferência MEI.
 
+## Meta reafirmada (Pablo, 2026-10-30)
+- **Objetivo: vender**, e no futuro um **jogo online**. **Orçamento zero** (só arte grátis/CC0 ou feita por nós). Muitas horas por semana para testar no Quest.
+- **Congelamento aceito de verdade**: ideias novas vão para "Ideias para depois da demo" e só entram depois da demo publicada.
+- **Núcleo da demo**: Lâmina (espada + escudo) + poderes da mão livre, Santuário → dungeon de 2 andares → **1 chefe bem feito** (Rei Goblin). Os outros chefes, modos de desafio, biomas, pets, mercenário, Muralha, Raio do céu etc. ficam no código mas **escondidos** na demo.
+- **Online — ordem proposta**: (1) demo solo; (2) **coop 1-4 com um jogador sendo o host** (sem servidor pago: Unity Relay/Photon no plano grátis) depois do acesso antecipado; (3) PvP/mundo online só com receita. Motivo: sincronizar inimigos físicos (ragdoll ativo) pela rede é o trabalho mais difícil do projeto e não pode atrasar a primeira venda. Para não fechar a porta: manter a regra do jogo no Core (já é) e o jogador sem estado global.
+
+## Ideias para depois da demo
+- (anotar aqui; nada entra antes da demo)
+- **Refazer o perfurar** (desligado em 2026-10-30: "mal feita"). `StabRules.Enabled` liga de novo.
+- **Bênçãos** (altar/estátua) — fora da demo; repensar o visual e onde aparecem (`Demo.Blessings`).
+
+## Próximos passos da demo (2026-10-30)
+1. **Melhorar o Rei Goblin** (chefe escolhido para a demo): arte estilizada, avisos mais legíveis, padrões e janelas de punição; testar no Quest.
+2. **Bíblia de arte** (definir o design do jogo: paleta, formas, proporções, materiais, regras para inimigos/armas/salas/efeitos) antes de gerar mais modelos.
+3. **Esconder da demo**: chefes sorteados (só o Rei Goblin), modos de desafio, biomas, pets/mercenário, Muralha, Raio do céu?, armas engraçadas em excesso — decidir a lista com o Pablo.
+
 ## Próxima prioridade (decisão do Pablo, 2026-10-28): VISUAL, depois balanceamento
 - Habilidades "completinhas por agora"; a mecânica da teia com gravidade aprovada ("ficou bem maneiro").
 - Proposta: 1º uma **fatia vertical** (1 sala da dungeon + goblin com modelo real + mãos com pele) medindo FPS no Quest 2 antes de trocar tudo; escolher UM estilo coerente (pacote low-poly dark fantasy) e um orçamento (triângulos, draw calls, 1 luz real por sala, luz assada). Inimigos físicos pedem modelos separados por membro (plano, fase C).

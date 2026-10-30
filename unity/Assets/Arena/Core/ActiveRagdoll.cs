@@ -12,7 +12,7 @@ namespace Arena.Core
         // Força dos músculos (0..1): normal, atingido (amolece um instante), caído, morto.
         public const float MuscleNormal = 1f, MuscleHit = 0.3f, MuscleDown = 0.15f, MuscleDead = 0f;
         public const float HitFlopSeconds = 0.35f;
-        public const float DownSeconds = 2.2f, StandUpSeconds = 0.8f;
+        public const float DownSeconds = 2.2f, StandUpSeconds = 1.3f;   // levantar: ajoelha e sobe (era 0,8 s puxado "por um fio")
 
         // Desequilíbrio: golpe forte no tronco/cabeça ou bacia arrastada para longe da posição da IA.
         public const float KnockdownSpeed = 7.5f;          // m/s do golpe (arma pesada: 6)

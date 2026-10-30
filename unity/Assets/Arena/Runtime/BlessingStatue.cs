@@ -21,6 +21,7 @@ namespace Arena
 
         public static BlessingStatue Spawn(Vector3 pos, Transform parent, int price, bool repeat)
         {
+            if (!Demo.Blessings) return null;
             var go = new GameObject("Estatua");
             go.transform.SetParent(parent, false);
             go.transform.position = new Vector3(pos.x, 0f, pos.z);

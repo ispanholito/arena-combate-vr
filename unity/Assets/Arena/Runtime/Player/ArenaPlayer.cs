@@ -114,7 +114,8 @@ namespace Arena
             if (!GetComponent<PetCompanion>()) gameObject.AddComponent<PetCompanion>();   // fada da Domadora
             if (!GetComponent<WeaponSwapGesture>()) gameObject.AddComponent<WeaponSwapGesture>();   // mão livre por cima do ombro = troca de arma
             if (!GetComponent<ArmSwingRun>()) gameObject.AddComponent<ArmSwingRun>();   // sem controle: correr balançando os braços
-            if (!GetComponent<HandInteract>()) gameObject.AddComponent<HandInteract>();   // sem controle: pinça perto = interagir
+            if (!GetComponent<HandInteract>()) gameObject.AddComponent<HandInteract>();
+            if (!GetComponent<PotionBelt>()) gameObject.AddComponent<PotionBelt>();   // poção no peito (VR)   // sem controle: pinça perto = interagir
             if (!GetComponent<Muralha>()) gameObject.AddComponent<Muralha>();   // punho na palma: aura vermelha, só soco forte
             if (!GetComponent<SkyBolt>()) gameObject.AddComponent<SkyBolt>();   // mão fechada ao céu e abrir: raio em cadeia   // arma mergulhada na bola de fogo pega fogo   // livro de magias (abre pela pausa)
             ResetCharacter(startClass);
@@ -170,24 +171,17 @@ namespace Arena
             if (ArenaGame.Instance) ArenaGame.Instance.Message(State.ActiveItem.DisplayName, 0.9f);
         }
 
-        // Poção: levar a mão esquerda (controle ou mão livre) à boca e segurar 0,45 s; desktop B.
-        float drinkHold;
-        const float MouthRange = 0.14f, DrinkHoldSeconds = 0.45f;
-
+        // Poção: no VR fica no peito (PotionBelt: pegar o frasco e levar à boca); desktop B.
         void UpdatePotion(float dt)
         {
-            if (State == null || ArenaGame.Blocked) { drinkHold = 0f; return; }
-            bool want = Input.DesktopDrink;
-            if (IsVr && leftHand)
-            {
-                var mouth = head.position - head.up * 0.09f + head.forward * 0.05f;
-                bool atMouth = Vector3.Distance(leftHand.position, mouth) < MouthRange;
-                drinkHold = atMouth ? drinkHold + dt : Mathf.Min(0f, drinkHold + dt);
-                if (drinkHold >= DrinkHoldSeconds) { want = true; drinkHold = -1.5f; }   // não bebe de novo logo em seguida
-            }
-            if (!want) return;
+            if (State == null || ArenaGame.Blocked || !Input.DesktopDrink) return;
+            if (State.Potions <= 0) { ArenaGame.Instance?.Message("Sem poções (baús e o mercador do santuário)", 1.2f); ArenaAudio.Play2D(Sfx.Deny, 0.5f); return; }
+            DrinkPotion();
+        }
+
+        public void DrinkPotion()
+        {
             var game = ArenaGame.Instance;
-            if (State.Potions <= 0) { if (Input.DesktopDrink) { game?.Message("Sem poções (baús e o mercador do santuário)", 1.2f); ArenaAudio.Play2D(Sfx.Deny, 0.5f); } return; }
             if (!State.TryDrinkPotion()) return;
             ArenaAudio.Play2D(Sfx.Slime, 0.7f, 1.5f);
             ArenaFx.Burst(head.position - head.up * 0.25f + head.forward * 0.3f, new Color(1f, 0.25f, 0.3f), 14, 1.5f);

@@ -12,6 +12,8 @@ namespace Arena.Core
     // Fase 3 (refeita depois do teste no Quest): estocada com a ponta espeta ou crava.
     public static class StabRules
     {
+        // Perfurar DESLIGADO (Pablo, 2026-10-30: "tá mal feita"). A estocada vira golpe comum até refazermos; o código fica.
+        public static bool Enabled;
         // Tolerante: no VR a lâmina fica ~40° inclinada em relação ao controle, e uma estocada natural segue o controle.
         public const float MinSpeed = 1.3f;            // m/s na ponta (era 1,8: o Pablo achava difícil furar)
         public const float MinAlignment = 0.5f;        // cos do ângulo entre a lâmina e o movimento (~60°)

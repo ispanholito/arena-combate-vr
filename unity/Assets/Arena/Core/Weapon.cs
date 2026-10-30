@@ -44,22 +44,25 @@ namespace Arena.Core
         // Quão rápido a arma segue a mão (1/s). Força alta / arma leve = colada na mão.
         public float FollowRate(float strength) => Math.Clamp(60f * (float)Math.Pow(strength / Weight, 1.5), 5f, 45f);
 
+        // Balanceamento (2026-10-30, Pablo: "o dano de todas as armas está desbalanceado"): no VR todo mundo balança a mão
+        // mais ou menos igual, então o multiplicador quase vira o dano por segundo. Pesadas: +45-55% por golpe (não +70-90%)
+        // e gastam mais estamina; Katana = Espada (era melhor em tudo); Adaga sobe (alcance curto = ponta lenta).
         public static readonly WeaponDef EspadaLonga = new WeaponDef("espada", "Espada Longa", WeaponKind.Espada, 2.5f, 1.0f, 6f, 1.07f);
-        public static readonly WeaponDef MachadoPesado = new WeaponDef("machado", "Machado Pesado", WeaponKind.Machado, 14f, 1.7f, 14f, 1.05f);
+        public static readonly WeaponDef MachadoPesado = new WeaponDef("machado", "Machado Pesado", WeaponKind.Machado, 14f, 1.45f, 18f, 1.05f);
         public static readonly WeaponDef CajadoArcano = new WeaponDef("cajado", "Cajado Arcano", WeaponKind.Cajado, 2f, 0.5f, 5f, 1.14f);
         // Maça: contundente (não corta nem crava), quebra muita postura. Lança: longa, crava. Adaga: leve, rápida, crava.
-        public static readonly WeaponDef MacaPesada = new WeaponDef("maca", "Maça", WeaponKind.Maca, 9f, 1.35f, 11f, 0.85f);
-        public static readonly WeaponDef Lanca = new WeaponDef("lanca", "Lança", WeaponKind.Lanca, 5f, 1.1f, 8f, 1.9f);
-        public static readonly WeaponDef Adaga = new WeaponDef("adaga", "Adaga", WeaponKind.Adaga, 1f, 0.7f, 3f, 0.45f);
+        public static readonly WeaponDef MacaPesada = new WeaponDef("maca", "Maça", WeaponKind.Maca, 9f, 1.25f, 13f, 0.85f);
+        public static readonly WeaponDef Lanca = new WeaponDef("lanca", "Lança", WeaponKind.Lanca, 5f, 1.0f, 8f, 1.9f);
+        public static readonly WeaponDef Adaga = new WeaponDef("adaga", "Adaga", WeaponKind.Adaga, 1f, 0.85f, 3f, 0.45f);
 
         // Armas novas (2026-10-29, inspiração Soul Knight): variações sérias e algumas engraçadas.
-        public static readonly WeaponDef Katana = new WeaponDef("katana", "Katana", WeaponKind.Espada, 2f, 1.1f, 5f, 1.0f) { Look = WeaponLook.Katana, MassKg = 1.1f };
-        public static readonly WeaponDef Rapieira = new WeaponDef("rapieira", "Rapieira", WeaponKind.Espada, 1.2f, 0.85f, 4f, 1.05f) { Look = WeaponLook.Rapieira, MassKg = 0.9f };
-        public static readonly WeaponDef Martelo = new WeaponDef("martelo", "Martelo de Guerra", WeaponKind.Maca, 16f, 1.9f, 16f, 1.1f) { Look = WeaponLook.Martelo, MassKg = 4.5f };
-        public static readonly WeaponDef Machadinha = new WeaponDef("machadinha", "Machadinha", WeaponKind.Machado, 4f, 1.1f, 6f, 0.55f) { Look = WeaponLook.Machadinha, MassKg = 1.0f };
+        public static readonly WeaponDef Katana = new WeaponDef("katana", "Katana", WeaponKind.Espada, 2f, 1.0f, 5f, 1.0f) { Look = WeaponLook.Katana, MassKg = 1.1f };
+        public static readonly WeaponDef Rapieira = new WeaponDef("rapieira", "Rapieira", WeaponKind.Espada, 1.2f, 0.9f, 4f, 1.05f) { Look = WeaponLook.Rapieira, MassKg = 0.9f };
+        public static readonly WeaponDef Martelo = new WeaponDef("martelo", "Martelo de Guerra", WeaponKind.Maca, 16f, 1.55f, 20f, 1.1f) { Look = WeaponLook.Martelo, MassKg = 4.5f };
+        public static readonly WeaponDef Machadinha = new WeaponDef("machadinha", "Machadinha", WeaponKind.Machado, 4f, 1.05f, 6f, 0.55f) { Look = WeaponLook.Machadinha, MassKg = 1.0f };
         public static readonly WeaponDef Bacalhau = new WeaponDef("bacalhau", "Bacalhau Seco", WeaponKind.Maca, 3f, 0.85f, 4f, 0.8f) { Look = WeaponLook.Bacalhau, MassKg = 1.2f, Funny = true };
-        public static readonly WeaponDef Frigideira = new WeaponDef("frigideira", "Frigideira de Ferro", WeaponKind.Maca, 5f, 1.05f, 6f, 0.62f) { Look = WeaponLook.Frigideira, MassKg = 1.8f, Funny = true };
-        public static readonly WeaponDef Tocha = new WeaponDef("tocha", "Tocha", WeaponKind.Maca, 2.5f, 0.7f, 4f, 0.72f) { Look = WeaponLook.Tocha, MassKg = 1.0f, HeatPerHit = 35f };
+        public static readonly WeaponDef Frigideira = new WeaponDef("frigideira", "Frigideira de Ferro", WeaponKind.Maca, 5f, 1.0f, 6f, 0.62f) { Look = WeaponLook.Frigideira, MassKg = 1.8f, Funny = true };
+        public static readonly WeaponDef Tocha = new WeaponDef("tocha", "Tocha", WeaponKind.Maca, 2.5f, 0.75f, 4f, 0.72f) { Look = WeaponLook.Tocha, MassKg = 1.0f, HeatPerHit = 35f };
         public static readonly WeaponDef Vassoura = new WeaponDef("vassoura", "Vassoura de Bruxa", WeaponKind.Cajado, 2f, 0.45f, 4f, 1.45f) { Look = WeaponLook.Vassoura, MassKg = 0.9f, Funny = true };
 
         // Armas de fogo (Core/Guns.cs): batem como maça leve; o tiro vem do GunSpec.

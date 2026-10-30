@@ -17,14 +17,17 @@ namespace Arena.Core
         public const float ReloadSeconds = 0.45f;  // depois do tranco
         public const float DesktopReload = 1.3f;   // desktop: recarrega sozinho quando esvazia
         public const float GunPitch = -12f;        // inclinação na mão (a espada usa -40°: com 0 o cano aponta como o controle)
+        // Sem recarga (Pablo, 2026-10-30: apontar para cima "tira a dinâmica"). Munição infinita; o limite é a cadência.
+        public const bool NeedsReload = false;
 
+        // Sem recarga a cadência é o limite: ~25-30 de dano/s, menos que a espada (~45), porque atira de longe sem risco.
         public static readonly GunSpec Pistola = new GunSpec
-        { Shots = 3, Pellets = 1, Damage = 24f, Spread = 0.6f, Range = 30f, Cooldown = 0.3f, Knock = 2.5f, Posture = 0.9f, BaseMultiplier = 0.6f };
+        { Shots = 3, Pellets = 1, Damage = 24f, Spread = 0.6f, Range = 30f, Cooldown = 0.8f, Knock = 2.5f, Posture = 0.9f, BaseMultiplier = 0.6f };
         public static readonly GunSpec Bacamarte = new GunSpec
-        { Shots = 2, Pellets = 7, Damage = 8f, Spread = 8f, Range = 14f, Cooldown = 0.55f, Knock = 6f, Posture = 0.6f, BaseMultiplier = 0.8f };
+        { Shots = 2, Pellets = 7, Damage = 8f, Spread = 8f, Range = 14f, Cooldown = 1.4f, Knock = 6f, Posture = 0.6f, BaseMultiplier = 0.8f };
 
         public static readonly GunSpec Repeticao = new GunSpec
-        { Shots = 8, Pellets = 1, Damage = 15f, Spread = 1.2f, Range = 28f, Cooldown = 0.12f, Knock = 1.5f, Posture = 0.7f, BaseMultiplier = 0.65f };
+        { Shots = 8, Pellets = 1, Damage = 12f, Spread = 1.2f, Range = 28f, Cooldown = 0.35f, Knock = 1.5f, Posture = 0.7f, BaseMultiplier = 0.65f };
 
         public static GunSpec For(WeaponLook look) => look switch
         {

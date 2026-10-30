@@ -25,7 +25,8 @@ namespace Arena
             var spec = Spec;
             if (spec == null) { HideDots(); lastLook = WeaponLook.Padrao; return; }
             if (lastLook != w.Def.Look || ammo < 0) { ammo = spec.Shots; lastLook = w.Def.Look; reloadT = -1f; }
-            if (ArenaGame.Blocked || !w.Held) { UpdateDots(spec); return; }
+            if (!GunRules.NeedsReload) { ammo = spec.Shots; reloadT = -1f; HideDots(); }
+            if (ArenaGame.Blocked || !w.Held) { if (GunRules.NeedsReload) UpdateDots(spec); return; }
             float dt = Time.deltaTime;
             cd -= dt;
 
@@ -40,7 +41,7 @@ namespace Arena
                     ArenaInput.Haptic(0.4f, 0.05f);
                 }
             }
-            else if (ammo < spec.Shots)
+            else if (GunRules.NeedsReload && ammo < spec.Shots)
             {
                 if (player.IsVr)
                 {
@@ -60,7 +61,7 @@ namespace Arena
                 }
                 else Fire(w, spec);
             }
-            UpdateDots(spec);
+            if (GunRules.NeedsReload) UpdateDots(spec);
         }
 
         void StartReload(PlayerWeapon w)
@@ -72,7 +73,8 @@ namespace Arena
 
         void Fire(PlayerWeapon w, GunSpec spec)
         {
-            ammo--; cd = spec.Cooldown;
+            if (GunRules.NeedsReload) ammo--;
+            cd = spec.Cooldown;
             Vector3 dir;
             if (!player.IsVr) { w.DesktopPoint(0.3f); dir = player.HeadForward; }
             else dir = w.BladeDir;

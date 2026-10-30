@@ -469,14 +469,23 @@ namespace Arena
         // ---------- Pose ("animação" que os músculos seguem) ----------
         readonly Dictionary<RagBone, Vector3> pose = new Dictionary<RagBone, Vector3>();
 
+        // Passo pela direção REAL do movimento (2026-10-30, Pablo: "parece que são arrastados para o lado"): para frente/trás
+        // as pernas balançam; de lado, cada perna levanta e abre alternada (passo lateral). Antes as pernas só balançavam
+        // para frente e o corpo deslizava de lado.
+        float gaitF, gaitS;
+
         void BuildPose(float speed01)
         {
             pose.Clear();
-            float swing = Mathf.Sin(phase) * 35f * speed01;
-            pose[RagBone.CoxaE] = new Vector3(swing, 0, 0);
-            pose[RagBone.CoxaD] = new Vector3(-swing, 0, 0);
-            pose[RagBone.CanelaE] = new Vector3(10f + Mathf.Max(0f, -Mathf.Sin(phase)) * 45f * speed01, 0, 0);
-            pose[RagBone.CanelaD] = new Vector3(10f + Mathf.Max(0f, Mathf.Sin(phase)) * 45f * speed01, 0, 0);
+            float s = Mathf.Sin(phase);
+            float f = Mathf.Clamp(gaitF / 1.6f, -1f, 1f) * speed01;
+            float side = Mathf.Clamp(gaitS / 1.0f, -1f, 1f) * speed01;
+            float lift = Mathf.Abs(side);
+            float swing = s * 35f * f;
+            pose[RagBone.CoxaE] = new Vector3(swing - Mathf.Max(0f, s) * 25f * lift, 0, side * Mathf.Max(0f, s) * 20f);
+            pose[RagBone.CoxaD] = new Vector3(-swing - Mathf.Max(0f, -s) * 25f * lift, 0, side * Mathf.Max(0f, -s) * 20f);
+            pose[RagBone.CanelaE] = new Vector3(10f + Mathf.Max(0f, -s) * 45f * Mathf.Abs(f) + Mathf.Max(0f, s) * 40f * lift, 0, 0);
+            pose[RagBone.CanelaD] = new Vector3(10f + Mathf.Max(0f, s) * 45f * Mathf.Abs(f) + Mathf.Max(0f, -s) * 40f * lift, 0, 0);
             pose[RagBone.BracoE] = new Vector3(-swing * 0.6f - 10f, 0, -12f);
             pose[RagBone.AntebracoE] = new Vector3(-25f, 0, 0);
             pose[RagBone.Tronco] = new Vector3(-8f, 0, 0);
@@ -494,6 +503,27 @@ namespace Arena
             pose[RagBone.AntebracoD] = p.fore.ToU();
             if (!Armed && attack == Attack.Windup) { pose[RagBone.BracoD] = new Vector3(-20f, 0f, 20f); pose[RagBone.AntebracoD] = new Vector3(-120f, 0f, 0f); }   // punho recolhido
             if (!Armed && attack == Attack.Strike) { pose[RagBone.BracoD] = new Vector3(-85f, 0f, -5f); pose[RagBone.AntebracoD] = new Vector3(-5f, 0f, 0f); }    // soco reto
+            if (standT > 0f) GetUpPose(1f - Mathf.Clamp01(standT / ActiveRagdollRules.StandUpSeconds));
+        }
+
+        // Levantar (2026-10-30, Pablo: "a animação de se levantar tá uma bosta"): ajoelha com uma perna, apoia a mão e sobe.
+        // A bacia começa baixa (ponto da IA rebaixado) e sobe junto com a pose; antes ia direto da pose de pé, puxado para cima.
+        static readonly (RagBone, Vector3)[] Kneel =
+        {
+            (RagBone.CoxaE, new Vector3(-85f, 0f, 0f)), (RagBone.CanelaE, new Vector3(95f, 0f, 0f)),
+            (RagBone.CoxaD, new Vector3(-15f, 0f, 0f)), (RagBone.CanelaD, new Vector3(115f, 0f, 0f)),
+            (RagBone.Tronco, new Vector3(-35f, 0f, 0f)), (RagBone.Cabeca, new Vector3(18f, 0f, 0f)),
+            (RagBone.BracoE, new Vector3(-50f, 0f, -15f)), (RagBone.AntebracoE, new Vector3(-10f, 0f, 0f)),
+            (RagBone.BracoD, new Vector3(-40f, 0f, 10f)), (RagBone.AntebracoD, new Vector3(-40f, 0f, 0f)),
+        };
+        const float KneelDrop = 0.32f;   // quanto a bacia começa abaixo da altura de pé (× escala)
+
+        static float GetUpBlend(float p) => Mathf.SmoothStep(0f, 1f, (p - 0.35f) / 0.65f);   // fica ajoelhado ~35% do tempo
+
+        void GetUpPose(float p)
+        {
+            float b = GetUpBlend(p);
+            foreach (var (id, v) in Kneel) pose[id] = Vector3.Lerp(v, pose.TryGetValue(id, out var st) ? st : Vector3.zero, b);
         }
 
         void ApplyMuscles()
@@ -537,7 +567,7 @@ namespace Arena
             {
                 case Mode.Stand:
                     muscle = flopT > 0f ? ActiveRagdollRules.MuscleHit : ActiveRagdollRules.MuscleNormal;
-                    speed01 = pl ? Think(pl, dt) : 0f;
+                    speed01 = pl && standT <= 0f ? Think(pl, dt) : 0f;   // levantando: não anda nem ataca
                     // Arrastado para longe do ponto da IA (agarrado e puxado, empurrado forte): perde o pé.
                     // (agarrado ou espetado perde o pé mais fácil: dá para levantar do chão)
                     float dragOff = GrabbedOrStuck ? ActiveRagdollRules.DragOffDistanceHeld : ActiveRagdollRules.DragOffDistance;
@@ -559,7 +589,10 @@ namespace Arena
             if (mode == Mode.Stand && standT > 0f)
             {
                 standT -= dt;
-                SetAnchorStrength(1f - Mathf.Clamp01(standT / ActiveRagdollRules.StandUpSeconds));
+                float p = 1f - Mathf.Clamp01(standT / ActiveRagdollRules.StandUpSeconds);
+                SetAnchorStrength(Mathf.Lerp(0.35f, 1f, Mathf.SmoothStep(0f, 1f, p)));
+                float drop = KneelDrop * k * (1f - GetUpBlend(p));
+                anchor.MovePosition(new Vector3(anchor.position.x, groundY - drop, anchor.position.z));
             }
             else if (mode == Mode.Stand)
             {
@@ -579,7 +612,6 @@ namespace Arena
             var to = pl.FeetPosition - anchor.position; to.y = 0f;
             float dist = to.magnitude;
             var dir = dist > 1e-3f ? to / dist : transform.forward;
-            if (dist > 1e-3f) anchor.MoveRotation(Quaternion.Slerp(anchor.rotation, Quaternion.LookRotation(dir), dt * 5f));
             bool stuck = GrabbedOrStuck || !State.CanAct;   // atordoado, cambaleando, congelado, eletrocutado ou preso
             if (!State.CanAct && attack != Attack.None) { attack = Attack.None; ArenaGame.Tokens.Release(TokenId); }
             var tokens = ArenaGame.Tokens;
@@ -629,12 +661,25 @@ namespace Arena
             // Acelera e freia (não muda de velocidade de uma vez); esquiva e avanço do golpe continuam instantâneos.
             if (!lunging && dodgeT <= 0f) { smoothMove = Vector3.MoveTowards(smoothMove, move, (move.sqrMagnitude > smoothMove.sqrMagnitude ? EnemyMotion.Accel : EnemyMotion.Decel) * dt); move = smoothMove; }
             else smoothMove = move;
+            // Correndo de longe: olha para onde corre (antes corria de lado olhando para você). Perto: olha para você e
+            // anda de lado no máximo a MaxStrafe (passo lateral; mais rápido que isso parecia deslizar).
+            bool running = hasToken && attack == Attack.None && dist > 3f && move.magnitude > 1.2f;
+            var face = running ? new Vector3(move.x, 0f, move.z).normalized : dir;
+            if (face.sqrMagnitude > 1e-4f) anchor.MoveRotation(Quaternion.Slerp(anchor.rotation, Quaternion.LookRotation(face), dt * (running ? 4f : 5f)));
+            if (!running && !lunging && dodgeT <= 0f)
+            {
+                var rightAx = anchor.rotation * Vector3.right;
+                float lat = Vector3.Dot(move, rightAx);
+                if (Mathf.Abs(lat) > MaxStrafe) move -= rightAx * (lat - Mathf.Sign(lat) * MaxStrafe);
+            }
             speed = move.magnitude;
+            var localMove = Quaternion.Inverse(anchor.rotation) * move;
+            gaitF = localMove.z; gaitS = localMove.x;
             if (move.sqrMagnitude > 1e-6f)
             {
                 if (State.Elite == EliteKind.Furioso) move *= EliteRules.FuriousSpeed;   // elite furioso anda mais rápido
                 anchor.MovePosition(ArenaUtil.ClampToArena(anchor.position + move * dt));
-                phase += dt * 7f;
+                phase += dt * (4f + 3.5f * Mathf.Min(speed, 2f));   // passos mais rápidos quanto mais rápido anda
             }
             // Guarda: a arma do jogador vem rápida perto do corpo.
             guardT -= dt; guardCd -= dt;
@@ -680,8 +725,10 @@ namespace Arena
                     tokens.Release(TokenId);   // devolve a vez para outro atacar
                 }
             }
-            return speed > 0.05f ? 1f : 0f;
+            return speed > 0.05f ? Mathf.Clamp01(0.35f + speed / 1.6f) : 0f;
         }
+
+        const float MaxStrafe = 1.1f;   // m/s de lado
 
         // Vaga deste inimigo no arco: junta quem está rondando (inimigos físicos de pé) e distribui pela ordem em volta do jogador.
         float MySlotAngle(ArenaPlayer pl)
@@ -889,7 +936,7 @@ namespace Arena
             float fromTip = Vector3.Distance(contact, tipWorld);
             if (PlayerWeapon.DebugStab) Debug.Log($"[GoblinFisico] contato {id} vel={tipSpeed:0.0} alinh={align:0.00} ponta={fromTip:0.00}");
             // Perfurar (a lâmina em chamas passa direto: não crava)
-            if (!slicing && StabRules.CanPierce(def.Kind) && ActiveRagdollRules.CanStab(tipSpeed, align, fromTip) && w.Held && !IsStuckBy(w))
+            if (!slicing && StabRules.Enabled && StabRules.CanPierce(def.Kind) && ActiveRagdollRules.CanStab(tipSpeed, align, fromTip) && w.Held && !IsStuckBy(w))
             {
                 Stab(bone, contact, w, tipSpeed);
                 return;
@@ -929,19 +976,64 @@ namespace Arena
 
         // Capacete: protege a cabeça (não arranca, metade do dano) e um golpe forte nele derruba.
         bool helmet;
+        // Design estilizado e colorido (2026-10-30, Pablo: o elmo cinza "ficou uma bosta"), um por tipo, legível de longe:
+        // goblin = panela de bronze com faixa vermelha, protetor de nariz e pino; esqueleto = ferro com crista vermelha;
+        // orc = ferro escuro com faixa dourada e dois chifres.
         void BuildHelmet()
         {
             var head = bones[RagBone.Cabeca].Rb.transform;
             var b = new Bounds(head.position, Vector3.zero);
             foreach (var r in head.GetComponentsInChildren<Renderer>()) b.Encapsulate(r.bounds);
-            float s = Mathf.Max(0.18f, Mathf.Max(b.size.x, b.size.z)) * 1.12f;
-            var iron = ArenaUtil.Lit(new Color(0.5f, 0.52f, 0.56f), new Color(0.05f, 0.05f, 0.06f));
-            var cap = ArenaUtil.Prim(PrimitiveType.Sphere, head, Vector3.zero, Vector3.one, iron).transform;
-            cap.position = b.center + Vector3.up * b.extents.y * 0.35f;
-            cap.localScale = new Vector3(s, s * 0.62f, s) / Mathf.Max(0.01f, head.lossyScale.x);
-            var rim = ArenaUtil.Prim(PrimitiveType.Cylinder, head, Vector3.zero, Vector3.one, iron).transform;
-            rim.position = cap.position - Vector3.up * s * 0.12f;
-            rim.localScale = new Vector3(s * 1.08f, 0.012f, s * 1.08f) / Mathf.Max(0.01f, head.lossyScale.x);
+            // As orelhas do goblin alargam o x: usa a menor medida do crânio.
+            float s = Mathf.Clamp(Mathf.Min(b.size.x, b.size.z) * 1.2f, 0.18f * k, 0.34f * k);
+            var root = new GameObject("Elmo").transform;
+            root.SetParent(head, false);
+            root.position = b.center + Vector3.up * b.extents.y * 0.32f;
+            root.rotation = Quaternion.LookRotation(transform.forward);
+            root.localScale = Vector3.one / Mathf.Max(0.01f, head.lossyScale.x);
+            void Part(PrimitiveType t, Vector3 pos, Vector3 size, Material m, Vector3 euler = default)
+            {
+                var tr = ArenaUtil.Prim(t, root, pos * s, size * s, m).transform;
+                tr.localRotation = Quaternion.Euler(euler);
+            }
+            var kind = State.Def.Kind;
+            if (kind == EnemyKind.Orc)
+            {
+                var iron = ArenaUtil.Lit(new Color(0.32f, 0.34f, 0.42f), new Color(0.03f, 0.03f, 0.05f));
+                var gold = ArenaUtil.Lit(new Color(1f, 0.78f, 0.25f), new Color(0.25f, 0.16f, 0.02f));
+                var horn = ArenaUtil.Lit(new Color(0.96f, 0.9f, 0.74f));
+                Part(PrimitiveType.Sphere, Vector3.zero, new Vector3(1f, 0.72f, 1f), iron);
+                Part(PrimitiveType.Cylinder, new Vector3(0f, -0.08f, 0f), new Vector3(1.06f, 0.05f, 1.06f), gold);
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    Part(PrimitiveType.Cylinder, new Vector3(0.5f * side, 0.18f, 0f), new Vector3(0.14f, 0.22f, 0.14f), horn, new Vector3(0f, 0f, -55f * side));
+                    Part(PrimitiveType.Sphere, new Vector3(0.68f * side, 0.36f, 0f), new Vector3(0.11f, 0.11f, 0.11f), horn);
+                }
+            }
+            else if (kind == EnemyKind.Esqueleto)
+            {
+                var iron = ArenaUtil.Lit(new Color(0.55f, 0.6f, 0.68f), new Color(0.04f, 0.05f, 0.06f));
+                var plume = ArenaUtil.Lit(new Color(0.92f, 0.18f, 0.22f), new Color(0.2f, 0.02f, 0.03f));
+                Part(PrimitiveType.Sphere, Vector3.zero, new Vector3(1f, 0.7f, 1f), iron);
+                Part(PrimitiveType.Cylinder, new Vector3(0f, -0.08f, 0f), new Vector3(1.05f, 0.04f, 1.05f), iron);
+                Part(PrimitiveType.Cube, new Vector3(0f, 0.38f, -0.05f), new Vector3(0.1f, 0.3f, 0.85f), plume);
+                Part(PrimitiveType.Cube, new Vector3(0f, -0.2f, 0.5f), new Vector3(0.07f, 0.4f, 0.06f), iron);
+            }
+            else
+            {
+                var bronze = ArenaUtil.Lit(new Color(0.88f, 0.6f, 0.24f), new Color(0.14f, 0.07f, 0.01f));
+                var band = ArenaUtil.Lit(new Color(0.8f, 0.16f, 0.12f));
+                Part(PrimitiveType.Sphere, Vector3.zero, new Vector3(1f, 0.7f, 1f), bronze);
+                Part(PrimitiveType.Cylinder, new Vector3(0f, -0.07f, 0f), new Vector3(1.05f, 0.05f, 1.05f), band);
+                Part(PrimitiveType.Cube, new Vector3(0f, -0.2f, 0.5f), new Vector3(0.08f, 0.42f, 0.06f), bronze);
+                Part(PrimitiveType.Cylinder, new Vector3(0f, 0.4f, 0f), new Vector3(0.07f, 0.1f, 0.07f), bronze);
+                Part(PrimitiveType.Sphere, new Vector3(0f, 0.52f, 0f), new Vector3(0.13f, 0.13f, 0.13f), band);
+                for (int i = 0; i < 6; i++)
+                {
+                    float a = i * Mathf.PI / 3f;
+                    Part(PrimitiveType.Sphere, new Vector3(Mathf.Sin(a) * 0.52f, -0.07f, Mathf.Cos(a) * 0.52f), Vector3.one * 0.07f, bronze);
+                }
+            }
         }
 
         void KnockDown()
@@ -953,10 +1045,15 @@ namespace Arena
             ArenaFx.FloatText("CAIU!", Center + Vector3.up * 0.5f, new Color(1f, 0.85f, 0.4f), 0.9f);
         }
 
+        float groundY;
+
         void StandUp()
         {
             var p = bones[RagBone.Bacia].Rb.position;
-            anchor.position = ArenaUtil.ClampToArena(new Vector3(p.x, transform.position.y, p.z));
+            groundY = transform.position.y;
+            anchor.position = ArenaUtil.ClampToArena(new Vector3(p.x, groundY - KneelDrop * k, p.z));
+            var pl = Player;
+            if (pl) { var to = pl.FeetPosition - anchor.position; to.y = 0f; if (to.sqrMagnitude > 1e-4f) anchor.rotation = Quaternion.LookRotation(to); }   // levanta já virado para você
             mode = Mode.Stand; standT = ActiveRagdollRules.StandUpSeconds; attackCd = 1f;
         }
 

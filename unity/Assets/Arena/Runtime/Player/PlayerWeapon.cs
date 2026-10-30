@@ -512,7 +512,7 @@ namespace Arena
             contactRelax = WeaponPhysics.ContactRelaxSeconds;
             var enemy = c.collider.GetComponentInParent<ArenaEnemy>();
             // Fase 3: estocada com a ponta crava a lâmina.
-            if (enemy && TryStab(enemy, c)) return;
+            if (enemy && StabRules.Enabled && TryStab(enemy, c)) return;
             // Fase 2: o inimigo atingido reage ao impulso (empurrão, inclinação, cambaleio).
             if (enemy && mode != Mode.Recalling)
             {
@@ -561,7 +561,7 @@ namespace Arena
             contactRelax = WeaponPhysics.ContactRelaxSeconds;
             if (mode != Mode.Held || Stuck || c.contactCount == 0) { pressureT = 0f; return; }
             var enemy = c.collider.GetComponentInParent<ArenaEnemy>();
-            if (!enemy || enemy.Dead || !enemy.Body || !StabRules.CanPierce(Def.Kind)) { pressureT = 0f; return; }
+            if (!StabRules.Enabled || !enemy || enemy.Dead || !enemy.Body || !StabRules.CanPierce(Def.Kind)) { pressureT = 0f; return; }
             var contact = c.GetContact(0).point;
             var bladeDir = visual.forward;
             float fromTip = Vector3.Distance(contact, visual.TransformPoint(new Vector3(0, 0, Def.Length)));

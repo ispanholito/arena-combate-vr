@@ -674,6 +674,7 @@ namespace Arena
         // Altar com 3 bênçãos que o jogador ainda não tem.
         public void OfferBlessings(Vector3 at, Transform parent)
         {
+            if (!Demo.Blessings) return;
             var choices = player.State.Blessings.RollChoices(new System.Random(Random.Range(0, int.MaxValue)));
             if (choices.Count == 0) return;
             BlessingAltar.Spawn(at, player.FeetPosition - at, choices, parent);

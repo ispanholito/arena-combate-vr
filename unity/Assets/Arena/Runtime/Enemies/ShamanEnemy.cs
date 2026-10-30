@@ -8,6 +8,8 @@ namespace Arena
     // O escudo só bloqueia. De perto ele foge.
     public sealed class ShamanEnemy : GoblinEnemy
     {
+        static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
+
         float castCd = 2f, castT = -1f, strafeT;
         int side = 1;
         Transform staffTip;
@@ -30,7 +32,7 @@ namespace Arena
 
         protected override void Think(float dt, Vector3 toPlayer, float d)
         {
-            if (State.Stun > 0f) { castT = -1f; base.Think(dt, toPlayer, d); return; }
+            if (State.Stun > 0f || !State.CanAct) { castT = -1f; base.Think(dt, toPlayer, d); return; }
             model.localRotation = Quaternion.identity;
             FacePlayer(toPlayer, dt, 7f);
             var dir = d > 1e-3f ? toPlayer / d : transform.forward;
@@ -56,8 +58,13 @@ namespace Arena
         {
             var pl = Player;
             if (!pl || !staffTip) return;
+            // Sai sempre da altura do peito para cima e na frente dele: com o corpo inclinado (tranco ao apanhar) a ponta do
+            // cajado podia ficar perto do chão e o orbe nascia "dentro" do piso e estourava na hora ("atirando no chão").
             var from = staffTip.position + transform.forward * 0.2f;
-            MagicOrb.Spawn(from, (pl.HeadPosition - Vector3.up * 0.3f - from).normalized * MagicOrbRules.Speed, Def.AttackDamage, this);
+            from.y = Mathf.Max(from.y, transform.position.y + 1.1f);
+            var aim = pl.HeadPosition - Vector3.up * 0.3f;
+            if (Vector3.Angle(transform.forward, Flat(aim - from)) > 40f) return;   // não estava virado para você: não lança
+            MagicOrb.Spawn(from, (aim - from).normalized * MagicOrbRules.Speed, Def.AttackDamage, this);
             ArenaAudio.Play(Sfx.Skill, from, 0.7f, 0.7f);
         }
     }
@@ -68,7 +75,7 @@ namespace Arena
     {
         Vector3 vel, prev;
         float damage, life = MagicOrbRules.Life;
-        bool reflected, dead;
+        bool reflected, dead, passed;
         ArenaEnemy shooter, target;
         static readonly Color Col = new Color(0.55f, 1f, 0.35f);
 
@@ -92,7 +99,9 @@ namespace Arena
             // Curva: atrás do jogador (normal) ou do alvo escolhido (rebatido).
             Vector3? aim = reflected ? (target && !target.Dead ? target.Center : (Vector3?)null)
                                      : game ? game.Player.HeadPosition - Vector3.up * 0.3f : (Vector3?)null;
-            if (aim.HasValue)
+            // Passou do jogador (errou): para de curvar e segue reto. Antes ficava dando a volta e mergulhava no chão.
+            if (!reflected && aim.HasValue && Vector3.Dot(vel, aim.Value - transform.position) < 0f) passed = true;
+            if (aim.HasValue && !(passed && !reflected))
             {
                 float turn = (reflected ? 180f : MagicOrbRules.TurnDegPerSec) * Mathf.Deg2Rad * dt;
                 vel = Vector3.RotateTowards(vel, (aim.Value - transform.position).normalized * vel.magnitude, turn, 0f);

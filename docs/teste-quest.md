@@ -9,6 +9,19 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000000000000000000000000000. NOVO — correções do teste de 30/10
+- [ ] **Estocada**: não perfura mais (golpe comum). Dá dano normal?
+- [ ] **Armas de fogo**: atiram sem recarregar; a cadência ficou boa? Fortes demais/fracas?
+- [ ] **Bênçãos**: não aparece mais altar nem estátua.
+- [ ] **Raio do céu**: fica 12 s na mão.
+- [ ] **Espinhos**: dá para ver a placa (moldura clara + pontinhas) antes de pisar?
+- [ ] **Xamã**: ainda atira no chão?
+- [ ] **Poção no peito**: aparecem frascos no peito? Pegar (grip esquerdo ou fechar a mão livre), levar à boca → bebe. A posição do peito está boa?
+- [ ] **Inimigos andando de lado**: ainda parecem arrastados? Os passos laterais convencem?
+- [ ] **Levantar**: ajoelha e sobe — ficou melhor?
+- [ ] **Capacete novo**: goblin (bronze + vermelho), esqueleto (crista vermelha), orc (chifres). Gostou?
+- [ ] **Dano das armas**: machado/martelo mais fracos por golpe, katana = espada, adaga mais forte. Alguma ainda fora?
+
 ## 000000000000000000000000000000000. NOVO — quedas, capacete, martelo
 - [ ] Com **espada de fio**, os inimigos não caem mais à toa? Com **maça/martelo** ou batendo de chapa, caem?
 - [ ] Inimigos de **capacete** (elmo cinza): golpe forte na cabeça derruba; a cabeça não sai.
