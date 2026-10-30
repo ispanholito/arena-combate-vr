@@ -155,7 +155,13 @@ namespace Arena.Core
 
         public WeaponStrike(System.Numerics.Vector3 a, System.Numerics.Vector3 b, System.Numerics.Vector3 edge) { A = a; B = b; EdgeDir = edge; }
 
-        public static WeaponStrike For(WeaponDef w) => w.Kind switch
+        // Martelo de Guerra (2026-10-30, "hitbox uma merda"): a cabeça tem 42 cm de largura e bate com as FACES (±x);
+        // o segmento ao longo do cabo passava pelo meio dela e não pegava quem levava a pancada com a face.
+        public static WeaponStrike For(WeaponDef w) => w.Look == WeaponLook.Martelo
+            ? new WeaponStrike(new System.Numerics.Vector3(-0.23f, 0f, 0.98f), new System.Numerics.Vector3(0.23f, 0f, 0.98f), System.Numerics.Vector3.Zero)
+            : KindStrike(w);
+
+        static WeaponStrike KindStrike(WeaponDef w) => w.Kind switch
         {
             // Gume proporcional ao tamanho (o machado de 1,05 m fica como era; a machadinha tem a cabeça menor).
             WeaponKind.Machado => new WeaponStrike(new System.Numerics.Vector3(0f, -0.3f * Math.Min(1f, w.Length / 1.05f), w.Length - 0.25f),

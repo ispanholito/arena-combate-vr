@@ -161,6 +161,8 @@ namespace Arena
             foreach (var b in boneList) totalMass += b.Rb.mass;
             if (State.Def.Kind == EnemyKind.Esqueleto) DressSkeleton();
             else if (State.Def.Kind == EnemyKind.Goblin) DressModel("Goblin");
+            helmet = Random.value < spec.HelmetChance;
+            if (helmet) BuildHelmet();
 
             // Bacia presa ao ponto da IA (fica em pé).
             anchorJoint = bones[RagBone.Bacia].Rb.gameObject.AddComponent<ConfigurableJoint>();
@@ -539,7 +541,9 @@ namespace Arena
                     // Arrastado para longe do ponto da IA (agarrado e puxado, empurrado forte): perde o pé.
                     // (agarrado ou espetado perde o pé mais fácil: dá para levantar do chão)
                     float dragOff = GrabbedOrStuck ? ActiveRagdollRules.DragOffDistanceHeld : ActiveRagdollRules.DragOffDistance;
-                    if ((bones[RagBone.Bacia].Rb.position - anchor.transform.TransformPoint(PelvisOffset)).magnitude > dragOff) KnockDown();
+                    // Levantando (standT > 0) a bacia ainda está no chão, longe do ponto da IA: não conta como "arrastado".
+                    // Antes contava, e ele caía de novo no mesmo instante em que levantava (nunca mais ficava de pé).
+                    if (standT <= 0f && (bones[RagBone.Bacia].Rb.position - anchor.transform.TransformPoint(PelvisOffset)).magnitude > dragOff) KnockDown();
                     break;
                 case Mode.Down:
                     muscle = ActiveRagdollRules.MuscleDown;
@@ -895,19 +899,21 @@ namespace Arena
             float edge = Geometry.EdgeAlignment(bladeDir.ToN(), vel.ToN());
             // Desmembrar; golpe forte no braço da clava desarma (B&S: mão atingida solta a arma)
             bool canSever = !spec.SeverNeedsHeavy || def.Weight > 5f;   // orc: só arma pesada arranca membro
-            if (canSever && ActiveRagdollRules.Severs(id, speed / spec.SeverMultiplier, edge, def.Blunt)) { Sever(bone, vel); }
+            if (canSever && !(helmet && id == RagBone.Cabeca) && ActiveRagdollRules.Severs(id, speed / spec.SeverMultiplier, edge, def.Blunt)) { Sever(bone, vel); }   // capacete: a cabeça não sai
             else if (Armed && ActiveRagdollRules.Disarms(id, speed / spec.DisarmMultiplier)) Disarm(vel);
             // Tipo de dano × material (maça no osso, machado/estocada na armadura) — igual aos inimigos antigos.
             var dtype = DamageTypes.Classify(def.Kind, edge, align);
             float dmg = Combat.MeleeDamage(speed, def, Combat.SharpEdge(pl.State.Has(SkillIds.FioAfiado), def), true, def.Blunt ? 1f : edge)
-                        * ActiveRagdollRules.DamageMultiplier(id) * DamageTypes.Multiplier(DamageTypes.MaterialOf(Kind), dtype);
+                        * ActiveRagdollRules.DamageMultiplier(id) * DamageTypes.Multiplier(DamageTypes.MaterialOf(Kind), dtype)
+                        * (helmet && id == RagBone.Cabeca ? 0.5f : 1f);   // capacete segura metade
             dmg *= FlameBlade.DamageMultiplier;   // arma em chamas: +30% e põe calor
             FlameBlade.OnHit(State);
             if (def.HeatPerHit > 0f && mode != Mode.Dead) State.Status.AddHeat(def.HeatPerHit);   // tocha
             if (def.Funny) WeaponModels.FunnyHit(def, contact);
             if (dmg > 0f && mode != Mode.Dead) Damage(dmg, contact);
             flopT = ActiveRagdollRules.HitFlopSeconds;
-            if (mode == Mode.Stand && ActiveRagdollRules.Knocksdown(id, speed / spec.KnockdownMultiplier, def.Weight > 5f)) KnockDown();
+            bool bluntHit = def.Blunt || dtype == DamageType.Contusao;   // concussão: arma de pancada, ou bater sem o fio
+            if (mode == Mode.Stand && ActiveRagdollRules.Knocksdown(id, speed / spec.KnockdownMultiplier, def.Weight > 5f, bluntHit, helmet)) KnockDown();
             ArenaAudio.Play(def.Weight > 5f ? Sfx.HitHeavy : Sfx.Hit, contact, 0.4f + speed / 10f);
         }
 
@@ -919,6 +925,23 @@ namespace Arena
             ArenaFx.FloatText(Mathf.RoundToInt(ev.Amount).ToString(), at + Vector3.up * 0.2f, new Color(1f, 0.85f, 0.4f), 0.8f);
             ArenaFx.Burst(at, new Color(0.7f, 0.12f, 0.16f), 8, 2f);
             if (State.Dead) Die();
+        }
+
+        // Capacete: protege a cabeça (não arranca, metade do dano) e um golpe forte nele derruba.
+        bool helmet;
+        void BuildHelmet()
+        {
+            var head = bones[RagBone.Cabeca].Rb.transform;
+            var b = new Bounds(head.position, Vector3.zero);
+            foreach (var r in head.GetComponentsInChildren<Renderer>()) b.Encapsulate(r.bounds);
+            float s = Mathf.Max(0.18f, Mathf.Max(b.size.x, b.size.z)) * 1.12f;
+            var iron = ArenaUtil.Lit(new Color(0.5f, 0.52f, 0.56f), new Color(0.05f, 0.05f, 0.06f));
+            var cap = ArenaUtil.Prim(PrimitiveType.Sphere, head, Vector3.zero, Vector3.one, iron).transform;
+            cap.position = b.center + Vector3.up * b.extents.y * 0.35f;
+            cap.localScale = new Vector3(s, s * 0.62f, s) / Mathf.Max(0.01f, head.lossyScale.x);
+            var rim = ArenaUtil.Prim(PrimitiveType.Cylinder, head, Vector3.zero, Vector3.one, iron).transform;
+            rim.position = cap.position - Vector3.up * s * 0.12f;
+            rim.localScale = new Vector3(s * 1.08f, 0.012f, s * 1.08f) / Mathf.Max(0.01f, head.lossyScale.x);
         }
 
         void KnockDown()

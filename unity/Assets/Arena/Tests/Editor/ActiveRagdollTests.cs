@@ -11,9 +11,12 @@ namespace Arena.Core.Tests
             Assert.IsFalse(ActiveRagdollRules.Severs(RagBone.Tronco, 9f, 0.9f, false));   // tronco não sai
             Assert.IsFalse(ActiveRagdollRules.Severs(RagBone.BracoD, 9f, 0.9f, true));    // maça não corta
             Assert.IsFalse(ActiveRagdollRules.Severs(RagBone.BracoD, 4f, 0.9f, false));   // devagar
-            Assert.IsTrue(ActiveRagdollRules.Knocksdown(RagBone.Tronco, 8f, false));
-            Assert.IsTrue(ActiveRagdollRules.Knocksdown(RagBone.Tronco, 6.5f, true));     // arma pesada derruba mais fácil
-            Assert.IsFalse(ActiveRagdollRules.Knocksdown(RagBone.BracoE, 9f, true));
+            Assert.IsFalse(ActiveRagdollRules.Knocksdown(RagBone.Tronco, 12f, false, false, false));   // corte de fio nunca derruba
+            Assert.IsTrue(ActiveRagdollRules.Knocksdown(RagBone.Tronco, 7f, false, true, false));      // concussão derruba
+            Assert.IsTrue(ActiveRagdollRules.Knocksdown(RagBone.Tronco, 6.5f, true, false, false));    // arma pesada derruba
+            Assert.IsTrue(ActiveRagdollRules.Knocksdown(RagBone.Cabeca, 7.5f, false, false, true));    // capacete + golpe forte
+            Assert.IsFalse(ActiveRagdollRules.Knocksdown(RagBone.Tronco, 9f, false, false, true));     // capacete só na cabeça
+            Assert.IsFalse(ActiveRagdollRules.Knocksdown(RagBone.BracoE, 9f, true, true, true));
             Assert.Greater(ActiveRagdollRules.StabDamperOut, ActiveRagdollRules.StabDamperIn);   // sai mais difícil do que entra
             Assert.IsTrue(ActiveRagdollRules.CanStab(2f, 0.7f, 0.1f));
             Assert.IsFalse(ActiveRagdollRules.CanStab(2f, 0.2f, 0.1f));                   // de lado não fura
@@ -63,8 +66,9 @@ namespace Arena.Core.Tests
             Assert.IsFalse(RagdollSpec.HasPhysicalBody(EnemyKind.ReiGoblin));   // chefe ainda no sistema antigo
             Assert.IsFalse(RagdollSpec.HasPhysicalBody(EnemyKind.Slime));
             // Orc precisa de golpe mais forte para cair que o goblin (multiplicador sobre a velocidade).
-            Assert.IsTrue(ActiveRagdollRules.Knocksdown(RagBone.Tronco, 8f / gob.KnockdownMultiplier, false));
-            Assert.IsFalse(ActiveRagdollRules.Knocksdown(RagBone.Tronco, 8f / orc.KnockdownMultiplier, false));
+            Assert.IsTrue(ActiveRagdollRules.Knocksdown(RagBone.Tronco, 8f / gob.KnockdownMultiplier, false, true, false));
+            Assert.IsFalse(ActiveRagdollRules.Knocksdown(RagBone.Tronco, 8f / orc.KnockdownMultiplier, false, true, false));
+            Assert.AreEqual(1f, orc.HelmetChance);
         }
     }
 }

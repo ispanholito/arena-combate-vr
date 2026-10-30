@@ -104,7 +104,8 @@ namespace Arena
 
         // ---------- Fase 2: reação física ao impacto da arma ----------
         // impulse: impulso da colisão (N·s); dir: direção em que a arma empurrou.
-        public void PhysicalImpact(float impulse, Vector3 dir, float heightFraction = 0.5f)
+        // canFell: o golpe pode DERRUBAR (arma pesada ou concussão; ActiveRagdollRules.CanFell). Senão, no máximo cambaleia.
+        public void PhysicalImpact(float impulse, Vector3 dir, float heightFraction = 0.5f, bool canFell = true)
         {
             if (Dead || impulse <= 0f || impactCd > 0f) return;   // a lâmina deslizando gera vários eventos seguidos
             impactCd = 0.15f;
@@ -121,6 +122,7 @@ namespace Arena
             // Reação pela tabela (HitReactions): força × o que ele está fazendo × parte do corpo.
             bool headOrLegs = WeakPoints.IsHead(Def.Kind, heightFraction) || WeakPoints.IsLegs(Def.Kind, heightFraction);
             var reaction = HitReactions.Resolve(Def.Kind, HitReactions.Level(ImpactReaction.ImpactSpeed(impulse, mass)), Activity, headOrLegs, State.Posture.IsBroken);
+            if (reaction == HitReaction.Derrubado && !canFell) reaction = HitReaction.Total;
             if (staggerCd <= 0f && reaction != HitReaction.Nenhuma)
             {
                 staggerCd = HitReactions.Cooldown;

@@ -9,6 +9,12 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000000000000000000000000000000. NOVO — quedas, capacete, martelo
+- [ ] Com **espada de fio**, os inimigos não caem mais à toa? Com **maça/martelo** ou batendo de chapa, caem?
+- [ ] Inimigos de **capacete** (elmo cinza): golpe forte na cabeça derruba; a cabeça não sai.
+- [ ] Quem cai **levanta** depois de ~2 s?
+- [ ] **Martelo de Guerra**: acerta quando bate com a face da cabeça?
+
 ## 00000000000000000000000000000000. NOVO — corrida 2ª versão e pinça para interagir
 - [ ] **Correr**: sem controles, as DUAS mãos ABERTAS, balançando como corrida. Ficou melhor? Com a mão fechada não corre (de propósito).
 - [ ] **Corte da palma**: só com o braço ESTICADO na frente. Perto do corpo não sai corte?

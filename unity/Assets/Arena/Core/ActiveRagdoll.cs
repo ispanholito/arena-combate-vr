@@ -17,7 +17,7 @@ namespace Arena.Core
         // Desequilíbrio: golpe forte no tronco/cabeça ou bacia arrastada para longe da posição da IA.
         public const float KnockdownSpeed = 7.5f;          // m/s do golpe (arma pesada: 6)
         public const float KnockdownSpeedHeavy = 6f;
-        public const float DragOffDistance = 0.45f;        // bacia a mais de 45 cm do ponto da IA = perdeu o pé
+        public const float DragOffDistance = 0.7f;         // bacia a mais de 70 cm do ponto da IA = perdeu o pé (era 45: a arma empurrando já derrubava)
         public const float DragOffDistanceHeld = 0.25f;    // agarrado/espetado: 25 cm já tira do chão
 
         // Perfurar osso (B&S): a lâmina entra pelo próprio movimento, freada por um amortecedor ao longo dela.
@@ -68,8 +68,20 @@ namespace Arena.Core
             _ => 0.7f,
         };
 
-        public static bool Knocksdown(RagBone b, float speed, bool heavyWeapon) =>
-            (b == RagBone.Tronco || b == RagBone.Cabeca || b == RagBone.Bacia) && speed >= (heavyWeapon ? KnockdownSpeedHeavy : KnockdownSpeed);
+        // Quem derruba (Pablo, 2026-10-30: "qualquer coisa eles caem"): só arma PESADA, golpe de CONCUSSÃO (maça,
+        // martelo, frigideira, cajado ou bater de chapa/cabo, sem usar o fio) ou golpe forte na cabeça de quem usa
+        // CAPACETE. Corte de fio e estocada nunca derrubam (a não ser arma pesada).
+        public const float KnockdownSpeedBlunt = 6.5f, KnockdownSpeedHelmet = 7f;
+        public static bool Knocksdown(RagBone b, float speed, bool heavyWeapon, bool blunt, bool helmet)
+        {
+            if (b != RagBone.Tronco && b != RagBone.Cabeca && b != RagBone.Bacia) return false;
+            if (heavyWeapon) return speed >= KnockdownSpeedHeavy;
+            if (blunt) return speed >= KnockdownSpeedBlunt;
+            return helmet && b == RagBone.Cabeca && speed >= KnockdownSpeedHelmet;
+        }
+
+        // Inimigo NÃO físico: o "DERRUBADO" da tabela só vale com o mesmo tipo de golpe.
+        public static bool CanFell(bool heavyWeapon, bool blunt) => heavyWeapon || blunt;
 
         public static bool Severs(RagBone b, float speed, float edge, bool bluntWeapon) =>
             CanSever(b) && !bluntWeapon && edge >= SeverMinEdge && speed >= SeverMinSpeed;
@@ -127,6 +139,7 @@ namespace Arena.Core
         public float WeaponLength = 0.5f, WeaponRadius = 0.06f, WeaponMass = 1.3f;
         public (float r, float g, float b) Skin = (0.37f, 0.54f, 0.23f), Cloth = (0.35f, 0.25f, 0.16f), Eye = (1f, 0.88f, 0.29f);
         public bool Ears = true;
+        public float HelmetChance;               // chance de nascer de capacete (protege a cabeça; golpe forte nele derruba)
 
         public const float ReassembleSeconds = 4f;   // como o SkeletonBody antigo
         public const float BreakSpeed = 2f;          // golpe numa peça caída (no chão) quebra a peça
@@ -139,14 +152,16 @@ namespace Arena.Core
                 DisarmMultiplier = 1.5f, SeverNeedsHeavy = true, Grabbable = false, Weapon = RagWeapon.Machado,
                 WeaponLength = 0.75f, WeaponRadius = 0.05f, WeaponMass = 3.5f,
                 Skin = (0.3f, 0.42f, 0.25f), Cloth = (0.35f, 0.35f, 0.38f), Eye = (1f, 0.3f, 0.2f), Ears = false,
+                HelmetChance = 1f,
             },
             EnemyKind.Esqueleto => new RagdollSpec
             {
                 Scale = 1.08f, MassMultiplier = 0.6f, KnockdownMultiplier = 0.9f, SeverMultiplier = 0.8f, HeadKills = false, Reassembles = true, LimbMuscle = 0.7f,
                 Weapon = RagWeapon.Espada, WeaponLength = 0.8f, WeaponRadius = 0.035f, WeaponMass = 1.2f,
                 Skin = (0.86f, 0.84f, 0.76f), Cloth = (0.78f, 0.76f, 0.68f), Eye = (1f, 0.25f, 0.2f), Ears = false,
+                HelmetChance = 0.35f,
             },
-            _ => new RagdollSpec(),
+            _ => new RagdollSpec { HelmetChance = 0.3f },
         };
 
         // Tipos que já têm corpo físico na opção beta.

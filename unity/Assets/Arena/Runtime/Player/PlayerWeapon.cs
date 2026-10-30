@@ -518,7 +518,11 @@ namespace Arena
             {
                 var dir = TipVelocity.sqrMagnitude > 0.25f ? TipVelocity
                         : enemy.transform.position - (c.contactCount > 0 ? c.GetContact(0).point : visual.position);
-                enemy.PhysicalImpact(c.impulse.magnitude, dir, c.contactCount > 0 ? enemy.HeightFraction(c.GetContact(0).point) : 0.5f);
+                // Só derruba arma pesada ou concussão (maça/martelo ou bater sem o fio).
+                float tipSp = TipVelocity.magnitude;
+                var dtype = DamageTypes.Classify(Def.Kind, Geometry.EdgeAlignment(BladeDir.ToN(), TipVelocity.ToN()), tipSp > 0.01f ? Vector3.Dot(BladeDir, TipVelocity / tipSp) : 0f);
+                bool canFell = ActiveRagdollRules.CanFell(Def.Weight > 5f, Def.Blunt || dtype == DamageType.Contusao);
+                enemy.PhysicalImpact(c.impulse.magnitude, dir, c.contactCount > 0 ? enemy.HeightFraction(c.GetContact(0).point) : 0.5f, canFell);
             }
             // Arma batendo em parede/chão: som metálico proporcional ao impacto.
             if (!enemy && mode != Mode.Recalling && soundCd <= 0f && c.contactCount > 0 && !c.collider.GetComponent<RagdollBone>())
