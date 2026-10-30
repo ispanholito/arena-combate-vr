@@ -47,7 +47,7 @@ namespace Arena
             Label(HelmetSpot, "CAPACETES", "goblin · esqueleto · orc");
             Label(KingSpot, "REI GOBLIN", "chefe da demo (imune)");
             Label(WeaponSpot, "ARMAS", "pegue para ver na mão");
-            Label(LineStart + new Vector3(4.8f, 0f, 0f), "INIMIGOS", SaveSystem.Options.physicalGoblins ? "versão física (opção ligada)" : "versão simples (inimigos físicos desligados)");
+            Label(LineStart + new Vector3(4.8f, 0f, 0f), "INIMIGOS", "como aparecem no jogo");
             Palette(new Vector3(-10.5f, 0f, 3.5f));
             SpawnWeapons();
             var game = ArenaGame.Instance;

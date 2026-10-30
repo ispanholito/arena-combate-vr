@@ -50,7 +50,7 @@ namespace Arena.Core
         // Quantos goblins físicos (ragdoll ativo) o Treino mantém vivos: 1, 3 ou 6 (medir o FPS no Quest).
         public int trainingGoblins = 1;
         // Beta: na Arena e na Dungeon os goblins nascem com corpo físico (ragdoll ativo).
-        public bool physicalGoblins = false;
+        public bool physicalGoblins = true;   // não é mais usado: goblin, esqueleto e orc são sempre físicos (2026-10-30)
         public bool tutorialSeen = false;      // o tutorial dos gestos começa sozinho na 1ª entrada no santuário
         // Recordes dos desafios (Core/Challenges.cs).
         public int dailyDate;                  // semente do dia do recorde diário

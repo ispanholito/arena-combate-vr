@@ -55,7 +55,6 @@ namespace Arena
             rows.Add(("Música: " + (o.music ? "ligada" : "desligada"), () => { o.music = !o.music; return true; }));
             rows.Add(("Morte: " + DeathRules.Label(o.DeathPenalty), () => { o.CycleDeathPenalty(); if (player.State != null) player.State.Penalty = o.DeathPenalty; return true; }));
             rows.Add(("Inimigos físicos no Treino: " + o.TrainingGoblins + Note + "(teste de desempenho)</color></size>", () => { o.CycleTrainingGoblins(); return true; }));
-            rows.Add(("Inimigos físicos na Arena/Dungeon (beta): " + (o.physicalGoblins ? "sim" : "não") + Note + "(goblin, esqueleto e orc)</color></size>", () => { o.physicalGoblins = !o.physicalGoblins; return true; }));
             rows.Add((inHub ? "Menu inicial (trocar de personagem)" : "Voltar ao santuário", () => { cursor = 0; game.BackFromPause(); return false; }));
         }
 

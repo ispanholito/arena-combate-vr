@@ -9,6 +9,9 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000000000000000000000000000000000. NOVO — inimigos físicos em todo lugar
+- [ ] Arena e Dungeon: goblins, esqueletos e orcs agora são físicos (andar, levantar, desmembrar). **Ligue "Mostrar FPS" na pausa** e veja com 8-9 inimigos: o FPS aguenta?
+
 ## 000000000000000000000000000000000000000. NOVO — andar e correr 3ª versão (Sala de Criação → ANDAR)
 - [ ] Andando: passos no ritmo do corpo, sem escorregar? Correndo: calcanhar sobe, cotovelos dobrados, tronco inclinado?
 

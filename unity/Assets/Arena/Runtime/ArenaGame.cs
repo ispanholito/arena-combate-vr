@@ -517,7 +517,7 @@ namespace Arena
             ArenaFx.Burst(best.position + Vector3.up * 0.5f, new Color(0.6f, 0.42f, 1f), 14, 2.5f);
         }
 
-        // forcePhysical: corpo físico mesmo com a opção beta desligada (goblins do Treino).
+        // forcePhysical: não muda mais nada (goblin, esqueleto e orc são sempre físicos); fica pela compatibilidade.
         static readonly System.Random eliteRng = new System.Random();
 
         public ArenaEnemy Spawn(EnemyDef def, Vector3 pos, bool fromDirector, bool forcePhysical = false)
@@ -533,7 +533,8 @@ namespace Arena
             go.transform.SetParent(enemyRoot, false);
             go.transform.position = ArenaUtil.ClampToArena(new Vector3(pos.x, 0, pos.z));
             // Opção beta: goblin, esqueleto e orc com corpo físico (ragdoll ativo).
-            ArenaEnemy e = (forcePhysical || SaveSystem.Options.physicalGoblins) && RagdollSpec.HasPhysicalBody(def.Kind) ? go.AddComponent<PhysicalGoblinEnemy>() : def.Kind switch
+            // Goblin, esqueleto e orc SEMPRE com corpo físico (Pablo, 2026-10-30: as animações novas valem para todos).
+            ArenaEnemy e = RagdollSpec.HasPhysicalBody(def.Kind) ? go.AddComponent<PhysicalGoblinEnemy>() : def.Kind switch
             {
                 EnemyKind.Slime => go.AddComponent<SlimeEnemy>(),
                 EnemyKind.Goblin => go.AddComponent<GoblinEnemy>(),
