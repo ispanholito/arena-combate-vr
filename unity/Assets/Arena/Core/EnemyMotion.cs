@@ -32,7 +32,8 @@ namespace Arena.Core
             distance > 1.4f && distance <= EngageRange ? (float)Math.Sin(time * 2.2f + seed) * 0.5f : 0f;
 
         // Esquiva de golpe corpo a corpo.
-        public const float DodgeSpeed = 4.5f, DodgeSeconds = 0.3f, DodgeCooldown = 2.2f, DodgeTipSpeed = 4f, DodgeRange = 1.4f;
+        // Velocidade de andar e com tempo de reação (CombatSteering.ReactionDelay), 2026-10-30; era 4,5 m/s na hora.
+        public const float DodgeSpeed = 1.5f, DodgeSeconds = 0.6f, DodgeCooldown = 2.2f, DodgeTipSpeed = 4f, DodgeRange = 1.4f;
         public static float MeleeDodgeChance(Difficulty d) => CombatSteering.DodgeChance(d) * 0.6f;   // 9 / 21 / 36%
 
         // Tranco ao apanhar (fração da vida máxima tirada pelo golpe).

@@ -9,6 +9,11 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000000000000000000000000000000000000000. NOVO — esquiva e reação humanas
+- [ ] Os inimigos desviam (bola de fogo, Kamehameha, golpe) andando, sem sair disparados?
+- [ ] Demoram um instante (~0,3-0,5 s) para reagir? Ficou humano ou lento demais?
+- [ ] Erguer a guarda: ainda bloqueiam às vezes ou nunca dá tempo?
+
 ## 0000000000000000000000000000000000000000. NOVO — inimigos físicos em todo lugar
 - [ ] Arena e Dungeon: goblins, esqueletos e orcs agora são físicos (andar, levantar, desmembrar). **Ligue "Mostrar FPS" na pausa** e veja com 8-9 inimigos: o FPS aguenta?
 

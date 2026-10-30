@@ -25,7 +25,7 @@ namespace Arena
 
         // Movimento com aceleração, chegada em curva, esquiva e tranco ao apanhar (Core/EnemyMotion.cs).
         Vector3 moveVel, dodgeDir, flinchDir;
-        float approachAngle = float.NaN, weaveSeed, dodgeT, dodgeCd, flinchT, flinchDur, flinchTilt, flinchStumble, stepT;
+        float approachAngle = float.NaN, weaveSeed, dodgeT, dodgeCd, dodgeReactT = -1f, flinchT, flinchDur, flinchTilt, flinchStumble, stepT;
         bool Heavy => this is IBoss || Def.Kind == EnemyKind.Orc;
 
         void Steer(Vector3 want, float dt)
@@ -78,10 +78,18 @@ namespace Arena
         bool UpdateDodge(float dt, Vector3 dir, float d)
         {
             dodgeCd -= dt;
+            // Tempo de reação: viu o golpe, só sai do lugar depois de ReactionDelay.
+            if (dodgeReactT >= 0f)
+            {
+                dodgeReactT -= dt;
+                if (dodgeReactT < 0f && State.CanAct) { dodgeT = EnemyMotion.DodgeSeconds; ArenaAudio.Play(Sfx.Dash, Center, 0.4f, 1.3f); }
+            }
             if (dodgeT > 0f)
             {
                 dodgeT -= dt;
-                Move(dodgeDir * EnemyMotion.DodgeSpeed, dt);
+                // Acelera até a velocidade de andar (não sai disparado).
+                moveVel = Vector3.MoveTowards(moveVel, dodgeDir * EnemyMotion.DodgeSpeed, EnemyMotion.Accel * dt);
+                Move(moveVel, dt);
                 model.localRotation = Quaternion.Euler(-8f, 0f, Vector3.Dot(dodgeDir, transform.right) * -14f);
                 return true;
             }
@@ -93,10 +101,8 @@ namespace Arena
             if (Random.value >= EnemyMotion.MeleeDodgeChance(SaveSystem.Options.Difficulty)) return false;
             var side = new Vector3(-dir.z, 0f, dir.x) * (Random.value < 0.5f ? -1f : 1f);
             dodgeDir = (side * 0.8f - dir * 0.6f).normalized;
-            dodgeT = EnemyMotion.DodgeSeconds;
-            moveVel = Vector3.zero;
-            ArenaAudio.Play(Sfx.Dash, Center, 0.5f, 1.3f);
-            return true;
+            dodgeReactT = CombatSteering.ReactionDelay(SaveSystem.Options.Difficulty, Random.value);
+            return false;
         }
 
         protected Color clubColor = new Color(0.42f, 0.27f, 0.15f);

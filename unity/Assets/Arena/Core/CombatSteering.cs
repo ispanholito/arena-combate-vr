@@ -101,7 +101,16 @@ namespace Arena.Core
             return true;
         }
 
-        public const float DodgeSeconds = 0.35f, DodgeSpeed = 3.6f;
+        // Esquiva na velocidade de ANDAR (Pablo, 2026-10-30: "a velocidade que ganham pra desviar é surreal"; era 3,6 m/s
+        // por 0,35 s): um passo de ~1 m, acelerando e freando como o andar.
+        public const float DodgeSeconds = 0.65f, DodgeSpeed = 1.5f;
+        // Tempo de REAÇÃO humano antes de esquivar ou erguer a guarda (Pablo: "a reação é quase imediata"). Gente reage a
+        // um estímulo visual em ~0,25 s e ainda leva um tempo para decidir; antes disso o inimigo não faz nada.
+        public static float ReactionDelay(Difficulty d, double roll)
+        {
+            var (a, b) = d switch { Difficulty.Facil => (0.45f, 0.7f), Difficulty.Dificil => (0.26f, 0.4f), _ => (0.33f, 0.52f) };
+            return a + (b - a) * Clamp((float)roll, 0f, 1f);
+        }
         public static float DodgeChance(Difficulty d) => d switch { Difficulty.Facil => 0.15f, Difficulty.Dificil => 0.6f, _ => 0.35f };
         public static float FeintChance(Difficulty d) => d switch { Difficulty.Facil => 0f, Difficulty.Dificil => 0.2f, _ => 0.12f };
         public const float FeintAt = 0.55f;   // desiste no meio do aviso

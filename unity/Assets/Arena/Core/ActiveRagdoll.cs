@@ -47,7 +47,8 @@ namespace Arena.Core
         public const float PunchReach = 1.1f, PunchDamageFraction = 0.35f;
 
         // Defesa: quando a arma do jogador vem rápida perto da cabeça/tronco, às vezes ergue a clava na frente.
-        public const float GuardTriggerSpeed = 3f, GuardTriggerDistance = 1.2f, GuardSeconds = 0.6f, GuardCooldown = 1.6f;
+        // Percebe o golpe mais cedo (1,8 m) porque agora reage com atraso humano (CombatSteering.ReactionDelay).
+        public const float GuardTriggerSpeed = 2.5f, GuardTriggerDistance = 1.8f, GuardSeconds = 0.8f, GuardCooldown = 1.6f;
         public static float GuardChance(Difficulty d) => d switch { Difficulty.Facil => 0.15f, Difficulty.Dificil => 0.5f, _ => 0.3f };
 
         // Aparo (espada ou escudo empurrado contra o golpe): cambaleia — janela para punir.

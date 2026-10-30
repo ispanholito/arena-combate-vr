@@ -67,6 +67,9 @@ namespace Arena
         bool circling, feint;
         float dodgeT, threatCheckT, kameCheckT;
         Vector3 dodgeDir;
+        // Reação pendente (tempo de reação humano): esquiva ou guarda só começam quando o tempo acaba.
+        float reactDodgeT = -1f, reactGuardT = -1f;
+        Vector3 reactDodgeDir;
         readonly HashSet<Projectile> seenThreats = new HashSet<Projectile>();
         static readonly List<System.Numerics.Vector2> neighbors = new List<System.Numerics.Vector2>();
         bool riposte;
@@ -787,7 +790,8 @@ namespace Arena
             retreatCheckT -= dt;
             // Ameaças (projétil vindo, Kamehameha carregando na minha direção): às vezes dá um passo para o lado.
             dodgeT -= dt; threatCheckT -= dt; kameCheckT -= dt;
-            if (dodgeT <= 0f && threatCheckT <= 0f && !stuck && attack != Attack.Strike) { threatCheckT = 0.1f; CheckThreats(pl); }
+            if (dodgeT <= 0f && reactDodgeT < 0f && threatCheckT <= 0f && !stuck && attack != Attack.Strike) { threatCheckT = 0.1f; CheckThreats(pl); }
+            if (reactDodgeT >= 0f) { reactDodgeT -= dt; if (reactDodgeT < 0f && !stuck && attack != Attack.Strike) StartDodge(reactDodgeDir); }
             circling = false;
             if (dodgeT > 0f && !stuck) { move = dodgeDir * CombatSteering.DodgeSpeed; }
             else if (retreatT > 0f && !stuck) { move = -dir * 1.6f; hasToken = false; tokens.Release(TokenId); }
@@ -820,15 +824,15 @@ namespace Arena
             bool lunging = attack == Attack.Strike && curAttack == EnemyAttack.Passo && attackT < 0.2f;
             if (lunging) move = lungeDir * (ActiveRagdollPoses.StepLunge / 0.2f);
             else if (!stuck) move = Steer(move);   // separação dos vizinhos + desvio dos pilares
-            // Acelera e freia (não muda de velocidade de uma vez); esquiva e avanço do golpe continuam instantâneos.
-            if (!lunging && dodgeT <= 0f) { smoothMove = Vector3.MoveTowards(smoothMove, move, (move.sqrMagnitude > smoothMove.sqrMagnitude ? EnemyMotion.Accel : EnemyMotion.Decel) * dt); move = smoothMove; }
+            // Acelera e freia (não muda de velocidade de uma vez), inclusive na esquiva; só o avanço do golpe é instantâneo.
+            if (!lunging) { smoothMove = Vector3.MoveTowards(smoothMove, move, (move.sqrMagnitude > smoothMove.sqrMagnitude ? EnemyMotion.Accel : EnemyMotion.Decel) * dt); move = smoothMove; }
             else smoothMove = move;
             // Correndo de longe: olha para onde corre (antes corria de lado olhando para você). Perto: olha para você e
             // anda de lado no máximo a MaxStrafe (passo lateral; mais rápido que isso parecia deslizar).
             bool running = hasToken && attack == Attack.None && dist > 3f && move.magnitude > 1.2f;
             var face = running ? new Vector3(move.x, 0f, move.z).normalized : dir;
             if (face.sqrMagnitude > 1e-4f) anchor.MoveRotation(Quaternion.Slerp(anchor.rotation, Quaternion.LookRotation(face), dt * (running ? 4f : 5f)));
-            if (!running && !lunging && dodgeT <= 0f)
+            if (!running && !lunging)
             {
                 var rightAx = anchor.rotation * Vector3.right;
                 float lat = Vector3.Dot(move, rightAx);
@@ -852,8 +856,9 @@ namespace Arena
                 && Vector3.Distance(w.TipPoint, bones[RagBone.Cabeca].Rb.position) < ActiveRagdollRules.GuardTriggerDistance)
             {
                 guardCd = ActiveRagdollRules.GuardCooldown;
-                if (Random.value < ActiveRagdollRules.GuardChance(Diff)) guardT = ActiveRagdollRules.GuardSeconds;
+                if (Random.value < ActiveRagdollRules.GuardChance(Diff)) reactGuardT = CombatSteering.ReactionDelay(Diff, Random.value);
             }
+            if (reactGuardT >= 0f) { reactGuardT -= dt; if (reactGuardT < 0f && attack == Attack.None) guardT = ActiveRagdollRules.GuardSeconds; }
             attackCd -= dt;
             if (attack == Attack.None && hasToken && dist <= reach && attackCd <= 0f && guardT <= 0f)
             {
@@ -935,7 +940,7 @@ namespace Arena
                 var pp = p.transform.position;
                 if (!CombatSteering.ProjectileThreat(e, new System.Numerics.Vector2(pp.x, pp.z), new System.Numerics.Vector2(p.Velocity.x, p.Velocity.z), out var dd)) continue;
                 seenThreats.Add(p);
-                if (Random.value < CombatSteering.DodgeChance(Diff)) StartDodge(new Vector3(dd.X, 0f, dd.Y));
+                if (Random.value < CombatSteering.DodgeChance(Diff)) QueueDodge(new Vector3(dd.X, 0f, dd.Y));
                 return;
             }
             var hm = HandMagic.Instance;
@@ -946,10 +951,12 @@ namespace Arena
                 if (toMe.magnitude < 14f && Vector3.Angle(pl.HeadForward, toMe) < 15f && Random.value < CombatSteering.DodgeChance(Diff))
                 {
                     var side = Vector3.Cross(Vector3.up, pl.HeadForward);
-                    StartDodge(Vector3.Dot(toMe, side) >= 0f ? side : -side);
+                    QueueDodge(Vector3.Dot(toMe, side) >= 0f ? side : -side);
                 }
             }
         }
+
+        void QueueDodge(Vector3 dir) { reactDodgeDir = dir; reactDodgeT = CombatSteering.ReactionDelay(Diff, Random.value); }
 
         void StartDodge(Vector3 dir)
         {

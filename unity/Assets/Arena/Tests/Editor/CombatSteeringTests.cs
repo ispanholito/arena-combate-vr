@@ -57,5 +57,15 @@ namespace Arena.Core.Tests
             Assert.Less(CombatSteering.DodgeChance(Difficulty.Facil), CombatSteering.DodgeChance(Difficulty.Dificil));
             Assert.AreEqual(0f, CombatSteering.FeintChance(Difficulty.Facil));
         }
+
+        [Test]
+        public void Dodge_IsHumanPaced()
+        {
+            // Reação nunca abaixo do humano (~0,25 s) e mais lenta no fácil; esquiva na velocidade de andar.
+            Assert.GreaterOrEqual(CombatSteering.ReactionDelay(Difficulty.Dificil, 0), 0.25f);
+            Assert.Greater(CombatSteering.ReactionDelay(Difficulty.Facil, 0), CombatSteering.ReactionDelay(Difficulty.Dificil, 1));
+            Assert.LessOrEqual(CombatSteering.DodgeSpeed, 1.7f);
+            Assert.LessOrEqual(EnemyMotion.DodgeSpeed, 1.7f);
+        }
     }
 }
