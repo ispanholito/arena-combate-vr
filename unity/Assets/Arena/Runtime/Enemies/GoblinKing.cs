@@ -31,6 +31,62 @@ namespace Arena
         protected override float IncomingPostureMultiplier => BossRules.HitPostureMultiplier;
         protected override float WindupTime => comboing ? BossRules.ComboWindup : windup;
 
+        // ---------- Visual de rei (chefe da demo, 2026-10-30; paleta da docs/biblia-de-arte.md) ----------
+        // Silhueta própria: coroa com pontas e joia, capa, ombreiras douradas, barriga, clava com cravos; olhos que acendem.
+        Material eyeMat, gemMat;
+        protected override void BuildVisual()
+        {
+            base.BuildVisual();
+            skinMat.color = new Color(0.36f, 0.66f, 0.27f);
+            var red = ArenaUtil.Lit(new Color(0.76f, 0.27f, 0.18f));
+            var cape = ArenaUtil.Lit(new Color(0.5f, 0.12f, 0.28f));
+            var gold = ArenaUtil.Lit(new Color(1f, 0.78f, 0.25f), new Color(0.3f, 0.2f, 0.02f));
+            var iron = ArenaUtil.Lit(new Color(0.72f, 0.75f, 0.82f));
+            eyeMat = ArenaUtil.Lit(new Color(1f, 0.9f, 0.3f), new Color(0.9f, 0.7f, 0.1f));
+            gemMat = ArenaUtil.Lit(new Color(1f, 0.15f, 0.2f), new Color(0.6f, 0.05f, 0.08f));
+            // Barriga e cinto
+            ArenaUtil.Prim(PrimitiveType.Sphere, model, new Vector3(0f, 0.6f, 0.04f), new Vector3(0.62f, 0.55f, 0.56f), red);
+            ArenaUtil.Prim(PrimitiveType.Cylinder, model, new Vector3(0f, 0.5f, 0f), new Vector3(0.6f, 0.04f, 0.6f), gold);
+            // Capa
+            var c = ArenaUtil.Prim(PrimitiveType.Cube, model, new Vector3(0f, 0.6f, -0.3f), new Vector3(0.62f, 0.78f, 0.04f), cape).transform;
+            c.localRotation = Quaternion.Euler(-10f, 0f, 0f);
+            // Ombreiras
+            foreach (int s in new[] { -1, 1 })
+                ArenaUtil.Prim(PrimitiveType.Sphere, model, new Vector3(s * 0.27f, 0.86f, 0f), new Vector3(0.2f, 0.14f, 0.2f), gold);
+            // Olhos grandes que acendem (troca o material dos olhos do goblin comum)
+            foreach (var r in model.GetComponentsInChildren<Renderer>())
+                if (r.transform.localScale == Vector3.one * 0.07f) { r.sharedMaterial = eyeMat; r.transform.localScale = Vector3.one * 0.09f; }
+            // Coroa: aro (já existe) + 5 pontas + joia na frente
+            for (int i = 0; i < 5; i++)
+            {
+                float a = i * Mathf.PI * 2f / 5f;
+                var spike = ArenaUtil.Prim(PrimitiveType.Cube, model, new Vector3(Mathf.Sin(a) * 0.13f, 1.29f, Mathf.Cos(a) * 0.13f), new Vector3(0.05f, 0.13f, 0.05f), gold).transform;
+                spike.localRotation = Quaternion.Euler(0f, a * Mathf.Rad2Deg, 0f);
+                headParts.Add(spike);
+            }
+            headParts.Add(ArenaUtil.Prim(PrimitiveType.Sphere, model, new Vector3(0f, 1.22f, 0.15f), Vector3.one * 0.06f, gemMat).transform);
+            // Clava maior com cravos
+            ArenaUtil.Prim(PrimitiveType.Sphere, arm, new Vector3(0f, 0.85f, 0f), new Vector3(0.24f, 0.3f, 0.24f), clubMat);
+            for (int i = 0; i < 6; i++)
+            {
+                float a = i * Mathf.PI / 3f;
+                var sp = ArenaUtil.Prim(PrimitiveType.Cube, arm, new Vector3(Mathf.Sin(a) * 0.12f, 0.85f + (i % 2) * 0.08f, Mathf.Cos(a) * 0.12f), Vector3.one * 0.05f, iron).transform;
+                sp.localRotation = Quaternion.Euler(45f, a * Mathf.Rad2Deg, 45f);
+            }
+        }
+
+        // Entrada: ruge ao aparecer (nome do chefe na tela) — quem está perto é empurrado, sem dano.
+        bool introduced;
+        void Intro()
+        {
+            introduced = true;
+            ArenaFx.FloatText("REI GOBLIN", Center + Vector3.up * 1.6f, new Color(1f, 0.78f, 0.25f), 2.2f);
+            ArenaFx.Ring(transform.position, new Color(1f, 0.78f, 0.25f), 5f, 0.6f);
+            ArenaAudio.Play(Sfx.Roar, Center, 1f, 0.8f);
+            ArenaInput.Haptic(0.8f, 0.3f); ArenaInput.Haptic(0.8f, 0.3f, left: true);
+            model.localScale = Vector3.one * k * 1.12f;
+        }
+
         protected override void OnHit(DamageEvent ev)
         {
             if (Phase == 1 && State.HpFraction < EnemyDef.BossPhase2Fraction && !ev.Killed)
@@ -38,9 +94,25 @@ namespace Arena
                 Phase = 2;
                 windup = EnemyDef.BossPhase2Windup;
                 skinMat.color = new Color(0.45f, 0.3f, 0.15f);
+                // Fúria: olhos e joia vermelhos, ruge e joga você longe (marca bem a troca de fase).
+                eyeMat.color = new Color(1f, 0.2f, 0.1f); eyeMat.SetColor("_EmissionColor", new Color(1f, 0.1f, 0.05f));
+                gemMat.SetColor("_EmissionColor", new Color(1f, 0.2f, 0.2f));
+                ArenaFx.FloatText("FÚRIA!", Center + Vector3.up * 1.4f, new Color(1f, 0.25f, 0.15f), 1.6f);
                 ArenaGame.Instance?.OnBossPhase2();
+                ClearMarker();
+                SpawnGrace = BossRules.RoarWindup + 0.25f;
+                StartAct(Act.Roar);
                 ArenaAudio.Play(Sfx.Roar, Center, 1f, 0.85f);
             }
+        }
+
+        // Morte: câmera lenta curta + explosão de moedas (momento para vídeo).
+        protected override void Die()
+        {
+            ArenaGame.Instance?.SlowMotion(0.3f, 1.1f);
+            ArenaFx.Burst(Center + Vector3.up * 0.5f, new Color(1f, 0.78f, 0.25f), 40, 5f, 1.6f);
+            ArenaFx.Ring(transform.position, new Color(1f, 0.78f, 0.25f), 4f, 0.6f);
+            base.Die();
         }
 
         protected override void OnStunned() { ClearMarker(); act = Act.None; model.localScale = Vector3.one * k; }
@@ -76,6 +148,7 @@ namespace Arena
 
         protected override bool ExtraAI(float dt, float d)
         {
+            if (!introduced) { Intro(); StartAct(Act.Rest); restFor = 1.2f; return true; }
             stompCd -= dt; chargeCd -= dt; slamCooldown -= dt;
             if (act != Act.None) { UpdateAct(dt, d); return true; }
 

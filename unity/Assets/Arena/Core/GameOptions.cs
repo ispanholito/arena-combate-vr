@@ -41,6 +41,7 @@ namespace Arena.Core
         public bool moveVignette = true;     // escurece as bordas ao andar/girar com o analógico (menos enjoo)
         public bool armSwingRun = true;      // sem controle nenhum: correr balançando os braços (ArmSwingRun)
         public bool seated = false;          // jogar sentado: sobe a câmera
+        public bool teleport = false;        // locomoção por teletransporte (analógico para frente = arco; soltar = vai)
         public bool wristHud = false;        // HUD no pulso esquerdo (como um relógio) em vez de preso à cabeça
         public bool showFps = false;         // mostra quadros por segundo e nº de inimigos (medir desempenho no Quest)
         public int difficulty = (int)Difficulty.Normal;

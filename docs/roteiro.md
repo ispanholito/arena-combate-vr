@@ -20,10 +20,16 @@ Prioridade: **A** = agora/próximo · **B** = rumo ao MVP · **C** = depois do M
 - (anotar aqui; nada entra antes da demo)
 - **Refazer o perfurar** (desligado em 2026-10-30: "mal feita"). `StabRules.Enabled` liga de novo.
 - **Bênçãos** (altar/estátua) — fora da demo; repensar o visual e onde aparecem (`Demo.Blessings`).
+- **Raio do céu CONTÍNUO** (Pablo, 2026-10-30): a "duração maior" que ele pediu é o raio da descarga ser um feixe contínuo (fica saindo enquanto aponta), não ficar mais tempo na mão. (O teste de 12 s na mão foi desfeito; voltou a 6 s.) Junto: melhorar o visual (hoje é linha em zigue-zague).
+- **Espada eletrizada** (Pablo, 2026-10-30): com o raio do céu na mão, encostar/passar na espada → a lâmina fica com CHOQUE (como a arma em chamas) e os golpes podem PARALISAR inimigos (eletrocutar).
+- **Skins de mão por classe** (Pablo, 2026-10-30: "skin é muito importante"): luvas/mãos com visual próprio de cada classe. Depois da arte base.
+- **Tutorial de entrada**: o Pablo tem uma ideia de como fazer (substitui os 12 passos) — esperar ele explicar.
 
 ## Próximos passos da demo (2026-10-30)
-1. **Melhorar o Rei Goblin** (chefe escolhido para a demo): arte estilizada, avisos mais legíveis, padrões e janelas de punição; testar no Quest.
-2. **Bíblia de arte** (definir o design do jogo: paleta, formas, proporções, materiais, regras para inimigos/armas/salas/efeitos) antes de gerar mais modelos.
+1. **Melhorar o Rei Goblin** — 1ª passada feita (visual, entrada, fúria, morte em câmera lenta); ajustar depois do teste no Quest.
+2. **Bíblia de arte** — rascunho em `docs/biblia-de-arte.md`; esperando o Pablo responder as 3 perguntas.
+4. **Onboarding de 2 minutos** — o Pablo tem a ideia; esperar.
+5. **Teletransporte** (feito, opção) e **baú com a mão** (feito); portas/alavancas físicas depois.
 3. **Esconder da demo**: chefes sorteados (só o Rei Goblin), modos de desafio, biomas, pets/mercenário, Muralha, Raio do céu?, armas engraçadas em excesso — decidir a lista com o Pablo.
 
 ## Próxima prioridade (decisão do Pablo, 2026-10-28): VISUAL, depois balanceamento

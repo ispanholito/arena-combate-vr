@@ -115,7 +115,8 @@ namespace Arena
             if (!GetComponent<WeaponSwapGesture>()) gameObject.AddComponent<WeaponSwapGesture>();   // mão livre por cima do ombro = troca de arma
             if (!GetComponent<ArmSwingRun>()) gameObject.AddComponent<ArmSwingRun>();   // sem controle: correr balançando os braços
             if (!GetComponent<HandInteract>()) gameObject.AddComponent<HandInteract>();
-            if (!GetComponent<PotionBelt>()) gameObject.AddComponent<PotionBelt>();   // poção no peito (VR)   // sem controle: pinça perto = interagir
+            if (!GetComponent<PotionBelt>()) gameObject.AddComponent<PotionBelt>();   // poção no peito (VR)
+            if (!GetComponent<TeleportLocomotion>()) gameObject.AddComponent<TeleportLocomotion>();   // opção de conforto   // sem controle: pinça perto = interagir
             if (!GetComponent<Muralha>()) gameObject.AddComponent<Muralha>();   // punho na palma: aura vermelha, só soco forte
             if (!GetComponent<SkyBolt>()) gameObject.AddComponent<SkyBolt>();   // mão fechada ao céu e abrir: raio em cadeia   // arma mergulhada na bola de fogo pega fogo   // livro de magias (abre pela pausa)
             ResetCharacter(startClass);
@@ -292,7 +293,7 @@ namespace Arena
             }
             else
             {
-                var mv = Input.Move;
+                var mv = TeleportLocomotion.Enabled(this) ? Vector2.zero : Input.Move;   // teletransporte: o analógico mira o arco
                 float speed = Combat.MoveSpeed * State.Blessings.MoveMultiplier;   // bênção Pés Leves
                 rigRoot.position += (f * mv.y + r * mv.x) * speed * dt;
                 // Passos: um a cada 0,75 m andados com o analógico.

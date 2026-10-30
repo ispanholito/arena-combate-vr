@@ -48,7 +48,17 @@ namespace Arena
             if (value) { player.TreeOpen = false; TutorialEvents.Raise("pausa"); }
         }
 
-        void PauseFromSystem() => SetPaused(true);   // tirou o headset ou abriu o menu do sistema
+        void PauseFromSystem() => SetPaused(true);
+
+        // Câmera lenta curta (morte do chefe). Conta em tempo real; a pausa tem prioridade.
+        float slowLeft, slowScale = 1f;
+        public void SlowMotion(float scale, float realSeconds) { slowScale = scale; slowLeft = realSeconds; }
+        void UpdateSlowMotion()
+        {
+            if (paused || slowLeft <= 0f) return;
+            slowLeft -= Time.unscaledDeltaTime;
+            Time.timeScale = slowLeft > 0f ? slowScale : 1f;
+        }   // tirou o headset ou abriu o menu do sistema
 
         void Awake()
         {
@@ -443,6 +453,7 @@ namespace Arena
 
         void Update()
         {
+            UpdateSlowMotion();
             float dt = Time.deltaTime;
             MessageTime -= dt;
             Tokens.Capacity = CombatAI.AttackTokens(SaveSystem.Options.Difficulty);

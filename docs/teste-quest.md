@@ -9,11 +9,16 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000000000000000000000000000000000. NOVO — polimento da demo
+- [ ] **Teletransporte** (pausa → Locomoção): analógico para frente mostra o arco; soltar teleporta. Confortável? O arco sai do controle certo?
+- [ ] **Baú**: põe a mão embaixo da frente da tampa e levanta — abre?
+- [ ] **Rei Goblin**: gostou do visual novo (coroa, capa, clava com cravos)? A entrada com rugido, a FÚRIA na metade da vida e a câmera lenta quando morre funcionam bem no VR (a câmera lenta enjoa?)
+- [ ] Ler `docs/biblia-de-arte.md` e responder as 3 perguntas do fim.
+
 ## 0000000000000000000000000000000000. NOVO — correções do teste de 30/10
 - [ ] **Estocada**: não perfura mais (golpe comum). Dá dano normal?
 - [ ] **Armas de fogo**: atiram sem recarregar; a cadência ficou boa? Fortes demais/fracas?
 - [ ] **Bênçãos**: não aparece mais altar nem estátua.
-- [ ] **Raio do céu**: fica 12 s na mão.
 - [ ] **Espinhos**: dá para ver a placa (moldura clara + pontinhas) antes de pisar?
 - [ ] **Xamã**: ainda atira no chão?
 - [ ] **Poção no peito**: aparecem frascos no peito? Pegar (grip esquerdo ou fechar a mão livre), levar à boca → bebe. A posição do peito está boa?

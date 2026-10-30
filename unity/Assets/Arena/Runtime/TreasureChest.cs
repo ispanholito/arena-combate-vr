@@ -5,6 +5,7 @@ using UnityEngine;
 namespace Arena
 {
     // Baú da dungeon: aparece quando a sala é limpa. Grip perto (VR) ou E (desktop) abre: ouro + às vezes uma arma.
+    // No VR também abre com a MÃO: ponha a mão embaixo da frente da tampa e levante (2026-10-30, interação física).
     public sealed class TreasureChest : MonoBehaviour
     {
         public static readonly List<TreasureChest> All = new List<TreasureChest>();
@@ -46,11 +47,39 @@ namespace Arena
             ArenaUtil.Prim(PrimitiveType.Cube, lid, new Vector3(0, 0.07f, 0.25f), new Vector3(0.84f, 0.04f, 0.1f), gold);
         }
 
+        const float LiftReach = 0.2f, LiftSpeed = 0.7f;   // mão a até 20 cm da frente da tampa subindo a ≥ 0,7 m/s
+        readonly Vector3[] prevHand = new Vector3[2];
+        bool handInit;
+
         void Update()
         {
-            if (!opened || openT >= 1f) return;
+            if (!opened) { HandLift(); return; }
+            if (openT >= 1f) return;
             openT = Mathf.Min(1f, openT + Time.deltaTime / 0.4f);
             lid.localRotation = Quaternion.Euler(-110f * Mathf.SmoothStep(0f, 1f, openT), 0, 0);
+        }
+
+        void HandLift()
+        {
+            var game = ArenaGame.Instance;
+            var pl = game ? game.Player : null;
+            if (!pl || !pl.IsVr || ArenaGame.Blocked || Time.deltaTime <= 0f) { handInit = false; return; }
+            var edge = transform.TransformPoint(new Vector3(0f, 0.44f, 0.26f));   // frente da tampa (lado oposto à dobradiça)
+            for (int side = 0; side < 2; side++)
+            {
+                var h = side == 0 ? pl.leftHand : pl.rightHand;
+                if (!h) continue;
+                var p = h.position;
+                float up = handInit ? (p.y - prevHand[side].y) / Time.deltaTime : 0f;
+                prevHand[side] = p;
+                if (handInit && up >= LiftSpeed && Vector3.Distance(p, edge) <= LiftReach)
+                {
+                    ArenaInput.Haptic(0.5f, 0.06f, left: side == 0);
+                    Open(pl);
+                    return;
+                }
+            }
+            handInit = true;
         }
 
         void OnDestroy() => All.Remove(this);

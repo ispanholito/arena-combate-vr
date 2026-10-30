@@ -48,7 +48,7 @@ namespace Arena.Core
     {
         public const float LookUpMinDeg = 30f;         // cabeça olhando para cima
         public const float HandAboveHead = 0.12f;      // mão acima da cabeça
-        public const float HeldSeconds = 12f;          // o raio espera na mão este tempo (era 6; Pablo: durar mais)
+        public const float HeldSeconds = 6f;           // o raio espera na mão este tempo
         public const float Mana = 30f, Cooldown = 8f;
         public const float AimMinReach = 0.35f, AimMaxAngle = 30f, AimHold = 0.1f;   // braço esticado para frente
         public const float FirstConeDeg = 25f, Range = 25f;
