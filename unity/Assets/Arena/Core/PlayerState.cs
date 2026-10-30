@@ -24,10 +24,45 @@ namespace Arena.Core
         // Modo arcade: profundidade atual da dungeon e da arena (sobe ao vencer, volta a 1 ao morrer).
         public int DungeonTier { get; set; } = 1;
         public int ArenaTier { get; set; } = 1;
-        // Duas armas equipadas (troca com o clique do analógico / Q). Pegar uma arma do chão troca a da mão.
+        // Mãos (2026-10-30, estilo Blade & Sorcery): Loadout[0] = mão DIREITA, Loadout[1] = mão ESQUERDA (escudo ou arma).
+        // Qualquer uma pode estar vazia. O resto fica nos COLDRES (Holsters): 2 nos ombros (qualquer tamanho) e 2 na
+        // cintura (pequenas e médias).
         public ItemInstance[] Loadout { get; } = new ItemInstance[2];
-        public int ActiveSlot { get; set; }
-        public ItemInstance ActiveItem => Loadout[ActiveSlot] ?? Loadout[0];
+        public int ActiveSlot { get => 0; set { } }   // antes: qual das 2 armas estava na mão; agora a direita é sempre a 0
+        public ItemInstance ActiveItem => Loadout[0];
+        public ItemInstance LeftItem => Loadout[1];
+        public const int OmbroE = 0, OmbroD = 1, CinturaE = 2, CinturaD = 3;
+        public ItemInstance[] Holsters { get; } = new ItemInstance[4];
+        public static bool IsShoulder(int slot) => slot == OmbroE || slot == OmbroD;
+        public static bool Fits(int slot, ItemInstance item) => item != null && (IsShoulder(slot) || !item.Base.IsLarge);
+        // Coldre livre onde o item cabe (pequenas preferem a cintura, deixando os ombros para as grandes); -1 = nenhum.
+        public int FreeHolsterFor(ItemInstance item)
+        {
+            if (item == null) return -1;
+            int[] order = item.Base.IsLarge ? new[] { OmbroD, OmbroE } : new[] { CinturaD, CinturaE, OmbroD, OmbroE };
+            foreach (int s in order) if (Holsters[s] == null) return s;
+            return -1;
+        }
+        public bool StoreInHolster(int slot, ItemInstance item)
+        {
+            if (slot < 0 || slot >= Holsters.Length || Holsters[slot] != null || !Fits(slot, item)) return false;
+            Holsters[slot] = item;
+            return true;
+        }
+        public ItemInstance TakeFromHolster(int slot)
+        {
+            if (slot < 0 || slot >= Holsters.Length) return null;
+            var it = Holsters[slot];
+            Holsters[slot] = null;
+            return it;
+        }
+        // Tem alguma arma além da que está na mão direita (esquerda ou coldres)?
+        public bool HasOtherWeapon()
+        {
+            if (Loadout[1] != null) return true;
+            foreach (var h in Holsters) if (h != null) return true;
+            return false;
+        }
 
         readonly Dictionary<string, float> cooldowns = new Dictionary<string, float>();
 
@@ -79,12 +114,19 @@ namespace Arena.Core
         // principal da classe (o Elementalista precisa do cajado para as magias).
         void EnsureClassWeapon()
         {
-            if (Loadout[0] == null) { GiveStartingWeapons(); return; }
+            if (Loadout[0] == null && Loadout[1] == null && !HasOtherWeapon()) { GiveStartingWeapons(); return; }
             var main = WeaponDef.LoadoutFor(Class.Id)[0];
-            for (int i = 0; i < Loadout.Length; i++)
-                if (Loadout[i] != null && Loadout[i].Base.Kind == main.Kind) { ActiveSlot = i; return; }
+            if (Loadout[0] != null && Loadout[0].Base.Kind == main.Kind) return;
+            for (int i = 0; i < Holsters.Length; i++)
+                if (Holsters[i] != null && Holsters[i].Base.Kind == main.Kind && !Holsters[i].Base.IsShield)
+                {
+                    var h = Holsters[i]; Holsters[i] = Loadout[0]; Loadout[0] = h;   // troca a da mão pela do coldre
+                    if (Holsters[i] != null && !Fits(i, Holsters[i])) { var x = Holsters[i]; Holsters[i] = null; int f = FreeHolsterFor(x); if (f >= 0) Holsters[f] = x; else AddLostItem(x); }
+                    return;
+                }
+            var old = Loadout[0];
             Loadout[0] = ItemInstance.Basic(main);
-            ActiveSlot = 0;
+            if (old != null) { int f = FreeHolsterFor(old); if (f >= 0) Holsters[f] = old; else AddLostItem(old); }
         }
 
         // Jogo salvo: nível/XP e libera de novo as habilidades salvas (gastando os pontos, respeitando pré-requisitos).
@@ -109,38 +151,47 @@ namespace Arena.Core
         public void GiveStartingWeapons()
         {
             var defs = WeaponDef.LoadoutFor(Class.Id);
-            for (int i = 0; i < Loadout.Length; i++) Loadout[i] = i < defs.Length ? ItemInstance.Basic(defs[i]) : null;
-            ActiveSlot = 0;
+            for (int i = 0; i < Loadout.Length; i++) Loadout[i] = i < defs.Length && defs[i] != null ? ItemInstance.Basic(defs[i]) : null;
+            for (int i = 0; i < Holsters.Length; i++) Holsters[i] = null;
+            for (int i = Loadout.Length; i < defs.Length; i++)
+            {
+                if (defs[i] == null) continue;
+                var it = ItemInstance.Basic(defs[i]);
+                int f = FreeHolsterFor(it);
+                if (f >= 0) Holsters[f] = it;
+            }
         }
 
-        // Pegou uma arma: ela vai para a MÃO (pedido do Pablo, 2026-10-29). A que estava na mão vai para a 2ª vaga se
-        // ela estiver vazia; senão sai (cai no chão / fica no gancho). Devolve a que saiu (ou null).
-        public ItemInstance TakeItem(ItemInstance item, out bool oldWentToSecond)
+        // Pegou uma arma com a mão (0 = direita, 1 = esquerda): ela vai para essa mão. A que estava nela vai para um
+        // coldre livre onde caiba; senão sai (cai no chão / fica no gancho). Devolve a que saiu (ou null).
+        public ItemInstance TakeItem(ItemInstance item, out bool oldStored, int hand = 0)
         {
-            int other = 1 - ActiveSlot;
-            var old = Loadout[ActiveSlot];
-            Loadout[ActiveSlot] = item;
-            if (old != null && Loadout[other] == null) { Loadout[other] = old; oldWentToSecond = true; return null; }
-            oldWentToSecond = false;
+            var old = Loadout[hand];
+            Loadout[hand] = item;
+            oldStored = false;
+            if (old == null) return null;
+            int f = FreeHolsterFor(old);
+            if (f >= 0) { Holsters[f] = old; oldStored = true; return null; }
             return old;
         }
 
-        // Tira a arma da MÃO (vender/guardar): a 2ª vira a da mão. Não deixa ficar sem arma nenhuma.
+        // Tira a arma da mão DIREITA (vender/guardar). Precisa ter outra arma (na esquerda ou num coldre); a primeira do
+        // coldre vai para a mão direita.
         public ItemInstance RemoveHandWeapon()
         {
-            int other = 1 - ActiveSlot;
-            var item = Loadout[ActiveSlot];
-            if (item == null || Loadout[other] == null) return null;
-            Loadout[ActiveSlot] = null;
-            ActiveSlot = other;
+            var item = Loadout[0];
+            if (item == null || !HasOtherWeapon()) return null;
+            Loadout[0] = null;
+            for (int i = 0; i < Holsters.Length; i++)
+                if (Holsters[i] != null && !Holsters[i].Base.IsShield) { Loadout[0] = Holsters[i]; Holsters[i] = null; break; }
             return item;
         }
 
-        // Troca a arma do slot ativo pela nova; devolve a antiga (que cai no chão).
+        // Troca a arma da mão direita pela nova; devolve a antiga (que cai no chão).
         public ItemInstance EquipToActive(ItemInstance item)
         {
-            var old = Loadout[ActiveSlot];
-            Loadout[ActiveSlot] = item;
+            var old = Loadout[0];
+            Loadout[0] = item;
             return old;
         }
 

@@ -73,7 +73,7 @@ namespace Arena
             if (broken || !c.rigidbody) return;
             float speed = c.relativeVelocity.magnitude;
             var pl = ArenaGame.Instance ? ArenaGame.Instance.Player : null;
-            bool weapon = pl && pl.Weapon && c.rigidbody == pl.Weapon.Body;
+            bool weapon = pl && pl.WeaponOf(c.rigidbody);
             if (weapon ? speed >= BreakableRules.BreakSpeed : speed >= BreakableRules.BodyBreakSpeed) Break();
         }
 

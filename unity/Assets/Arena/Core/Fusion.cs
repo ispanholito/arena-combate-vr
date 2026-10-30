@@ -57,15 +57,15 @@ namespace Arena.Core
         public static bool TryFuse(PlayerState ps, Random rng, out ItemInstance result)
         {
             result = null;
-            var keep = ps.Loadout[ps.ActiveSlot];
-            var food = ps.Loadout[1 - ps.ActiveSlot];
+            var keep = ps.Loadout[0];   // mão direita
+            var food = ps.Loadout[1];   // mão esquerda
             if (!CanFuse(keep, food)) return false;
             int cost = Cost(keep, food);
             if (ps.Gold < cost) return false;
             ps.SpendGold(cost);
             result = Fuse(keep, food, rng);
-            ps.Loadout[ps.ActiveSlot] = result;
-            ps.Loadout[1 - ps.ActiveSlot] = null;
+            ps.Loadout[0] = result;
+            ps.Loadout[1] = null;
             return true;
         }
     }

@@ -3,9 +3,9 @@ using UnityEngine;
 
 namespace Arena
 {
-    // Escudo da Lâmina na mão esquerda (controle esquerdo).
-    // Largar o controle esquerdo e mostrar a mão = escudo vai para as costas e a mão fica livre para os sinais.
-    // Gatilho esquerdo (VR) ou F (desktop) guarda/tira o escudo. Desktop: botão direito levanta (logo antes do golpe = aparo).
+    // Escudo na mão esquerda (2026-10-30: virou ITEM — aparece quando a mão esquerda segura um escudo; ver Holsters).
+    // Largar o controle esquerdo = o escudo vai para um coldre das costas. Desktop: F põe/tira, botão direito levanta
+    // (logo antes do golpe = aparo).
     [RequireComponent(typeof(ArenaPlayer))]
     public sealed class PlayerShield : MonoBehaviour
     {
@@ -16,7 +16,7 @@ namespace Arena
         [Tooltip("Ajuste no Quest: deslocamento do centro do escudo em relação ao controle (m).")]
         public Vector3 VrPositionOffset = new Vector3(0f, 0f, 0.06f);
 
-        public bool Available => player.State.Class.Id == ClassId.Lamina;
+        public bool Available => player.State.LeftItem != null && player.State.LeftItem.Base.IsShield;
         public bool Equipped { get; private set; }
         public Vector3 Center => visual.position;
         public float Speed { get; private set; }
@@ -25,7 +25,6 @@ namespace Arena
 
         ArenaPlayer player;
         Transform visual;
-        bool desktopEquipped = true;   // falso = escudo guardado (F no desktop, gatilho esquerdo no VR)
         Vector3 prevCenter;
         readonly Vector3[] now = new Vector3[4], prev = new Vector3[4];
         bool hasPrev;
@@ -46,14 +45,7 @@ namespace Arena
         void Update()
         {
             bool vr = player.IsVr;
-            // F (desktop) ou gatilho esquerdo (VR): guarda o escudo nas costas / tira de novo.
-            if (player.Input.ShieldToggle && Available && !player.TreeOpen && !ArenaGame.Blocked)
-            {
-                desktopEquipped = !desktopEquipped;
-                ArenaGame.Instance?.Message(desktopEquipped ? "Escudo na mão" : "Escudo guardado nas costas", 0.9f);
-            }
-
-            Equipped = Available && desktopEquipped && (!vr || player.Input.LeftControllerConnected) && !player.TreeOpen
+            Equipped = Available && (!vr || player.Input.LeftControllerConnected) && !player.TreeOpen
                        && !(player.Weapon && player.Weapon.TwoHanded);   // mão esquerda na arma: escudo nas costas
             visual.gameObject.SetActive(Equipped);
             if (!Equipped) { hasPrev = false; DesktopRaised = false; return; }

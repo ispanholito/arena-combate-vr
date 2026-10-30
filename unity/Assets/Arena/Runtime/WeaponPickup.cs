@@ -88,7 +88,7 @@ namespace Arena
             box.center = bounds.center - transform.position;
             box.size = new Vector3(Mathf.Max(0.04f, bounds.size.x), Mathf.Max(0.03f, bounds.size.y), Mathf.Max(0.1f, bounds.size.z));
             box.material = floorMat;
-            transform.rotation = Quaternion.Euler(Random.Range(-10f, 10f), Random.Range(0f, 360f), Random.Range(-10f, 10f));
+            transform.rotation = Quaternion.Euler(Random.Range(-10f, 10f), Random.Range(0f, 360f), Random.Range(-10f, 10f) + (item.Base.IsShield ? 90f : 0f));   // escudo cai deitado
             body = gameObject.AddComponent<Rigidbody>();
             body.mass = WeaponPhysics.Mass(item.Base);
             body.linearDamping = 0.2f; body.angularDamping = 2f;
@@ -170,7 +170,8 @@ namespace Arena
         // Pega a arma mais próxima ao alcance. Retorna true se pegou (o grip não arremessa a arma nesse quadro).
         // handOnly (gatilho perto da arma): só conta a mão, bem perto (não pega sem querer no meio da luta).
         public const float TriggerHandRange = 0.45f;
-        public static bool TryPickup(ArenaPlayer player, bool handOnly = false)
+        // hand: -1 = qualquer (direita por padrão), 0 = direita, 1 = esquerda (Holsters).
+        public static bool TryPickup(ArenaPlayer player, bool handOnly = false, int hand = -1)
         {
             WeaponPickup best = null;
             float bestD = float.MaxValue;
@@ -180,12 +181,13 @@ namespace Arena
                 float d;
                 if (player.IsVr)
                 {
-                    float hand = Mathf.Min(p.DistanceTo(player.RightHand.position), p.DistanceTo(player.leftHand.position));
+                    float handD = hand == 1 ? p.DistanceTo(player.leftHand.position) : hand == 0 ? p.DistanceTo(player.RightHand.position)
+                                : Mathf.Min(p.DistanceTo(player.RightHand.position), p.DistanceTo(player.leftHand.position));
                     bool feetOk = SaveSystem.Options.seated && !handOnly;
                     float feet = feetOk ? (player.FeetPosition - p.Center).Flat().magnitude : float.MaxValue;
                     float range = handOnly ? TriggerHandRange : p.OnRack ? RackHandRange : VrHandRange;
-                    if (hand > range && feet > FeetRange) continue;
-                    d = Mathf.Min(hand, feet);
+                    if (handD > range && feet > FeetRange) continue;
+                    d = Mathf.Min(handD, feet);
                 }
                 else
                 {
@@ -210,12 +212,14 @@ namespace Arena
                 ArenaAudio.Play2D(Sfx.Level, 0.6f, 1.3f);
             }
             // A arma que sai cai onde estava a nova (ou onde a sua caiu, se você estava de mão vazia).
-            var pos = player.Weapon.Held ? best.Center : player.Weapon.Visual.position;
+            int toHand = hand == 1 ? 1 : 0;
+            if (hand < 0 && item.Base.IsShield && player.State.LeftItem == null) toHand = 1;   // escudo sem mão escolhida: vai para a esquerda
+            var pos = toHand == 1 || player.Weapon.Held || !player.Weapon.Visual ? best.Center : player.Weapon.Visual.position;
             All.Remove(best);
             Destroy(best.gameObject);
             if (best.Rack == RackKind.Permanente) player.State.Stash.Remove(item);
             else if (best.Rack != RackKind.Loja) player.State.LostItems.Remove(item);   // era uma arma esquecida: achou
-            var dropped = GiveToPlayer(player, item, pos);
+            var dropped = GiveToPlayer(player, item, pos, toHand);
             if (dropped && best.OnRack && best.Rack != RackKind.Loja)   // troca na estante: a sua fica pendurada no mesmo gancho
             {
                 dropped.PlaceOnRack(best.RackPos, best.RackRot, best.Rack);
@@ -226,9 +230,9 @@ namespace Arena
 
         // Põe a arma na mão do jogador; a antiga vai para a 2ª vaga vazia ou cai em dropAt (devolvida). Usado ao pegar do
         // chão/estante/loja e ao arrancar uma arma cravada.
-        public static WeaponPickup GiveToPlayer(ArenaPlayer player, ItemInstance item, Vector3 dropAt)
+        public static WeaponPickup GiveToPlayer(ArenaPlayer player, ItemInstance item, Vector3 dropAt, int hand = 0)
         {
-            var old = player.State.TakeItem(item, out bool toSecond);
+            var old = player.State.TakeItem(item, out bool toSecond, hand);
             player.EquipActive();   // a nova sempre vai para a mão
             WeaponPickup dropped = null;
             if (old != null)
@@ -241,7 +245,7 @@ namespace Arena
             ArenaInput.Haptic(0.5f, 0.08f);
             var proficient = Proficiency.IsProficient(player.State.Class.Id, item.Base.Kind);
             ArenaGame.Instance?.Message(item.DisplayName
-                + (toSecond ? "\n<size=48>(a antiga foi para a 2ª arma)</size>" : "")
+                + (toSecond ? "\n<size=48>(a antiga foi para um coldre)</size>" : "")
                 + (proficient ? "" : "\n<size=48>(fora da classe: -15% dano)</size>"), 1.6f);
             return dropped;
         }

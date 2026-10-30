@@ -34,6 +34,8 @@ namespace Arena
             }
             else if (player.Input.LeftControllerConnected)
             {
+                // Mão esquerda segurando escudo/arma: não pega a direita com as duas mãos.
+                if (player.State.LeftItem != null) { w.ReleaseSecondHand(); wasGripping = false; return; }
                 gripping = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, OVRInput.Controller.LTouch) > 0.55f;
                 handPos = player.leftHand.position;
             }

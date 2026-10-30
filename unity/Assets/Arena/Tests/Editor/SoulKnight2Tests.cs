@@ -47,7 +47,7 @@ namespace Arena.Core.Tests
             Assert.Greater(GunRules.ShotDamage(GunRules.Pistola, epica), GunRules.ShotDamage(GunRules.Pistola, comum));
             Assert.IsTrue(GunRules.IsReloadFlick(3f, 0.8f));
             Assert.IsFalse(GunRules.IsReloadFlick(3f, 0.1f));   // cano deitado não recarrega
-            Assert.AreEqual(17, WeaponDef.All.Length);
+            Assert.AreEqual(18, WeaponDef.All.Length);
         }
 
         [Test]

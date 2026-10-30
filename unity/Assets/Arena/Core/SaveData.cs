@@ -8,7 +8,7 @@ namespace Arena.Core
     [Serializable]
     public sealed class SaveData
     {
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;   // 2 = mãos (direita/esquerda) + coldres
 
         public int version = CurrentVersion;
         public int classId;
@@ -23,6 +23,7 @@ namespace Arena.Core
         public int arenaTier = 1;
         public List<string> skills = new List<string>();
         public List<ItemSave> items = new List<ItemSave>();
+        public List<ItemSave> holsters = new List<ItemSave>();      // ombro E, ombro D, cintura E, cintura D
         public List<ItemSave> lostItems = new List<ItemSave>();   // armas esquecidas (voltam no santuário)
         public List<ItemSave> stash = new List<ItemSave>();       // estante permanente do santuário
         public List<int> rescued = new List<int>();               // NPCs resgatados (moram no santuário)
@@ -49,6 +50,7 @@ namespace Arena.Core
                 mercenary = ps.MercenaryHired,
             };
             foreach (var it in ps.Loadout) d.items.Add(ItemSave.From(it));
+            foreach (var it in ps.Holsters) d.holsters.Add(ItemSave.From(it));
             foreach (var it in ps.LostItems) d.lostItems.Add(ItemSave.From(it));
             foreach (var it in ps.Stash) d.stash.Add(ItemSave.From(it));
             return d;
@@ -68,19 +70,40 @@ namespace Arena.Core
             ps.SetPotions(potions);
             ps.DungeonTier = ArcadeRules.Clamp(dungeonTier);
             ps.ArenaTier = ArcadeRules.Clamp(arenaTier);
-            if (items != null)
-                for (int i = 0; i < ps.Loadout.Length && i < items.Count; i++)
-                {
-                    var it = items[i]?.ToItem();
-                    if (it != null) ps.Loadout[i] = it;
-                    else if (i > 0 && items[i] != null && string.IsNullOrEmpty(items[i].weapon)) ps.Loadout[i] = null;   // 2º slot vazio (arma guardada no suporte)
-                }
+            if (version >= 2)
+            {
+                for (int i = 0; i < ps.Holsters.Length; i++) ps.Holsters[i] = null;
+                if (items != null)
+                    for (int i = 0; i < ps.Loadout.Length && i < items.Count; i++)
+                    {
+                        if (items[i] == null) continue;
+                        var it = items[i].ToItem();
+                        if (it != null || string.IsNullOrEmpty(items[i].weapon)) ps.Loadout[i] = it;   // vazio = mão vazia; desconhecida = fica a inicial
+                    }
+                if (holsters != null)
+                    for (int i = 0; i < ps.Holsters.Length && i < holsters.Count; i++)
+                    {
+                        var it = holsters[i]?.ToItem();
+                        if (it != null && !ps.StoreInHolster(i, it)) ps.AddLostItem(it);
+                    }
+            }
+            else if (items != null && items.Count > 0)
+            {
+                // Salvo antigo: 2 armas (activeSlot = a da mão) + escudo fixo da Lâmina. Agora: a da mão vai para a
+                // direita, a outra para um coldre, e a Lâmina recebe o escudo na esquerda.
+                var a = items.Count > 0 ? items[0]?.ToItem() : null;
+                var b = items.Count > 1 ? items[1]?.ToItem() : null;
+                var hand = activeSlot == 1 && b != null ? b : a ?? b;
+                var other = hand == a ? b : a;
+                for (int i = 0; i < ps.Holsters.Length; i++) ps.Holsters[i] = null;
+                ps.Loadout[0] = hand;
+                ps.Loadout[1] = cls == ClassId.Lamina ? ItemInstance.Basic(WeaponDef.Escudo) : null;
+                if (other != null) { int f = ps.FreeHolsterFor(other); if (f >= 0) ps.Holsters[f] = other; else ps.AddLostItem(other); }
+            }
             if (lostItems != null)
                 foreach (var s in lostItems) { var it = s?.ToItem(); if (it != null) ps.AddLostItem(it); }
             if (stash != null)
                 foreach (var s in stash) { var it = s?.ToItem(); if (it != null) ps.AddToStash(it); }
-            ps.ActiveSlot = Math.Clamp(activeSlot, 0, ps.Loadout.Length - 1);
-            if (ps.Loadout[ps.ActiveSlot] == null) ps.ActiveSlot = 0;
             return ps;
         }
 

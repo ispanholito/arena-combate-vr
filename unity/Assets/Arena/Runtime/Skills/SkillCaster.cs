@@ -35,7 +35,7 @@ namespace Arena
             if (dt > 0f) { handVel = player.trackingSpace.TransformDirection((handLocal - handPrev) / dt); handPrev = handLocal; }
             if (player.TreeOpen) { CancelAims(); return; }
             // Grip perto de uma arma no chão: pega (em vez de arremessar a da mão).
-            if (I.PickupPressed && (StuckSword.TryGrabRight(player, false) || (ArenaGame.Instance && ArenaGame.Instance.Sanctuary && ArenaGame.Instance.Sanctuary.TryInteract(player)) || TreasureChest.TryOpen(player) || RescueCage.TryOpen(player) || BlessingStatue.TryUse(player) || WeaponPickup.TryPickup(player))) { CancelAims(); return; }
+            if (I.PickupPressed && ((Holsters.Instance && Holsters.Instance.TryDrawRight()) || StuckSword.TryGrabRight(player, false) || (ArenaGame.Instance && ArenaGame.Instance.Sanctuary && ArenaGame.Instance.Sanctuary.TryInteract(player)) || TreasureChest.TryOpen(player) || RescueCage.TryOpen(player) || BlessingStatue.TryUse(player) || WeaponPickup.TryPickup(player))) { CancelAims(); return; }
             // VR: GATILHO com a mão perto também interage (2026-10-29): segurando a arma pelo grip não dava para apertar o
             // grip de novo sem largar a arma. Arma no chão/estante: só com a mão bem perto (0,45 m).
             if (player.IsVr && I.TriggerPressed && (StuckSword.TryGrabRight(player, true) || (ArenaGame.Instance && ArenaGame.Instance.Sanctuary && ArenaGame.Instance.Sanctuary.TryInteract(player)) || TreasureChest.TryOpen(player) || RescueCage.TryOpen(player) || BlessingStatue.TryUse(player) || WeaponPickup.TryPickup(player, handOnly: true)))
@@ -59,6 +59,7 @@ namespace Arena
             if (w.Held && gripEngaged && !I.GripHeld)
             {
                 gripEngaged = false;
+                if (Holsters.Instance && Holsters.Instance.TryStoreRight()) return;   // soltou perto de um coldre: guarda
                 w.Throw(handVel, drop: true);
                 ArenaInput.Haptic(0.3f, 0.04f);
                 return;
@@ -66,6 +67,7 @@ namespace Arena
             if (w.Recalling && !I.GripHeld) { w.CancelRecall(); return; }
             if (!w.Held && !w.Recalling && I.GripPressed)
             {
+                if (w.Stowed) { if (EnemyGrabber.Instance) EnemyGrabber.Instance.TryGrabWithController(right: true); return; }   // mão vazia: nada para chamar
                 if (EnemyGrabber.Instance && EnemyGrabber.Instance.TryGrabWithController(right: true)) return;
                 w.Recall();
             }

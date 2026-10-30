@@ -36,6 +36,7 @@ namespace Arena
         readonly List<ArenaEnemy> line = new List<ArenaEnemy>();
         readonly List<WeaponPickup> weapons = new List<WeaponPickup>();
         StuckSword stuck;
+        WeaponPickup stuckShield;   // o escudo do aventureiro caído, ao lado (roteiro: acha os dois juntos)
         Transform root;
         float fallT = 2f, respawnT, walkT, stuckT;
 
@@ -50,7 +51,7 @@ namespace Arena
             Label(HelmetSpot, "CAPACETES", "goblin · esqueleto · orc");
             Label(KingSpot, "REI GOBLIN", "chefe da demo (imune)");
             Label(WeaponSpot, "ARMAS", "pegue para ver na mão");
-            Label(StuckSpot, "ESPADA CRAVADA", "segure o cabo e puxe (desktop: segure E)");
+            Label(StuckSpot, "ESPADA CRAVADA", "segure o cabo e puxe; o escudo está do lado");
             Label(LineStart + new Vector3(4.8f, 0f, 0f), "INIMIGOS", "como aparecem no jogo");
             Palette(new Vector3(-10.5f, 0f, 3.5f));
             SpawnWeapons();
@@ -67,6 +68,7 @@ namespace Arena
             foreach (var g in helmets) if (g) Destroy(g.gameObject);
             foreach (var w in weapons) if (w) Destroy(w.gameObject);
             if (stuck) Destroy(stuck.gameObject);
+            if (stuckShield) Destroy(stuckShield.gameObject);
         }
 
         void Update()
@@ -76,7 +78,8 @@ namespace Arena
             respawnT -= dt;
             if (respawnT <= 0f) { respawnT = 1.5f; Respawn(); }
             // Espada cravada: depois de arrancada, outro cadáver com espada aparece em 3 s.
-            if (!stuck || stuck.Freed) { stuckT -= dt; if (stuckT <= 0f) { if (stuck) Destroy(stuck.gameObject); stuck = StuckSword.Spawn(new ItemInstance(WeaponDef.EspadaLonga), StuckSpot, Vector3.forward, root); stuckT = 3f; } }
+            if (!stuck || stuck.Freed) { stuckT -= dt; if (stuckT <= 0f) { if (stuck) Destroy(stuck.gameObject); stuck = StuckSword.Spawn(new ItemInstance(WeaponDef.EspadaLonga), StuckSpot, Vector3.forward, root); stuckT = 3f;
+                if (!stuckShield) stuckShield = WeaponPickup.Spawn(new ItemInstance(WeaponDef.Escudo), StuckSpot + new Vector3(0.7f, 0.2f, 0.1f)); } }
 
             // Queda e levantar
             fallT -= dt;

@@ -26,7 +26,7 @@ Inspiração de monstros: SAO temporada 1 (conceito e clima, nunca copiar desenh
 - **Na demo ficam escondidos**: árvore de habilidades (sobe de nível só para vida/estamina), Investida, poderes da mão fora da Bola de Fogo, outros chefes, modos, biomas, pets, NPCs, armas de fogo, Elementalista.
 - Desbloqueios da demo são **roteirizados** (estátua, orc, baú), não pela árvore.
 
-- **Escudo vira item** (não fica mais preso na mão esquerda): achado junto com a espada do cadáver. A mão esquerda segura qualquer arma.
+- **Escudo vira item** (não fica mais preso na mão esquerda): achado junto com a espada do cadáver. A mão esquerda segura qualquer arma. **FEITO (2026-10-30)**, junto com os coldres.
 - **Coldres estilo Blade & Sorcery**: 2 nos OMBROS (qualquer tamanho, inclusive grandes: escudo, arco, lança, martelo) e 2 na CINTURA (pequenas e médias: espada, adaga, maça, machadinha, pistola). Mão perto do coldre + grip = pega; soltar a arma perto do coldre = guarda.
 
 ## Críticas / pontos a decidir

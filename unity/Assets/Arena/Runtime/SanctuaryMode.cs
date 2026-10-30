@@ -399,7 +399,7 @@ namespace Arena
             if (!near) return;
             var s = game.Player.State;
             var keep = s.Loadout[s.ActiveSlot]; var food = s.Loadout[1 - s.ActiveSlot];
-            if (keep == null || food == null) { forgeText.text = "FORJA DE FUSÃO\n<size=44>As duas armas viram uma outra\n(precisa da arma da mão e da 2ª)</size>"; return; }
+            if (keep == null || food == null) { forgeText.text = "FORJA DE FUSÃO\n<size=44>As duas armas viram uma outra\n(uma arma em cada mão)</size>"; return; }
             var r = Fusion.ResultRarity(keep, food);
             forgeText.text = "FORJA DE FUSÃO\n<size=44>" + keep.DisplayName + " + " + food.DisplayName + "\n→ " + Fusion.ResultBase(keep.Base, food.Base).Name + " " + ItemInstance.RarityName(r)
                 + "\n" + Fusion.Cost(keep, food) + " ouro (você tem " + s.Gold + ") · grip / E</size>";
@@ -410,7 +410,7 @@ namespace Arena
             if (!forge || !Near(player, forge.position, 1.3f, 1.6f)) return false;
             var s = player.State;
             var keep = s.Loadout[s.ActiveSlot]; var food = s.Loadout[1 - s.ActiveSlot];
-            if (keep == null || food == null) { game.Message("A forja transforma a arma da mão e a 2ª arma numa outra", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
+            if (keep == null || food == null) { game.Message("A forja transforma as armas das duas mãos numa outra", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
             if (!Fusion.TryFuse(s, fuseRng, out var result))
             {
                 game.Message("Custa " + Fusion.Cost(keep, food) + " de ouro (você tem " + s.Gold + ")", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true;
@@ -563,7 +563,7 @@ namespace Arena
             var s = player.State;
             var item = s.ActiveItem;
             int price = s.SellHandWeapon();
-            if (price <= 0) { game.Message("Para vender a arma da mão você precisa ter outra arma (a 2ª)", 1.6f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
+            if (price <= 0) { game.Message("Para vender a arma da mão você precisa ter outra arma (na mão esquerda ou num coldre)", 1.6f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
             player.EquipActive();
             ArenaAudio.Play(Sfx.Pickup, merchant.position + Vector3.up, 1f, 1.3f);
             ArenaFx.FloatText("+" + price + " ouro", merchant.position + Vector3.up * 1f, new Color(1f, 0.85f, 0.3f), 1.1f);
@@ -590,7 +590,7 @@ namespace Arena
                 if (p && p.OnRack && (p.RackPos - slot).sqrMagnitude < 0.01f) return false;   // ocupado: quem pega é o WeaponPickup
             var s2 = player.State;
             var item = s2.ActiveItem;   // guarda a arma da MÃO (a 2ª passa para a mão)
-            if (item == null || s2.Loadout[1 - s2.ActiveSlot] == null) { game.Message("Para guardar a arma da mão você precisa ter outra arma (a 2ª)", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
+            if (item == null || !s2.HasOtherWeapon()) { game.Message("Para guardar a arma da mão você precisa ter outra arma (na mão esquerda ou num coldre)", 1.4f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
             if (s2.Stash.Count >= PlayerState.MaxStash) { game.Message("Estante permanente cheia (12)", 1.2f); ArenaAudio.Play2D(Sfx.Deny, 0.6f); return true; }
             s2.RemoveHandWeapon();
             s2.AddToStash(item);

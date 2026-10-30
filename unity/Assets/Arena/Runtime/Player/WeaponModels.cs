@@ -155,6 +155,19 @@ namespace Arena
                     ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(0, -0.03f, 0.75f), new Vector3(0.04f, 0.01f, 0.03f), black);
                     return new Vector3(0, 0.09f, 0.4f);
                 }
+                case WeaponLook.Escudo:
+                {
+                    // Escudo redondo de madeira (plano yz, como a frigideira): alça na origem, disco centrado a 0,31 m.
+                    var plank = ArenaUtil.Lit(new Color(0.42f, 0.27f, 0.14f));
+                    var iron = ArenaUtil.Lit(new Color(0.55f, 0.57f, 0.62f), new Color(0.05f, 0.05f, 0.06f));
+                    var disc = ArenaUtil.Prim(PrimitiveType.Cylinder, t, new Vector3(0.03f, 0, 0.31f), new Vector3(0.6f, 0.015f, 0.6f), plank).transform;
+                    disc.localRotation = Quaternion.Euler(0, 0, 90);
+                    var rim = ArenaUtil.Prim(PrimitiveType.Cylinder, t, new Vector3(0.025f, 0, 0.31f), new Vector3(0.63f, 0.01f, 0.63f), iron).transform;
+                    rim.localRotation = Quaternion.Euler(0, 0, 90);
+                    ArenaUtil.Prim(PrimitiveType.Sphere, t, new Vector3(0.05f, 0, 0.31f), new Vector3(0.05f, 0.12f, 0.12f), iron);   // umbo
+                    Handle(t, new Vector3(0, 0, 0.31f), 0.07f, 0.03f, ArenaUtil.Lit(new Color(0.25f, 0.15f, 0.08f)));
+                    return new Vector3(0.06f, 0, 0.31f);
+                }
                 case WeaponLook.Frigideira:
                 {
                     var iron = ArenaUtil.Lit(new Color(0.16f, 0.16f, 0.17f), new Color(0.02f, 0.02f, 0.02f));
@@ -261,6 +274,7 @@ namespace Arena
             WeaponLook.Bacalhau => new[] { new Box(new Vector3(0, 0, 0.45f), new Vector3(0.07f, 0.17f, 0.62f)) },
             WeaponLook.Frigideira => new[] { new Box(new Vector3(0, 0, 0.13f), new Vector3(0.04f, 0.04f, 0.3f)), new Box(new Vector3(0, 0, 0.45f), new Vector3(0.05f, 0.33f, 0.33f)) },
             WeaponLook.Tocha => new[] { new Box(new Vector3(0, 0, 0.36f), new Vector3(0.06f, 0.06f, 0.8f)) },
+            WeaponLook.Escudo => new[] { new Box(new Vector3(0.03f, 0, 0.31f), new Vector3(0.05f, 0.6f, 0.6f)) },
             WeaponLook.Vassoura => new[] { new Box(new Vector3(0, 0, 0.65f), new Vector3(0.05f, 0.05f, 1.35f)), new Box(new Vector3(0, 0, 1.36f), new Vector3(0.22f, 0.08f, 0.3f)) },
             WeaponLook.Pistola => new[] { new Box(new Vector3(0, 0.0f, 0.14f), new Vector3(0.04f, 0.08f, 0.34f)) },
             WeaponLook.PistolaRepeticao => new[] { new Box(new Vector3(0, 0.0f, 0.14f), new Vector3(0.06f, 0.09f, 0.36f)) },
@@ -288,6 +302,7 @@ namespace Arena
             WeaponLook.Bacalhau => new Vector3(0, 0, 0.42f),
             WeaponLook.Frigideira => new Vector3(0, 0, 0.38f),
             WeaponLook.Tocha => new Vector3(0, 0, 0.42f),
+            WeaponLook.Escudo => new Vector3(0.03f, 0, 0.31f),
             WeaponLook.Vassoura => new Vector3(0, 0, 0.8f),
             WeaponLook.Pistola => new Vector3(0, 0, 0.08f),
             WeaponLook.PistolaRepeticao => new Vector3(0, 0, 0.07f),

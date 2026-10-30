@@ -46,7 +46,7 @@ namespace Arena
         {
             if (open || !c.rigidbody) return;
             var pl = ArenaGame.Instance ? ArenaGame.Instance.Player : null;
-            if (pl && pl.Weapon && c.rigidbody == pl.Weapon.Body && c.relativeVelocity.magnitude >= BreakSpeed) Open();
+            if (pl && pl.WeaponOf(c.rigidbody) && c.relativeVelocity.magnitude >= BreakSpeed) Open();
         }
 
         void Update()

@@ -26,7 +26,29 @@ namespace Arena
         // Inclinação da lâmina em relação ao controle (graus). Ajustar no Quest: negativo = lâmina mais para cima.
         public float VrGripPitch = -40f;
 
-        enum Mode { Held, Thrown, Recalling, Embedded }
+        enum Mode { Held, Thrown, Recalling, Embedded, Stowed }
+
+        // Mão que segura (2026-10-30: a mão esquerda também segura arma, estilo Blade & Sorcery).
+        public bool IsLeft { get; private set; }
+        Transform HandT => IsLeft ? player.leftHand : player.rightHand;
+        void Haptic(float amplitude, float seconds) => ArenaInput.Haptic(amplitude, seconds, left: IsLeft);
+        static void Haptic(float amplitude, float seconds, bool left) => ArenaInput.Haptic(amplitude, seconds, left);
+
+        // Mão vazia: a arma foi para o coldre (ou não há arma). Some e não colide; Def continua sendo a última.
+        public bool Stowed => mode == Mode.Stowed;
+        public void Stow()
+        {
+            if (!visual) { mode = Mode.Stowed; return; }
+            ReleaseStab(false);
+            ReleaseSecondHand();
+            UnpinCorpse();
+            if (joint) Destroy(joint);
+            body.isKinematic = true;
+            visual.gameObject.SetActive(false);
+            if (ghost) ghost.gameObject.SetActive(false);
+            mode = Mode.Stowed;
+            hasPrev = false;
+        }
         Mode mode = Mode.Held;
 
         ArenaPlayer player;
@@ -59,10 +81,11 @@ namespace Arena
         public Vector3 PhysTipVelocity => physTipVel;   // velocidade da ponta no passo de física ANTES do contato
         public Vector3 CrystalPoint => staffCrystal ? staffCrystal.position : TipPoint;
 
-        public void Init(ArenaPlayer p)
+        public void Init(ArenaPlayer p, bool left = false)
         {
             player = p;
-            wrist = new GameObject("Pulso").AddComponent<Rigidbody>();
+            IsLeft = left;
+            wrist = new GameObject(left ? "PulsoEsquerdo" : "Pulso").AddComponent<Rigidbody>();
             wrist.isKinematic = true;
             wrist.interpolation = RigidbodyInterpolation.Interpolate;
             ghostMat = ArenaUtil.Unlit(new Color(0.75f, 0.85f, 1f, 0f));
@@ -80,7 +103,7 @@ namespace Arena
             if (visual) Destroy(visual.gameObject);
             visual = BuildVisual(def, rarity).transform;
             BuildGlove();
-            if (!hasTarget) { targetPos = player.RightHand.position; targetRot = player.RightHand.rotation; }
+            if (!hasTarget) { targetPos = HandT.position; targetRot = HandT.rotation; }
             Attach();
             hasPrev = false;
         }
@@ -240,7 +263,7 @@ namespace Arena
             TwoHanded = true;
             stretchT = 0f;
             ApplyDrives();
-            ArenaInput.Haptic(0.4f, 0.05f, left: true);
+            Haptic(0.4f, 0.05f, left: true);
             return true;
         }
 
@@ -316,7 +339,7 @@ namespace Arena
 
         public void Recall()
         {
-            if (Held) return;
+            if (Held || mode == Mode.Stowed) return;
             if (mode == Mode.Embedded) return;   // cravada: segurar o gatilho para arrancar (UpdateEmbedded)
             mode = Mode.Recalling;
             body.isKinematic = true;
@@ -367,10 +390,10 @@ namespace Arena
         // ---------- Loop (Update, chamado pelo ArenaPlayer depois do movimento) ----------
         public void Tick(float dt, bool vr, bool desktopParry)
         {
-            if (Def == null || dt <= 0f) return;
+            if (Def == null || dt <= 0f || mode == Mode.Stowed) return;
             CarryWithRig(dt);
             // Alvo = pose da mão (VR) ou pose animada (desktop). A física persegue esse alvo no FixedUpdate.
-            if (vr) { targetPos = player.RightHand.position; targetRot = player.RightHand.rotation * Quaternion.Euler(Def.IsGun ? GunRules.GunPitch : VrGripPitch, 0, 0); }
+            if (vr) { targetPos = HandT.position; targetRot = HandT.rotation * Quaternion.Euler(Def.IsGun ? GunRules.GunPitch : VrGripPitch, 0, 0); }
             else DesktopPose(dt, out targetPos, out targetRot, desktopParry);
             hasTarget = true;
 
@@ -380,7 +403,7 @@ namespace Arena
                 visual.position += to.normalized * Mathf.Min(to.magnitude, 14f * dt);
                 visual.Rotate(Vector3.right, 720f * dt, Space.Self);
                 body.position = visual.position; body.rotation = visual.rotation;
-                if (to.magnitude < 0.25f) { Attach(); ArenaInput.Haptic(0.6f, 0.08f); }
+                if (to.magnitude < 0.25f) { Attach(); Haptic(0.6f, 0.08f); }
             }
 
             UpdateSecondHandStretch(dt);
@@ -450,7 +473,7 @@ namespace Arena
 
         void FixedUpdate()
         {
-            if (Def == null || !hasTarget) return;
+            if (Def == null || !hasTarget || mode == Mode.Stowed) return;
             // Velocidade da ponta relativa ao jogador (andar ou esquivar com a espada parada não crava).
             if (body && !body.isKinematic) physTipVel = body.GetPointVelocity(visual.TransformPoint(new Vector3(0, 0, Def.Length))) - rigVel;
             wrist.MovePosition(targetPos);
@@ -472,7 +495,7 @@ namespace Arena
             }
             // Presa longe da mão por muito tempo: volta para a mão — mas NUNCA atravessando parede ou chão (a mão fica
             // travada na arma do outro lado; ao voltar a mão, a mola traz a arma). Controle sem rastreamento também não conta.
-            bool tracked = !player.IsVr || OVRInput.GetControllerPositionTracked(OVRInput.Controller.RTouch);
+            bool tracked = !player.IsVr || OVRInput.GetControllerPositionTracked((IsLeft ? OVRInput.Controller.LTouch : OVRInput.Controller.RTouch));
             if (tracked && Vector3.Distance(body.position, targetPos) > WeaponPhysics.SnapDistance && !WallBetween(targetPos, body.position))
             {
                 farTime += Time.fixedDeltaTime;
@@ -501,7 +524,7 @@ namespace Arena
             bool show = player.IsVr && mode == Mode.Held && Separation > WeaponPhysics.GhostHandDistance;
             ghost.gameObject.SetActive(show);
             if (!show) return;
-            ghost.SetPositionAndRotation(player.RightHand.position, player.RightHand.rotation);
+            ghost.SetPositionAndRotation(HandT.position, HandT.rotation);
             float a = Mathf.InverseLerp(WeaponPhysics.GhostHandDistance, 0.35f, Separation);
             ghostMat.color = new Color(0.75f, 0.85f, 1f, Mathf.Lerp(0.15f, 0.5f, a));
         }
@@ -534,7 +557,7 @@ namespace Arena
             float amp = WeaponPhysics.HapticFromImpulse(c.impulse.magnitude, Def);
             if (amp < 0.08f) return;
             hapticCd = 0.06f;
-            ArenaInput.Haptic(amp, 0.04f + 0.08f * amp);
+            Haptic(amp, 0.04f + 0.08f * amp);
         }
 
         // ---------- Fase 3: espetar e cravar (refeito depois do teste no Quest) ----------
@@ -654,7 +677,7 @@ namespace Arena
             bool head = WeakPoints.IsHead(enemy.Def.Kind, enemy.HeightFraction(contact));
             bleedAcc = 0f;
             ArenaFx.Burst(contact, new Color(0.7f, 0.12f, 0.16f), 14, 3f);
-            ArenaInput.Haptic(1f, 0.12f);
+            Haptic(1f, 0.12f);
 
             if (StabRules.StyleFor(enemy.Def.Kind) == StabStyle.Skewer)
             {
@@ -724,7 +747,7 @@ namespace Arena
                 skewerDeep = true;
                 e.ApplyDamage(StabRules.StabDamage(stabSpeed, Def, true, true) * StabRules.DeepDamageMultiplier, 0.3f, null, 0f, new Color(0.9f, 0.15f, 0.2f), canCrit: false);
                 ArenaFx.FloatText("FUNDO!", e.Center + Vector3.up * 0.55f, new Color(1f, 0.4f, 0.4f), 0.9f);
-                ArenaInput.Haptic(0.8f, 0.08f);
+                Haptic(0.8f, 0.08f);
                 if (!skewered) return;
             }
             if (!skewerThrough && StabRules.IsThrough(skewerLocal.z, e.Radius, Def.Length))
@@ -732,7 +755,7 @@ namespace Arena
                 skewerThrough = true;
                 ArenaFx.FloatText("ATRAVESSOU!", e.Center + Vector3.up * 0.75f, new Color(1f, 0.3f, 0.3f), 1f);
                 ArenaFx.Burst(visual.TransformPoint(new Vector3(0, 0, Def.Length)), new Color(0.7f, 0.12f, 0.16f), 12, 2.5f);
-                ArenaInput.Haptic(1f, 0.1f);
+                Haptic(1f, 0.1f);
             }
             // Para os lados ele vai junto com a lâmina; o desvio do centro some devagar (a lâmina "acha" o meio).
             float decay = Mathf.Clamp01(1f - dt * 1.5f);
@@ -744,7 +767,7 @@ namespace Arena
             // Lâmina deslizando dentro do corpo: vibração proporcional à velocidade do deslize.
             float slide = Mathf.Abs(skewerLocal.z - zPrev) / Mathf.Max(dt, 1e-4f);
             skewerHapticCd -= dt;
-            if (slide > 0.2f && skewerHapticCd <= 0f) { skewerHapticCd = 0.05f; ArenaInput.Haptic(Mathf.Clamp01(0.25f + slide * 0.35f), 0.05f); }
+            if (slide > 0.2f && skewerHapticCd <= 0f) { skewerHapticCd = 0.05f; Haptic(Mathf.Clamp01(0.25f + slide * 0.35f), 0.05f); }
             Bleed(e, dt);
             if (!skewered) return;
             // Puxou a espada até a ponta sair do corpo: solta no lugar.
@@ -770,7 +793,7 @@ namespace Arena
             if (!e.Dead)
             {
                 e.Launch(launchVelocity);
-                if (launchVelocity.magnitude > 3f) ArenaInput.Haptic(0.8f, 0.08f);
+                if (launchVelocity.magnitude > 3f) Haptic(0.8f, 0.08f);
                 if (launchVelocity.magnitude > 3f) ArenaAudio.Play(Sfx.Whoosh, e.Center, 1f, 0.8f);
             }
         }
@@ -795,7 +818,7 @@ namespace Arena
                 ArenaFx.FloatText("ARRANCOU", e.Center + Vector3.up * 0.5f, new Color(1f, 0.5f, 0.5f), 1.1f);
                 ArenaAudio.Play(Sfx.Rip, TipPoint);
                 ArenaFx.Burst(TipPoint, new Color(0.7f, 0.12f, 0.16f), 18, 4f);
-                ArenaInput.Haptic(1f, 0.15f);
+                Haptic(1f, 0.15f);
                 FinishEmbed(true);
             }
         }

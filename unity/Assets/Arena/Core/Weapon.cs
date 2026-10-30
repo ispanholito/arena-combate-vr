@@ -5,7 +5,7 @@ namespace Arena.Core
     public enum WeaponKind { Espada, Machado, Cajado, Maca, Lanca, Adaga }
     // Visual da arma. O "Kind" decide como ela funciona (corta, crava, pancada, magia); o "Look" só muda o modelo,
     // a massa e o equilíbrio. Assim uma arma nova não precisa mexer em todo o combate.
-    public enum WeaponLook { Padrao, Katana, Rapieira, Martelo, Machadinha, Bacalhau, Frigideira, Tocha, Vassoura, Pistola, Bacamarte, PistolaRepeticao }
+    public enum WeaponLook { Padrao, Katana, Rapieira, Martelo, Machadinha, Bacalhau, Frigideira, Tocha, Vassoura, Pistola, Bacamarte, PistolaRepeticao, Escudo }
 
     // Peso: com pouca Força a arma pesada "atrasa" na mão (lag no follow).
     public sealed class WeaponDef
@@ -71,8 +71,16 @@ namespace Arena.Core
         public static readonly WeaponDef PistolaRepeticao = new WeaponDef("pistola_rep", "Pistola de Repetição", WeaponKind.Maca, 2.2f, 0.65f, 3f, 0.34f) { Look = WeaponLook.PistolaRepeticao, MassKg = 1.2f };
         public static readonly WeaponDef Bacamarte = new WeaponDef("bacamarte", "Bacamarte", WeaponKind.Maca, 5f, 0.8f, 5f, 0.66f) { Look = WeaponLook.Bacamarte, MassKg = 2.8f };
 
+        // Escudo (2026-10-30): virou item como as armas (achado; vai em qualquer mão ou nas costas). Funciona como pancada
+        // (Maça) se bater com ele; na mão esquerda bloqueia e apara (PlayerShield).
+        public static readonly WeaponDef Escudo = new WeaponDef("escudo", "Escudo de Madeira", WeaponKind.Maca, 4f, 0.6f, 6f, 0.62f) { Look = WeaponLook.Escudo, MassKg = 2.5f };
+
         public static readonly WeaponDef[] All = { EspadaLonga, MachadoPesado, CajadoArcano, MacaPesada, Lanca, Adaga,
-                                                   Katana, Rapieira, Martelo, Machadinha, Bacalhau, Frigideira, Tocha, Vassoura, Pistola, Bacamarte, PistolaRepeticao };
+                                                   Katana, Rapieira, Martelo, Machadinha, Bacalhau, Frigideira, Tocha, Vassoura, Pistola, Bacamarte, PistolaRepeticao, Escudo };
+        public bool IsShield => Look == WeaponLook.Escudo;
+        // Arma GRANDE (só nos coldres dos ombros): escudo, lança, cajados, machado pesado, martelo, bacamarte.
+        // Pequenas e médias também cabem na cintura.
+        public bool IsLarge => IsShield || Kind == WeaponKind.Cajado || Length > 1.15f || Look == WeaponLook.Bacamarte || WeaponPhysics.Mass(this) >= 3f;
         public bool IsGun => Look == WeaponLook.Pistola || Look == WeaponLook.Bacamarte || Look == WeaponLook.PistolaRepeticao;
 
         // Arma contundente: o "fio" não importa e não corta partes do esqueleto.
@@ -81,8 +89,9 @@ namespace Arena.Core
         public float PostureFactor => (Kind == WeaponKind.Maca ? 1.15f : 0.7f) * PostureBonus;
         public bool CanStab => Kind == WeaponKind.Espada || Kind == WeaponKind.Lanca || Kind == WeaponKind.Adaga;
 
+        // Kit inicial: [0] mão direita, [1] mão esquerda (null = vazia), o resto vai para os coldres.
         public static WeaponDef[] LoadoutFor(ClassId cls) =>
-            cls == ClassId.Lamina ? new[] { EspadaLonga, MachadoPesado } : new[] { CajadoArcano, Adaga };
+            cls == ClassId.Lamina ? new[] { EspadaLonga, Escudo, MachadoPesado } : new[] { CajadoArcano, null, Adaga };
     }
 }
 

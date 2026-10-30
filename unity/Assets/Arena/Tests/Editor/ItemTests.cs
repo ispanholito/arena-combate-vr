@@ -8,7 +8,7 @@ namespace Arena.Core.Tests
         [Test]
         public void AllWeapons_WithUniqueIds()
         {
-            Assert.AreEqual(17, WeaponDef.All.Length);   // 6 originais + 8 da leva Soul Knight + 3 armas de fogo
+            Assert.AreEqual(18, WeaponDef.All.Length);   // 6 originais + 8 da leva Soul Knight + 3 armas de fogo + escudo
             Assert.AreEqual(WeaponDef.All.Length, WeaponDef.All.Select(w => w.Id).Distinct().Count());
         }
 
@@ -93,7 +93,8 @@ namespace Arena.Core.Tests
         {
             var ps = new PlayerState(ClassId.Lamina);
             Assert.AreEqual(WeaponKind.Espada, ps.Loadout[0].Base.Kind);
-            Assert.AreEqual(WeaponKind.Machado, ps.Loadout[1].Base.Kind);
+            Assert.IsTrue(ps.LeftItem.Base.IsShield);   // Lâmina: espada na direita, escudo na esquerda
+            Assert.AreEqual(WeaponKind.Machado, ps.Holsters[PlayerState.OmbroD].Base.Kind);   // machado (grande) no ombro
             var mace = ItemInstance.Basic(WeaponDef.MacaPesada);
             var old = ps.EquipToActive(mace);
             Assert.AreEqual(WeaponKind.Espada, old.Base.Kind);
@@ -101,24 +102,48 @@ namespace Arena.Core.Tests
 
             var mage = new PlayerState(ClassId.Elementalista);
             Assert.AreEqual(WeaponKind.Cajado, mage.ActiveItem.Base.Kind);
-            Assert.AreEqual(WeaponKind.Adaga, mage.Loadout[1].Base.Kind);
+            Assert.IsNull(mage.LeftItem);
+            Assert.AreEqual(WeaponKind.Adaga, mage.Holsters[PlayerState.CinturaD].Base.Kind);   // adaga (pequena) na cintura
         }
 
         [Test]
-        public void TakeItem_GoesToHand_OldToEmptySecondSlot()
+        public void TakeItem_GoesToHand_OldToFreeHolster()
         {
             var ps = new PlayerState(ClassId.Lamina);
-            ps.Loadout[1] = null;   // guardou o machado
             var spear = ItemInstance.Basic(WeaponDef.Lanca);
-            Assert.IsNull(ps.TakeItem(spear, out bool second));   // a espada foi para a 2ª vaga
-            Assert.IsTrue(second);
+            Assert.IsNull(ps.TakeItem(spear, out bool stored));   // a espada foi para um coldre da cintura
+            Assert.IsTrue(stored);
             Assert.AreSame(spear, ps.ActiveItem);
-            Assert.AreEqual(WeaponKind.Espada, ps.Loadout[1 - ps.ActiveSlot].Base.Kind);
+            Assert.AreEqual(WeaponKind.Espada, ps.Holsters[PlayerState.CinturaD].Base.Kind);
+            // Lança é grande: só cabe no ombro. O ombro E está livre (o D tem o machado).
             var mace = ItemInstance.Basic(WeaponDef.MacaPesada);
-            var old = ps.TakeItem(mace, out second);   // as duas vagas cheias: troca a da mão
-            Assert.IsFalse(second);
-            Assert.AreSame(spear, old);
-            Assert.AreSame(mace, ps.ActiveItem);
+            Assert.IsNull(ps.TakeItem(mace, out stored));
+            Assert.AreSame(spear, ps.Holsters[PlayerState.OmbroE]);
+            // Mão esquerda pega a sua; o escudo que estava nela não cabe em lugar nenhum (ombros cheios): sai.
+            var dagger = ItemInstance.Basic(WeaponDef.Adaga);
+            var old = ps.TakeItem(dagger, out stored, hand: 1);
+            Assert.IsFalse(stored);
+            Assert.IsTrue(old.Base.IsShield);
+            Assert.AreSame(dagger, ps.LeftItem);
+        }
+
+        [Test]
+        public void Holsters_ShouldersTakeAnything_HipsOnlySmall()
+        {
+            var shield = ItemInstance.Basic(WeaponDef.Escudo);
+            var sword = ItemInstance.Basic(WeaponDef.EspadaLonga);
+            Assert.IsTrue(WeaponDef.Escudo.IsLarge && WeaponDef.Lanca.IsLarge && WeaponDef.MachadoPesado.IsLarge && WeaponDef.Martelo.IsLarge);
+            Assert.IsFalse(WeaponDef.EspadaLonga.IsLarge || WeaponDef.Adaga.IsLarge || WeaponDef.Machadinha.IsLarge || WeaponDef.Pistola.IsLarge);
+            Assert.IsTrue(PlayerState.Fits(PlayerState.OmbroE, shield));
+            Assert.IsFalse(PlayerState.Fits(PlayerState.CinturaE, shield));
+            Assert.IsTrue(PlayerState.Fits(PlayerState.CinturaE, sword));
+            Assert.IsTrue(PlayerState.Fits(PlayerState.OmbroD, sword));
+            var ps = new PlayerState(ClassId.Elementalista);
+            Assert.IsFalse(ps.StoreInHolster(PlayerState.CinturaE, shield));
+            Assert.IsTrue(ps.StoreInHolster(PlayerState.OmbroE, shield));
+            Assert.IsFalse(ps.StoreInHolster(PlayerState.OmbroE, sword));   // ocupado
+            Assert.AreSame(shield, ps.TakeFromHolster(PlayerState.OmbroE));
+            Assert.IsNull(ps.Holsters[PlayerState.OmbroE]);
         }
 
         [Test]
@@ -129,7 +154,7 @@ namespace Arena.Core.Tests
             ps.EquipToActive(rare);
             ps.SetClass(ClassId.Elementalista);
             Assert.AreEqual(WeaponKind.Cajado, ps.ActiveItem.Base.Kind);
-            Assert.IsTrue(ps.Loadout.Contains(rare) || ps.Loadout.Any(i => i.Base.Kind == WeaponKind.Machado));
+            Assert.IsTrue(ps.Holsters.Contains(rare) || ps.LostItems.Contains(rare));   // a lança vai para um coldre (ou estante)
         }
 
         [Test]

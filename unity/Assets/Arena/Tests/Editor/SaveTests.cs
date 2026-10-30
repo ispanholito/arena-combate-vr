@@ -31,7 +31,8 @@ namespace Arena.Core.Tests
             Assert.AreEqual(3, li.Upgrade);
             Assert.AreEqual(item.DamageMultiplier, li.DamageMultiplier, 1e-4);
             Assert.AreEqual(0.04f, li.Sum(AffixKind.RouboDeVida), 1e-4);
-            Assert.AreEqual(WeaponKind.Machado, loaded.Loadout[1].Base.Kind);
+            Assert.IsTrue(loaded.LeftItem.Base.IsShield);
+            Assert.AreEqual(WeaponKind.Machado, loaded.Holsters[PlayerState.OmbroD].Base.Kind);
             Assert.AreEqual(loaded.Hp.Max, loaded.Hp.Current);
             Assert.Greater(loaded.Hp.Max, ClassProfile.BaseHp);
         }
@@ -69,17 +70,32 @@ namespace Arena.Core.Tests
         }
 
         [Test]
-        public void EmptySecondSlot_StaysEmpty_AfterLoad()
+        public void HandsAndHolsters_RoundTrip_EmptyStaysEmpty()
         {
             var ps = new PlayerState(ClassId.Lamina);
-            var axe = ps.Loadout[1];
-            ps.Loadout[1] = null;   // guardou o machado no suporte
+            var axe = ps.TakeFromHolster(PlayerState.OmbroD);   // guardou o machado no suporte
             ps.AddLostItem(axe);
+            ps.Loadout[1] = null;                                  // escudo largado
+            ps.StoreInHolster(PlayerState.CinturaE, ItemInstance.Basic(WeaponDef.Adaga));
             var loaded = SaveData.From(ps).ToPlayer();
             Assert.IsNull(loaded.Loadout[1]);
+            Assert.IsNull(loaded.Holsters[PlayerState.OmbroD]);
+            Assert.AreEqual(WeaponKind.Adaga, loaded.Holsters[PlayerState.CinturaE].Base.Kind);
             Assert.AreEqual(WeaponKind.Espada, loaded.ActiveItem.Base.Kind);
             Assert.AreEqual(WeaponKind.Machado, loaded.LostItems.Single().Base.Kind);
             Assert.AreEqual(12, PlayerState.MaxLostItems);
+        }
+
+        [Test]
+        public void OldSave_MovesSecondWeaponToHolster_AndGivesShield()
+        {
+            var data = new SaveData { version = 1, classId = (int)ClassId.Lamina, activeSlot = 1 };
+            data.items.Add(new ItemSave { weapon = "espada" });
+            data.items.Add(new ItemSave { weapon = "machado" });
+            var ps = data.ToPlayer();
+            Assert.AreEqual(WeaponKind.Machado, ps.ActiveItem.Base.Kind);   // era a da mão
+            Assert.IsTrue(ps.LeftItem.Base.IsShield);
+            Assert.AreEqual(WeaponKind.Espada, ps.Holsters[PlayerState.CinturaD].Base.Kind);
         }
 
         [Test]
@@ -105,10 +121,11 @@ namespace Arena.Core.Tests
         {
             var ps = new PlayerState(ClassId.Lamina);
             int gold = ps.Gold;
-            int price = ps.SellHandWeapon();   // a espada comum (o machado passa para a mão)
+            int price = ps.SellHandWeapon();   // a espada comum (o machado do coldre passa para a mão)
             Assert.AreEqual(Merchant.Price(ItemInstance.Basic(WeaponDef.EspadaLonga)), price);
             Assert.AreEqual(gold + price, ps.Gold);
             Assert.AreEqual(WeaponKind.Machado, ps.ActiveItem.Base.Kind);
+            ps.Loadout[1] = null;                       // sem escudo
             Assert.AreEqual(0, ps.SellHandWeapon());   // não vende a única arma
             Assert.IsNotNull(ps.ActiveItem);
             Assert.Greater(Merchant.Price(new ItemInstance(WeaponDef.Adaga, Rarity.Lendario)), Merchant.Price(new ItemInstance(WeaponDef.Adaga, Rarity.Raro)));

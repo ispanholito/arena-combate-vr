@@ -9,6 +9,16 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000000000000000000000000000000000000000. NOVO — coldres, mão esquerda com arma e escudo como item
+- Começo (Lâmina): espada na direita, escudo na esquerda, machado no coldre do OMBRO direito (aparece nas costas).
+- **Guardar**: leve a arma até a cintura (ou por cima do ombro) e solte o grip → ela fica no coldre (aparece pendurada). Arma grande (escudo, machado, lança, martelo, cajado) só entra nos ombros.
+- **Sacar**: mão vazia perto do coldre + grip → a arma vem para a mão (qualquer mão).
+- **Mão esquerda**: segure o grip esquerdo para manter o escudo/arma; soltar longe de um coldre = cai no chão. Solte o controle esquerdo (para os poderes da mão): o escudo vai sozinho para as costas.
+- **Duas armas**: pegue uma espada do chão com a mão esquerda (grip perto) — as duas batem nos inimigos.
+- Escudo na mão esquerda ainda bloqueia e apara. Duas mãos na mesma arma só com a esquerda vazia.
+- Sala de Criação → ESPADA CRAVADA: o escudo do aventureiro está do lado.
+- **Ajustar no Quest**: posição dos coldres (cintura um pouco à frente do quadril; ombros atrás da cabeça) e se a arma pendurada atrapalha a visão.
+
 ## 000000000000000000000000000000000000000000000. NOVO — armas no chão param, corpos não voam
 - Armas caídas param em ~1,5 s e não rolam mais pelo chão (antes saíam rodando).
 - Goblin morrendo não pode sair voando nem ficar tremendo no chão (mate vários, inclusive com a espada encostada no corpo).

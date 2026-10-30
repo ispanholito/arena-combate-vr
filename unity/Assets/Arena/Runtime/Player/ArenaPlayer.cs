@@ -23,6 +23,15 @@ namespace Arena
         public PlayerState State { get; private set; }
         public ArenaInput Input { get; } = new ArenaInput();
         public PlayerWeapon Weapon { get; private set; }
+        public PlayerWeapon WeaponL { get; private set; }   // arma na mão ESQUERDA (o escudo é o PlayerShield)
+        // Qual arma do jogador é este corpo físico (direita ou esquerda)? null = nenhuma.
+        public PlayerWeapon WeaponOf(Rigidbody rb)
+        {
+            if (!rb) return null;
+            if (Weapon && Weapon.Body == rb) return Weapon;
+            if (WeaponL && WeaponL.Body == rb) return WeaponL;
+            return null;
+        }
         public PlayerShield Shield { get; private set; }
         public bool IsVr { get; private set; }
         public bool TreeOpen { get; set; }
@@ -98,7 +107,10 @@ namespace Arena
             CreateGameHands();
             Weapon = new GameObject("ArmaDoJogador").AddComponent<PlayerWeapon>();
             Weapon.Init(this);
+            WeaponL = new GameObject("ArmaDoJogadorEsquerda").AddComponent<PlayerWeapon>();
+            WeaponL.Init(this, left: true);
             Shield = GetComponent<PlayerShield>();
+            if (!GetComponent<Holsters>()) gameObject.AddComponent<Holsters>();   // coldres nos ombros e na cintura + mão esquerda
             if (!GetComponent<WeaponAbilityCaster>()) gameObject.AddComponent<WeaponAbilityCaster>();   // cenas antigas não têm
             pauseMenu = GetComponent<PauseMenu>();
             if (!pauseMenu) pauseMenu = gameObject.AddComponent<PauseMenu>();
@@ -112,7 +124,6 @@ namespace Arena
             if (!GetComponent<FlameBlade>()) gameObject.AddComponent<FlameBlade>();
             if (!GetComponent<GunController>()) gameObject.AddComponent<GunController>();   // pistola e bacamarte
             if (!GetComponent<PetCompanion>()) gameObject.AddComponent<PetCompanion>();   // fada da Domadora
-            if (!GetComponent<WeaponSwapGesture>()) gameObject.AddComponent<WeaponSwapGesture>();   // mão livre por cima do ombro = troca de arma
             if (!GetComponent<ArmSwingRun>()) gameObject.AddComponent<ArmSwingRun>();   // sem controle: correr balançando os braços
             if (!GetComponent<HandInteract>()) gameObject.AddComponent<HandInteract>();
             if (!GetComponent<PotionBelt>()) gameObject.AddComponent<PotionBelt>();   // poção no peito (VR)
@@ -150,11 +161,16 @@ namespace Arena
 
         void SetupLoadout() => EquipActive();
 
-        // Equipa a arma do slot ativo (com raridade, atributos e ferreiro). Chamado também depois de pegar loot ou melhorar.
+        // Equipa as mãos (com raridade, atributos e ferreiro): direita = PlayerWeapon; esquerda = escudo (PlayerShield) ou
+        // outra arma física (WeaponL, só no VR). Mão vazia = arma guardada. Chamado depois de pegar, guardar ou melhorar.
         public void EquipActive()
         {
             var item = State.ActiveItem;
             if (item != null) Weapon.Equip(item.Resolve(State.Class.Id), item.Rarity);
+            else Weapon.Stow();
+            var left = State.LeftItem;
+            if (left != null && !left.Base.IsShield && IsVr) WeaponL.Equip(left.Resolve(State.Class.Id), left.Rarity);
+            else WeaponL.Stow();
         }
 
         public void ChangeClass(ClassId cls)
@@ -163,14 +179,8 @@ namespace Arena
             SetupLoadout();
         }
 
-        public void SwitchWeapon()
-        {
-            int other = 1 - State.ActiveSlot;
-            if (State.Loadout[other] == null || !Weapon.Held) return;
-            State.ActiveSlot = other;
-            EquipActive();
-            if (ArenaGame.Instance) ArenaGame.Instance.Message(State.ActiveItem.DisplayName, 0.9f);
-        }
+        // Q (desktop) / clique do analógico esquerdo: troca a arma da mão direita pela próxima dos coldres.
+        public void SwitchWeapon() { var h = GetComponent<Holsters>(); if (h) h.CycleRight(); }
 
         // Poção: no VR fica no peito (PotionBelt: pegar o frasco e levar à boca); desktop B.
         void UpdatePotion(float dt)
@@ -230,6 +240,7 @@ namespace Arena
             State.Tick(dt);
             vignette = Mathf.MoveTowards(vignette, 0f, dt * 2f);
             Weapon.Tick(dt, IsVr, !IsVr && Input.DesktopParry);
+            if (IsVr) WeaponL.Tick(dt, true, false);
             if (!IsVr && !TreeOpen && Input.DesktopSwing && !Weapon.Def.IsGun) Weapon.DesktopSwing();   // arma de fogo: o clique atira (GunController)
             if (!IsVr && !TreeOpen && Input.DesktopThrust) Weapon.DesktopThrust();
             if (!IsVr) Weapon.DesktopThrustHold(Input.DesktopThrustHeld);

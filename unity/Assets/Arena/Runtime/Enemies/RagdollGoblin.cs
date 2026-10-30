@@ -1050,8 +1050,8 @@ namespace Arena
         {
             var pl = Player;
             if (!pl) return;
-            var w = pl.Weapon;
-            if (!w || !w.Body || c.rigidbody != w.Body) return;
+            var w = pl.WeaponOf(c.rigidbody);   // direita ou esquerda
+            if (!w || !w.Body) return;
             Bone bone = null;
             if (c.contactCount == 0 || (id != RagBone.Clava && !bones.TryGetValue(id, out bone))) return;
             WeaponContact(pl, w, id, bone, c.GetContact(0).point, c.relativeVelocity, slicing: false);

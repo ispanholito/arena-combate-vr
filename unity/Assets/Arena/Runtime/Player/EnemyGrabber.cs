@@ -191,7 +191,7 @@ namespace Arena
             var I = player.Input;
             float dt = Mathf.Max(Time.deltaTime, 1e-4f);
             // Controle esquerdo: grip com o escudo nas costas (e sem segurar a arma com as duas mãos) agarra.
-            bool leftEmpty = I.LeftControllerConnected && !(player.Shield && player.Shield.Equipped) && !player.Weapon.TwoHanded;
+            bool leftEmpty = I.LeftControllerConnected && player.State.LeftItem == null && !player.Weapon.TwoHanded;
             if (leftEmpty && I.LeftGripPressed && !Holding(0)) TryGrabWithController(false);
             for (int side = 0; side < 2; side++)
             {
