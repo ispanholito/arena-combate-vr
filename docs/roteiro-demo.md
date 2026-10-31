@@ -19,7 +19,7 @@ Inspiração de monstros: SAO temporada 1 (conceito e clima, nunca copiar desenh
 
 **Escudo de porta do Rei** (falta fazer): porta **com chapas de ferro** — corte de vento faz CLANG e some, espada em chamas solta faísca/"GROSSA DEMAIS!", golpe comum racha pouco, **aura** racha forte (4 golpes ≈ 2 ciclos de aura). O escudo cobre só a frente; depois de pisão/investida o Rei fica aberto 1-2 s. Fase 2: duas espadas.
 
-**Montado (2026-10-31, versão BRUTA)**: `Runtime/DemoMode.cs` (modo `GameMode.Demo`; `Demo.OnlyDemo = true` = o build abre direto nela; pausa → "Recomeçar a demo"). `DemoGate`: na demo ficam escondidos árvore, Investida, habilidade da arma, raio/soco/palma, raízes/onda, Muralha, raio do céu; Bola de Fogo só depois da estátua; Vento e Aura pela árvore com `Tree.Grant` ao pegar o orbe. Falta: escudo de porta funcional, fase 2 com duas espadas, arte das salas e do cadáver.
+**Montado (2026-10-31, versão BRUTA)**: `Runtime/DemoMode.cs` (modo `GameMode.Demo`; `Demo.OnlyDemo = true` = o build abre direto nela; pausa → "Recomeçar a demo"). `DemoGate`: na demo ficam escondidos árvore, Investida, habilidade da arma, raio/soco/palma, raízes/onda, Muralha, raio do céu; Bola de Fogo só depois da estátua; Vento e Aura pela árvore com `Tree.Grant` ao pegar o orbe. Escudo de porta funcional e fase 2 com duas espadas: FEITOS (2026-10-31). Falta: arte das salas, do cadáver e do Rei; balancear a luta no Quest.
 
 ## Sequência (versão anterior, 2026-10-30)
 

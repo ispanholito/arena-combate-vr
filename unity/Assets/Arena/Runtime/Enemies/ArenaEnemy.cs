@@ -310,6 +310,7 @@ namespace Arena
                                        Color? color = null, bool burn = false, bool canCrit = true)
         {
             if (Dead || SpawnGrace > 0f) return default;
+            if (AbsorbDamage(dir, burn)) return default;   // escudo de porta do Rei (vento, explosão) — de frente não passa
             // Chefe estilo Souls se defende fora da postura quebrada: menos vida, mas a postura sobe igual.
             float guard = IncomingDamageMultiplier;
             var ev = State.TakeDamage(amount * guard, postureFactor / Mathf.Max(guard, 0.01f) * IncomingPostureMultiplier, canCrit, burn);
@@ -337,6 +338,8 @@ namespace Arena
 
         // Inimigos que bloqueiam golpes com a arma sobrescrevem (multiplicador do dano: 1 = não bloqueou).
         protected virtual float BlockMultiplier(float tipSpeed, WeaponDef weapon, float damage) => 1f;
+        // Dano que não é golpe da arma (corte de vento, explosão, raio) barrado por um escudo: true = não leva nada.
+        protected virtual bool AbsorbDamage(Vector3? dir, bool burn) => false;
         // Multiplicador do dano recebido (o chefe se defende fora da postura quebrada).
         protected virtual float IncomingDamageMultiplier => 1f;
         protected virtual float IncomingPostureMultiplier => 1f;

@@ -555,7 +555,8 @@ namespace Arena
             bossShield.localPosition = new Vector3(-0.75f, 1.3f, 0.55f);
             bossShield.localRotation = Quaternion.Euler(0f, 25f, 0f);
             bossShield.localScale = Vector3.one * 0.55f;
-            BuildDoorBoards(bossShield, Vector3.zero, collider: false);   // por enquanto só visual (escudo de verdade: próxima etapa)
+            BuildDoorBoards(bossShield, Vector3.zero, collider: false);   // sem colisor: o bloqueio é do GoblinKing (BlockMultiplier/AbsorbDamage)
+            if (boss is GoblinKing king) king.GiveDoorShield(bossShield);
         }
 
         IEnumerator TopplShelf()

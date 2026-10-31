@@ -9,6 +9,12 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000000000000000000000000000000000000000000000. NOVO — Rei Goblin com escudo de porta de verdade e fase 2 com duas espadas
+- **Escudo de porta** (protege a FRENTE): golpe normal para nele e racha pouco (~10 golpes); **com a aura** racha forte e quebra em ~3 ("RACHOU!" → "VAI QUEBRAR!" → "ESCUDO QUEBROU!", ele fica atordoado 1,2 s). Corte de vento de frente = "CLANG!" e some; bola de fogo de frente = "GROSSA DEMAIS!"; espada em chamas solta faísca e fumaça. Bater no escudo também enche a postura dele.
+- **Janelas**: depois do pisão, da investida e do golpe no chão ele fica aberto ~1-2 s (aí o golpe pega no corpo). Pelas costas sempre pega.
+- **Fase 2** (metade da vida): larga a clava (e o que sobrou da porta) e saca **duas espadas** (os dois braços golpeiam juntos).
+- **Me diga**: se dá para entender que precisa da aura, se as janelas são curtas demais, se a luta ficou longa/difícil demais.
+
 ## 000000000000000000000000000000000000000000000000000. NOVO — porta alcançável, mãos sempre visíveis, bola de fogo no controle
 - **Porta pesada**: a parede invisível sumiu (o corredor até a porta estava fora da área). Guarde as armas (inclusive o escudo) e empurre com as duas mãos.
 - **Mãos sempre**: com o controle na mão aparece a mão em cima dele — grip fecha os dedos, gatilho o indicador (dedo fora do gatilho = apontando), polegar desce ao encostar nos botões. Segurando arma, a mão é a luva no cabo. Sem controle: a mão rastreada, como antes. **Conferir se a mão fica no lugar certo do controle** (posição medida "de olho" — me diga se fica torta, à frente ou atrás).
