@@ -49,14 +49,15 @@ namespace Arena
         {
             float dt = Time.deltaTime;
             rootsCd -= dt; kameCd -= dt; fireCd -= dt;
-            if (ArenaGame.Blocked || !player.IsVr || player.TreeOpen) { CancelAll(); return; }
+            if (ArenaGame.Blocked || !player.IsVr || player.TreeOpen) { CancelAll(); ctrlCharging = false; return; }
+            ControllerFire(dt);
             if (hands == null || !hands.running)
             {
                 SubsystemManager.GetSubsystems(buffer);
                 hands = null;
                 foreach (var s in buffer) if (s.running) { hands = s; break; }
             }
-            if (hands == null) { CancelAll(); return; }
+            if (hands == null) { if (!ctrlCharging) CancelAll(); return; }   // sem rastreamento: a bola do controle continua
             for (int side = 0; side < 2; side++) Track(side, dt);
             bool leftFree = player.Input.LeftHandFree && h[0].Tracked;
             bool rightFree = player.Input.RightHandFree && h[1].Tracked;
@@ -67,7 +68,7 @@ namespace Arena
             if (kameCharging) { kameCharging = false; kameT = 0f; }
             HideKameOrb();
             bool fireOk = DemoGate.FireAllowed;   // demo: só depois da estátua
-            if (fireOk && leftFree && HandLock.Free(0, "fogo")) Fireball(0, dt); else CancelFire(0);
+            if (fireOk && leftFree && HandLock.Free(0, "fogo")) Fireball(0, dt); else if (!ctrlCharging) CancelFire(0);
             if (fireOk && rightFree && HandLock.Free(1, "fogo")) Fireball(1, dt); else CancelFire(1);
         }
 
@@ -257,6 +258,50 @@ namespace Arena
             ArenaAudio.Play(Sfx.Wind, end, 1f, 0.5f);
             player.Vignette(0.4f);
             ArenaGame.Instance?.Message(n > 0 ? $"KAMEHAMEHA! ({n})" : "KAMEHAMEHA!", 1f);
+        }
+
+        // ---------- Bola de fogo pelo CONTROLE esquerdo (Pablo, 2026-10-31) ----------
+        // Segurar o clique do analógico esquerdo: a bola cresce na frente do controle (cheia em 1,5 s). Jogar a mão para
+        // frente arremessa; soltar o botão também solta (com a mão parada, vai para onde o controle aponta). A espada pode
+        // ser mergulhada nela como na da mão livre.
+        bool ctrlCharging;
+        Vector3 ctrlPrev;
+
+        void ControllerFire(float dt)
+        {
+            var I = player.Input;
+            var d = h[0];
+            var hand = player.leftHand;
+            var palm = hand.position + hand.forward * 0.07f + hand.up * 0.03f;
+            var local = player.trackingSpace.InverseTransformPoint(palm);
+            var vel = dt > 0f ? player.trackingSpace.TransformDirection((local - ctrlPrev) / dt) : Vector3.zero;
+            ctrlPrev = local;
+            if (!I.LeftControllerConnected || !DemoGate.FireAllowed) { if (ctrlCharging) { ctrlCharging = false; CancelFire(0); } return; }
+            if (I.LeftStickHeld)
+            {
+                if (!ctrlCharging)
+                {
+                    if (fireCd > 0f) return;
+                    if (player.State.Mana.Current < HandMagicRules.FireMana) { ArenaGame.Instance?.Message("Sem mana", 0.6f); return; }
+                    ctrlCharging = true; d.Armed = false; d.Charging = true; d.Charge = 0f;
+                    ArenaAudio.Play(Sfx.FireCast, palm, 0.5f, 0.8f);
+                }
+                if (!d.Charging) { ctrlCharging = false; return; }   // a espada consumiu a bola (mergulhou)
+                d.Palm = palm;
+                d.Charge += dt;
+                float power = HandMagicRules.FirePower(d.Charge);
+                ShowOrb(d, power);
+                if (power > 0f && Vector3.Dot(vel, player.HeadForward) > HandMagicRules.FireThrowSpeed)
+                {
+                    ThrowFireball(palm, vel, power);
+                    ctrlCharging = false; CancelFire(0);
+                }
+                return;
+            }
+            if (!ctrlCharging) return;
+            float pw = HandMagicRules.FirePower(d.Charge);
+            if (pw > 0f && d.Charging) ThrowFireball(palm, vel.magnitude > 1.5f ? vel : hand.forward * 6f, pw);
+            ctrlCharging = false; CancelFire(0);
         }
 
         // ---------- Bola de fogo (uma mão) ----------

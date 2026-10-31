@@ -9,6 +9,11 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000000000000000000000000000000000000000000000000. NOVO — porta alcançável, mãos sempre visíveis, bola de fogo no controle
+- **Porta pesada**: a parede invisível sumiu (o corredor até a porta estava fora da área). Guarde as armas (inclusive o escudo) e empurre com as duas mãos.
+- **Mãos sempre**: com o controle na mão aparece a mão em cima dele — grip fecha os dedos, gatilho o indicador (dedo fora do gatilho = apontando), polegar desce ao encostar nos botões. Segurando arma, a mão é a luva no cabo. Sem controle: a mão rastreada, como antes. **Conferir se a mão fica no lugar certo do controle** (posição medida "de olho" — me diga se fica torta, à frente ou atrás).
+- **Bola de fogo pelo controle** (depois da estátua): SEGURE o clique do analógico esquerdo → a bola cresce na frente do controle → jogue a mão (ou solte o botão: vai para onde o controle aponta). Dá para mergulhar a espada nela. O clique esquerdo não troca mais de arma (troca é pelos coldres).
+
 ## 00000000000000000000000000000000000000000000000000. NOVO — A DEMO (o jogo abre direto nela)
 Jogue de ponta a ponta e anote o que travou, confundiu ou ficou chato. Pausa → "Recomeçar a demo".
 - **Cela**: amarrado — puxe os braços com força (separar as mãos rápido) até a corda romper.

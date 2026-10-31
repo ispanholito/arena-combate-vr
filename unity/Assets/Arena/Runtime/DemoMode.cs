@@ -321,7 +321,7 @@ namespace Arena
             ArenaFx.Burst(p, new Color(1f, 0.5f, 0.15f), 40, 4f, 1.4f);
             ArenaAudio.Play(Sfx.Skill, p, 1f, 0.7f);
             ArenaInput.Haptic(1f, 0.3f); ArenaInput.Haptic(1f, 0.3f, left: true);
-            game.Message("BOLA DE FOGO! Solte o controle ESQUERDO: estique o punho fechado, ABRA a mão (a bola cresce) e jogue. Mergulhe a espada na bola para ela pegar fogo.", 9f);
+            game.Message("BOLA DE FOGO! Com o controle: SEGURE o clique do analógico ESQUERDO (a bola cresce) e jogue a mão. Sem controle: punho esticado, ABRA a mão e jogue. Mergulhe a espada na bola para ela pegar fogo.", 10f);
             SetCheckpoint(checkpoints[1]);
         }
 
@@ -718,6 +718,7 @@ namespace Arena
             if (activeRoom != null) { ArenaUtil.Area = new WalkArea(new[] { activeRoom.Rect }); return; }
             var list = new List<Rect2>();
             for (int i = 0; i <= last; i++) { list.Add(R(i)); if (i < last) list.Add(corridors[i]); }
+            if (!pl.Bound && !doorOpen) list.Add(corridors[6]);   // o corredor até a porta (ela fica no fim dele)
             ArenaUtil.Area = new WalkArea(list);
         }
 

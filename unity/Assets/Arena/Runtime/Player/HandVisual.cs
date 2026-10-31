@@ -4,9 +4,10 @@ using UnityEngine.XR.Hands;
 
 namespace Arena
 {
-    // Mostra as mãos rastreadas (XR Hands) no jogo: uma esfera por articulação e um "osso" (cilindro) entre elas.
-    // Cada mão aparece quando está livre (sem o controle nela).
-    // Com o controle na mão a mão rastreada some (a arma tem a luva e o escudo fica na mão do controle).
+    // Mostra as mãos no jogo SEMPRE, nas duas mãos (Pablo, 2026-10-31): uma esfera por articulação e um "osso"
+    // (cilindro) entre elas. Mão livre = pose do rastreamento (XR Hands). Com o controle na mão = mão montada em cima do
+    // controle, com os dedos seguindo os sensores (grip fecha médio/anelar/mindinho, gatilho o indicador, polegar
+    // encostado nos botões). Segurando uma arma, quem aparece é a luva no cabo (PlayerWeapon) — sem mão dupla.
     // Simples de propósito (primitivas); trocar por um modelo de mão com pele depois.
     [RequireComponent(typeof(ArenaPlayer))]
     public sealed class HandVisual : MonoBehaviour
@@ -98,10 +99,93 @@ namespace Arena
                 hands = null;
                 foreach (var s in buffer) if (s.running) { hands = s; break; }
             }
-            bool showLeft = hands != null && hands.leftHand.isTracked && player.Input.LeftHandFree;
-            bool showRight = hands != null && hands.rightHand.isTracked && player.Input.RightHandFree;
-            Pose(left, showLeft ? hands.leftHand : default, showLeft, 0);
-            Pose(right, showRight ? hands.rightHand : default, showRight, 1);
+            for (int side = 0; side < 2; side++)
+            {
+                var rig = side == 0 ? left : right;
+                bool free = side == 0 ? player.Input.LeftHandFree : player.Input.RightHandFree;
+                if (free)
+                {
+                    bool tracked = hands != null && (side == 0 ? hands.leftHand : hands.rightHand).isTracked;
+                    Pose(rig, tracked ? (side == 0 ? hands.leftHand : hands.rightHand) : default, tracked, side);
+                    continue;
+                }
+                var w = side == 1 ? player.Weapon : player.WeaponL;
+                bool holdingWeapon = w && w.Held;   // a luva no cabo já é a mão
+                if (holdingWeapon) { Pose(rig, default, false, side); continue; }
+                ControllerHand(rig, side);
+            }
+        }
+
+        // ---------- Mão em cima do controle ----------
+        // Pose montada no espaço do controle (x para fora da mão direita; espelhado na esquerda). Os dedos saem do lado de
+        // fora do cabo e enrolam em volta dele (giro no eixo vertical do controle) conforme o grip/gatilho.
+        static readonly XRHandJointID[][] FingerJoints =
+        {
+            new[] { XRHandJointID.IndexMetacarpal, XRHandJointID.IndexProximal, XRHandJointID.IndexIntermediate, XRHandJointID.IndexDistal, XRHandJointID.IndexTip },
+            new[] { XRHandJointID.MiddleMetacarpal, XRHandJointID.MiddleProximal, XRHandJointID.MiddleIntermediate, XRHandJointID.MiddleDistal, XRHandJointID.MiddleTip },
+            new[] { XRHandJointID.RingMetacarpal, XRHandJointID.RingProximal, XRHandJointID.RingIntermediate, XRHandJointID.RingDistal, XRHandJointID.RingTip },
+            new[] { XRHandJointID.LittleMetacarpal, XRHandJointID.LittleProximal, XRHandJointID.LittleIntermediate, XRHandJointID.LittleDistal, XRHandJointID.LittleTip },
+        };
+        static readonly float[] FingerY = { -0.005f, -0.025f, -0.043f, -0.06f };
+        static readonly float[] FingerScale = { 1f, 1.05f, 0.97f, 0.8f };
+        readonly Dictionary<XRHandJointID, Vector3> synth = new Dictionary<XRHandJointID, Vector3>();
+
+        void ControllerHand(HandRig h, int side)
+        {
+            var t = side == 0 ? player.leftHand : player.rightHand;
+            var c = side == 0 ? OVRInput.Controller.LTouch : OVRInput.Controller.RTouch;
+            float mx = side == 0 ? -1f : 1f;   // espelho da mão esquerda
+            float grip = Mathf.Max(0.12f, OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, c));
+            float trig = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, c);
+            bool indexNear = OVRInput.Get(OVRInput.NearTouch.PrimaryIndexTrigger, c) || trig > 0.05f;
+            float index = indexNear ? Mathf.Max(0.35f, trig) : 0.08f;   // dedo fora do gatilho = apontando
+            bool thumbDown = OVRInput.Get(OVRInput.NearTouch.PrimaryThumbButtons, c) || OVRInput.Get(OVRInput.Touch.PrimaryThumbstick, c)
+                             || OVRInput.Get(OVRInput.Touch.One, c) || OVRInput.Get(OVRInput.Touch.Two, c);
+            synth.Clear();
+            Vector3 P(float x, float y, float z) => t.TransformPoint(new Vector3(x * mx, y, z));
+            var wrist = new Vector3(0.012f, -0.035f, -0.095f);
+            synth[XRHandJointID.Wrist] = P(wrist.x, wrist.y, wrist.z);
+            synth[XRHandJointID.Palm] = P(0.018f, -0.03f, -0.045f);
+            float[] seg = { 0.042f, 0.026f, 0.021f };
+            float[] bend = { 55f, 65f, 45f };
+            for (int f = 0; f < 4; f++)
+            {
+                float curl = f == 0 ? index : grip;
+                var ids = FingerJoints[f];
+                var b = new Vector3(0.026f, FingerY[f], -0.012f);
+                synth[ids[0]] = P((wrist.x + b.x) * 0.5f, (wrist.y + b.y) * 0.5f, (wrist.z + b.z) * 0.5f);
+                synth[ids[1]] = P(b.x, b.y, b.z);
+                var dir = new Vector3(-0.12f, -0.08f, 1f).normalized;   // dedo esticado: para frente
+                float ang = 0f;
+                var p = b;
+                for (int k = 0; k < 3; k++)
+                {
+                    ang += bend[k] * curl;
+                    var d = Quaternion.AngleAxis(-ang, Vector3.up) * dir;   // enrola em volta do cabo (para dentro, -x)
+                    p += d * seg[k] * FingerScale[f];
+                    synth[ids[k + 2]] = P(p.x, p.y, p.z);
+                }
+            }
+            // Polegar: em cima do controle (encostado nos botões) ou levantado.
+            synth[XRHandJointID.ThumbMetacarpal] = P(-0.005f, -0.02f, -0.07f);
+            synth[XRHandJointID.ThumbProximal] = P(-0.012f, -0.0f, -0.045f);
+            synth[XRHandJointID.ThumbDistal] = thumbDown ? P(-0.008f, 0.018f, -0.018f) : P(-0.012f, 0.03f, -0.025f);
+            synth[XRHandJointID.ThumbTip] = thumbDown ? P(-0.002f, 0.022f, 0.004f) : P(-0.01f, 0.05f, -0.008f);
+            PoseFrom(h, synth);
+        }
+
+        void PoseFrom(HandRig h, Dictionary<XRHandJointID, Vector3> pos)
+        {
+            if (!h.Root.gameObject.activeSelf) h.Root.gameObject.SetActive(true);
+            h.Pos.Clear();
+            foreach (var kv in h.Joints)
+            {
+                if (!pos.TryGetValue(kv.Key, out var w)) { kv.Value.gameObject.SetActive(false); continue; }
+                kv.Value.gameObject.SetActive(true);
+                kv.Value.position = w;
+                h.Pos[kv.Key] = w;
+            }
+            DrawBones(h);
         }
 
         void Pose(HandRig h, XRHand hand, bool show, int side)
@@ -122,6 +206,11 @@ namespace Arena
                 kv.Value.position = w;
                 h.Pos[kv.Key] = w;
             }
+            DrawBones(h);
+        }
+
+        void DrawBones(HandRig h)
+        {
             foreach (var (a, b, bone) in h.Bones)
             {
                 if (!h.Pos.TryGetValue(a, out var pa) || !h.Pos.TryGetValue(b, out var pb)) { bone.gameObject.SetActive(false); continue; }
