@@ -1,58 +1,68 @@
-# Bíblia de arte — Arena VR (RASCUNHO para o Pablo revisar, 2026-10-30)
+# Bíblia de arte — Arena VR (v2, 2026-10-31)
 
 Regra de ouro: **tudo que aparece no jogo segue esta folha**. Modelo que não cabe aqui não entra, por mais bonito que seja sozinho.
 
-## 1. Público e tom
-- 8 a 21 anos. **Fantasia estilizada colorida**: divertido e exagerado, nunca bobo nem infantil; nunca realista nem sangrento.
-- Referências: **Soul Knight** (cores e leitura), **KayKit** (formas e materiais, já no projeto), Fortnite/Sea of Thieves (proporções), Blade & Sorcery só na física — nunca no visual.
-- Humor pontual (bacalhau, frigideira, "BONK!"), não em tudo.
+**Mudança de 2026-10-31 (decisão do Pablo)**: inspirações **Sword Art Online, Dark Souls e Goblin Slayer**. Substitui a "fantasia colorida 8-21 anos" de 2026-10-29. Público agora **13 a 21 anos** (classificação esperada 12-16).
+
+## 1. Tom: "fantasia sombria com toque de anime"
+- **Cenário sombrio** (Dark Souls): cavernas e ruínas escuras, frias, solitárias; luz quente só de tocha e fogueira. A fogueira é o único lugar que parece seguro.
+- **Inimigos ameaçadores** (Goblin Slayer): feios, sujos, espertos, armas improvisadas, emboscadas em grupo. Estilizados — nunca textura realista de pele.
+- **Interface e magia limpas e brilhantes** (SAO): painéis flutuantes, barras de vida, golpes e habilidades com luz forte. O contraste com o cenário escuro é o que deixa o jogo legível no Quest.
+- **Chefes** (Dark Souls + SAO): grandes, entrada marcante, sala própria. O Rei Goblin segue a linha do 1º chefe de SAO (sala do chefe, troca de arma na fase 2).
+- **Fica de fora** de Goblin Slayer: violência sexual e gore explícito. Nenhuma loja aprova e o jogo não precisa disso.
+- Humor (bacalhau, frigideira, "BONK!") **sai da demo**; no jogo completo, só em itens secretos/raros.
 
 ## 2. Formas
-- **Silhueta primeiro**: cada inimigo reconhecível só pela sombra a 10 m (goblin = orelhas grandes + corcunda; esqueleto = magro com crânio grande; orc = ombros enormes; slime = gota).
-- **Proporções exageradas**: cabeça e mãos 20-30% maiores que o real, pés pequenos, armas um pouco grossas (lê melhor no Quest).
-- **Low-poly chanfrado**: arestas levemente arredondadas, sem detalhe fino que vire ruído na lente do Quest 2.
-- Orçamento: inimigo ≤ 6 mil triângulos, arma ≤ 1,5 mil, peça de cenário ≤ 2 mil; 1 material por peça sempre que der.
+- **Silhueta primeiro**: cada inimigo reconhecível pela sombra a 10 m (goblin = baixo, corcunda, orelhas e nariz grandes, braços compridos; esqueleto = magro, crânio marcado; orc = ombros enormes, mandíbula; slime = gota).
+- **Proporção realista de anime**: corpo próximo do real, rosto e olhos expressivos, mãos e armas levemente maiores (lê melhor na lente). **Nada de cabeção.**
+- **Low-poly com chanfro**, sem detalhe fino que vire ruído no Quest 2.
+- Orçamento: inimigo ≤ 6 mil triângulos, chefe ≤ 10 mil, arma ≤ 1,5 mil, peça de cenário ≤ 2 mil; 1 material por peça sempre que der.
 
 ## 3. Cor
-- **Fundo escuro e frio** (pedra cinza-azulada, sombras roxas) × **personagens e loot quentes e saturados**. O que importa sempre se destaca do cenário.
+- **Fundo escuro, frio e dessaturado** × **luz de tocha quente** × **interface/magia saturadas e brilhantes**.
 - Paleta base:
-  - Pedra: `#4B4F63`, `#6B6F86` · Madeira: `#8A5A34` · Metal claro: `#C9CED8` · Bronze: `#E09A3D`
-  - Goblin: pele `#6DBB4A`, roupa `#C2452F` · Esqueleto: osso `#EDE3C8`, brasas `#FF7A2A` · Orc: pele `#5E8F45`, ferro `#4A5168`, dourado `#FFC640` · Slime: `#4FC3F7` / `#9CE36B`
+  - Pedra: `#2E313D`, `#4B4F63` · Sombra: `#1A1A24` (puxando para o roxo) · Madeira velha: `#5C3D24` · Ferro: `#5A606E` · Ferrugem: `#8A4A2A` · Luz de tocha: `#FFB25A`
+  - Goblin: pele `#6F8A3A` (verde sujo, oliva), trapos `#6B4A33`, olhos `#FFD23F` brilhando · Esqueleto: osso `#D8CDB0`, brasas nos olhos `#FF7A2A` · Orc: pele `#4E6B3A`, ferro `#4A5168`, dourado gasto `#C9A040` · Rei Goblin: coroa `#E0B040`, capa `#7A1E1E`
+  - Interface (SAO): ciano `#5FE3FF`, branco, dourado; vida verde → amarelo → vermelho.
   - Raridade (já no jogo): Comum branco, Incomum verde, Raro azul, Épico roxo, Lendário laranja.
-- **Vermelho = perigo** (aviso de ataque, espinhos, círculo do chefe). Não usar vermelho forte em decoração.
-- **Ciano = interagível** (ganchos da teia, arco do teletransporte, pontos para pegar).
+- **Vermelho saturado = perigo** (aviso de ataque, espinhos, círculo do chefe, fúria). Não usar em decoração.
+- **Ciano = interagível / sistema** (pontos para pegar, interface, teletransporte).
 
 ## 4. Materiais e luz
-- Cores lisas com **gradiente leve** e textura pintada simples; **sem** mapa normal realista.
-- **Emissivo** para o que o jogador precisa ler: olhos dos inimigos, magias, gemas de raridade, avisos.
-- Luz: 1 luz real por sala + tochas emissivas (FPS do Quest 2). Névoa colorida por bioma.
+- Textura pintada à mão, cores com gradiente leve, sujeira e desgaste nas bordas; **sem** mapa normal realista.
+- **Emissivo** para o que o jogador precisa ler: olhos dos inimigos, magias, gemas, avisos, interface.
+- Luz: 1 luz real por sala + tochas emissivas (FPS do Quest 2). Névoa escura azulada; fogueira com luz laranja forte.
 
-## 5. Efeitos
-- **Exagerados e curtos**: faíscas grandes, anéis de impacto, números de dano saltando, tremor leve na tela só com golpe forte.
-- Cada magia tem cor própria e fixa: fogo laranja, gelo azul-claro, raio branco-azulado, raízes verde, arcano roxo.
-- Sem sangue realista: acerto = faíscas na cor do inimigo (goblin verde-amarelo, esqueleto pó de osso, orc laranja).
+## 5. Efeitos e sangue
+- **Golpes e magias exagerados** (anime): rastro de luz na lâmina em golpe forte, faíscas grandes, anel de impacto, número de dano saltando.
+- Cada magia tem cor fixa: fogo laranja, gelo azul-claro, raio branco-azulado, raízes verde, arcano roxo, aura vermelha.
+- **Sangue estilizado e pouco**: respingo escuro (goblin verde-escuro, orc vermelho-escuro, esqueleto = pó de osso) que some em poucos segundos; sem órgãos, sem corte detalhado. **Desmembramento fica**: a peça cai com o corte tampado em cor escura lisa e some depois de um tempo.
 
 ## 6. Personagens (inimigos)
-- Olhos grandes e brilhantes (expressão de longe).
-- Equipamento conta a história: capacete, escudo, ombreira mudam a silhueta e o comportamento (capacete = protege a cabeça).
-- Elites: mesma forma, **aura e anel na cor do tipo** (já no jogo).
-- Chefe: 1,5-2× o tamanho, coroa ou adorno marcante, cor de destaque própria.
+- Olhos que brilham no escuro (dá para ver o goblin antes do corpo).
+- Equipamento conta a história e muda o jogo: capacete protege a cabeça, escudo racha, armadura muda o material.
+- Goblins: armas improvisadas (clava com prego, faca enferrujada, arco torto), trapos, ossos e dentes pendurados.
+- Elites: mesma forma, aura e anel na cor do tipo (já no jogo).
+- Chefe: 1,5-2× o tamanho, coroa ou adorno marcante, cor própria; entrada com nome em letras grandes (já no jogo).
 
 ## 7. Armas
-- Cabo e guarda grossos, lâmina com bisel visível, gema na cor da raridade.
-- Lendárias com forma única (não só cor).
-- Engraçadas continuam com humor no visual, mas o mesmo estilo de modelagem.
+- Peso visível: cabo e guarda grossos, lâmina com bisel, desgaste nas armas achadas (cadáver, inimigos).
+- Gema na cor da raridade; lendárias com forma única.
 
 ## 8. Mãos e interface
-- Mãos: luva estilizada (skins por classe depois — ideia do Pablo).
-- Interface no mundo (painéis, pulso), fonte grossa e arredondada, sempre com contraste alto.
+- Mãos: **luva estilizada** de couro escuro (skins por classe depois — ideia do Pablo).
+- Interface estilo SAO: painéis translúcidos com borda ciano, fonte limpa, sempre alto contraste.
 
 ## 9. Fluxo de produção (custo zero)
-1. Pacotes CC0 primeiro (KayKit, Quaternius, Kenney) — mesma família de estilo.
-2. Modelos gerados por IA **só** depois de referência no estilo desta folha; checar a licença.
-3. Todo modelo novo passa por: silhueta a 10 m, contraste com o cenário, triângulos, teste no Quest.
+1. **Inimigos e chefe**: referência desenhada no estilo desta folha (Gemini) → TRELLIS → `tools/modelos/glb2arena.js` → cortador por osso (`AiModelImport`). Sempre em pose T.
+2. **Cenário**: KayKit escurecido (luz e cor) por enquanto; trocar por peças próprias ou outro pacote CC0 se destoar.
+3. Todo modelo novo passa por: silhueta a 10 m, contraste com o cenário, triângulos, estação na Sala de Criação, teste no Quest.
 
-## Para o Pablo decidir
-- A paleta acima está boa? (cores do goblin/orc/esqueleto)
-- Sangue: concorda com "faíscas na cor do inimigo" em vez de sangue? (público de 8 anos e classificação etária da loja)
-- Proporção "cabeção" (mais fofo) ou mais próxima do KayKit (equilibrada)?
+## 10. Escopo de arte da demo
+- **Prioridade 1**: Rei Goblin, goblin (refazer no estilo novo), esqueleto, orc, espada + escudo, mãos, iluminação da caverna.
+- **Prioridade 2**: cadáver do aventureiro, estátua do fogo, porta pesada, coroa, estante, cela e corda.
+- **Prioridade 3**: arqueiro, xamã, efeitos (rastro de lâmina, faíscas, sangue estilizado, aura).
+- **Depois da demo**: as outras armas, outros chefes, biomas.
+
+## Próximas decisões
+- Design do goblin (rosto, roupa, arma) e do Rei Goblin — primeiros a fazer.

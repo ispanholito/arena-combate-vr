@@ -12,7 +12,7 @@ Este arquivo resume tudo que foi decidido até 2026-10-15 para quem (humano ou I
 
 ## Visão do jogo
 RPG de **combate físico em VR** (estilo Blade & Sorcery) com **classes e árvore de habilidades** (inspiração The King's Avatar/SAO), dungeons de fantasia RPG clássica (goblins, esqueletos, slimes).
-- **Direção de arte (decisão do Pablo, 2026-10-29)**: público de **8 a 21 anos**, mas sem ficar bobo a ponto de afastar os mais velhos → **fantasia estilizada colorida** (cores vivas, silhuetas claras, efeitos exagerados, humor pontual), não infantil e não realista. Referências: Soul Knight (estrutura e cores), KayKit (já usado). Substitui o "dark fantasy (Dark and Darker)" de antes. Cuidado: modelos realistas do TRELLIS destoam — gerar no estilo estilizado.
+- **Direção de arte (decisão do Pablo, 2026-10-31)**: inspirações **Sword Art Online, Dark Souls e Goblin Slayer** → **fantasia sombria com toque de anime**: cenário escuro e frio iluminado por tochas (Dark Souls), goblins feios, sujos e espertos (só o design/comportamento de Goblin Slayer; nada de violência sexual nem gore explícito), interface e magias brilhantes estilo SAO, proporção realista de anime (sem cabeção), sangue estilizado e pouco (desmembramento fica). Público **13 a 21 anos** (antes 8-21, fantasia colorida de 2026-10-29 — substituída). Humor sai da demo. Tudo em `docs/biblia-de-arte.md` (v2).
 - Plataforma: **Meta Quest** (principal) + PC.
 - **Solo primeiro**; coop de 1 a 4 jogadores depois; PvP muito depois. MMO de mundo aberto descartado.
 - Tema: **fantasia RPG padrão**. Mitologia foi arquivada (pode voltar na história no futuro).
