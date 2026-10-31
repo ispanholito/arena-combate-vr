@@ -81,14 +81,13 @@ namespace Arena.Core.Tests
         }
 
         [Test]
-        public void Contra_OpensCounterStanceForTwoSeconds()
+        public void Contra_IsNowTheRedAura()
         {
             var p = new PlayerState(ClassId.Lamina);
             p.Progression.GainXp(70);
             p.Tree.Unlock(SkillIds.Contra);
             p.TryCast(SkillIds.Contra);
-            Assert.Greater(p.CounterStance, 0f);
-            p.Tick(2.1f);
+            Assert.IsTrue(p.AuraActive);
             Assert.IsFalse(p.ConsumeCounterStance());
         }
 

@@ -170,6 +170,7 @@ namespace Arena
             baseY = transform.position.y;
             helmet = Random.value < spec.HelmetChance;
             if (helmet) BuildHelmet();
+            if (Random.value < spec.ShieldChance) BuildShield();
 
             // Bacia presa ao ponto da IA (fica em pé).
             anchorJoint = bones[RagBone.Bacia].Rb.gameObject.AddComponent<ConfigurableJoint>();
@@ -361,6 +362,7 @@ namespace Arena
             var cols = new List<Collider>();
             foreach (var b in boneList) if (b.Rb) cols.AddRange(b.Rb.GetComponents<Collider>());
             if (clubRb && Armed) cols.AddRange(clubRb.GetComponents<Collider>());
+            if (shieldRb) cols.AddRange(shieldRb.GetComponents<Collider>());
             return cols;
         }
 
@@ -552,6 +554,7 @@ namespace Arena
             pose[RagBone.AntebracoD] = p.fore.ToU();
             if (!Armed && attack == Attack.Windup) { pose[RagBone.BracoD] = new Vector3(-20f, 0f, 20f); pose[RagBone.AntebracoD] = new Vector3(-120f, 0f, 0f); }   // punho recolhido
             if (!Armed && attack == Attack.Strike) { pose[RagBone.BracoD] = new Vector3(-85f, 0f, -5f); pose[RagBone.AntebracoD] = new Vector3(-5f, 0f, 0f); }    // soco reto
+            if (HasShield) { pose[RagBone.BracoE] = new Vector3(-70f, 0f, -15f); pose[RagBone.AntebracoE] = new Vector3(-90f, 0f, 0f); }   // escudo na frente
             if (standT > 0f) GetUpPose(1f - Mathf.Clamp01(standT / getUpTotal));
         }
 
@@ -721,6 +724,7 @@ namespace Arena
 
                 if (State.Dead) Die();
             }
+            UpdateShield();
             UpdateStabsBleed(dt);      // vivo OU morto: senão o corpo morto nunca soltava da espada ("fantasma grudado")
             UpdatePendingCollisions(dt);
             FollowBodyWhileStuck();
@@ -1073,6 +1077,7 @@ namespace Arena
         void WeaponContact(ArenaPlayer pl, PlayerWeapon w, RagBone id, Bone bone, Vector3 contact, Vector3 relVel, bool slicing)
         {
             float speed = relVel.magnitude;
+            if (id == RagBone.Escudo) { ShieldHit(pl, w, speed, contact); return; }
             // A clava bateu na arma: aparo (durante o ataque), bloqueio (na guarda) ou desarme (golpe forte nela).
             if (id == RagBone.Clava)
             {
@@ -1082,6 +1087,16 @@ namespace Arena
                     if (pl.State.CounterStance > 0f) ResolveGuard(pl, GuardResult.Counter, contact);
                     else Parried(contact);
                     strikeHit = true;
+                }
+                else if (guardT > 0f && w == pl.Weapon && RedAura.Active)
+                {
+                    // Aura vermelha: a guarda não segura — atordoa e abre a defesa.
+                    guardT = 0f;
+                    State.ApplyStun(RedAuraRules.GuardBreakStun);
+                    ArenaFx.FloatText("DEFESA QUEBRADA!", contact + Vector3.up * 0.25f, new Color(1f, 0.3f, 0.25f), 1f);
+                    ArenaFx.Burst(contact, new Color(1f, 0.25f, 0.15f), 14, 3f);
+                    ArenaAudio.Play(Sfx.Broken, contact, 0.8f, 1.1f);
+                    ArenaInput.Haptic(0.8f, 0.08f);
                 }
                 else if (guardT > 0f)
                 {
@@ -1141,6 +1156,7 @@ namespace Arena
             float dmg = Combat.MeleeDamage(speed, def, Combat.SharpEdge(pl.State.Has(SkillIds.FioAfiado), def), true, def.Blunt ? 1f : edge)
                         * zoneMul * DamageTypes.Multiplier(DamageTypes.MaterialOf(Kind), dtype);
             dmg *= FlameBlade.DamageMultiplier;   // arma em chamas: +30% e põe calor
+            if (w == pl.Weapon) dmg *= RedAura.DamageMultiplier;   // aura vermelha (arma da mão direita)
             FlameBlade.OnHit(State);
             if (def.HeatPerHit > 0f && mode != Mode.Dead) State.Status.AddHeat(def.HeatPerHit);   // tocha
             if (def.Funny) WeaponModels.FunnyHit(def, contact);
@@ -1178,6 +1194,119 @@ namespace Arena
         }
 
         bool CanHitCorpse => false;
+
+        // ---------- Escudo (orc da sala 5; roteiro da demo) ----------
+        // Fica na frente do peito, do lado esquerdo, seguindo o corpo (cinemático: a arma do jogador bate e PARA nele, então
+        // o golpe não chega no corpo). Cada golpe racha (EnemyShieldState): com a aura vermelha quebra em 3-4.
+        EnemyShieldState shieldState;
+        Rigidbody shieldRb;
+        Transform shieldCracks;
+        int shieldStage;
+        public bool HasShield => shieldRb && shieldState != null && !shieldState.Broken;
+        public void ForceShield() { if (!shieldRb) BuildShield(); }
+
+        void BuildShield()
+        {
+            shieldState = new EnemyShieldState();
+            var go = new GameObject("Escudo");
+            go.transform.SetPositionAndRotation(ShieldTargetPos(), ShieldTargetRot());
+            shieldRb = go.AddComponent<Rigidbody>();
+            shieldRb.isKinematic = true; shieldRb.mass = 3f;
+            shieldRb.interpolation = RigidbodyInterpolation.Interpolate;
+            var col = go.AddComponent<BoxCollider>();
+            col.size = new Vector3(0.44f, 0.56f, 0.06f) * k;
+            var plank = ArenaUtil.Lit(new Color(0.5f, 0.33f, 0.17f));
+            var iron = ArenaUtil.Lit(new Color(0.4f, 0.42f, 0.48f), new Color(0.04f, 0.04f, 0.05f));
+            for (int i = 0; i < 3; i++)   // 3 tábuas
+                ArenaUtil.Prim(PrimitiveType.Cube, go.transform, new Vector3((i - 1) * 0.148f, 0f, 0f) * k, new Vector3(0.142f, 0.54f, 0.045f) * k, plank);
+            foreach (float y in new[] { -0.2f, 0.2f })
+                ArenaUtil.Prim(PrimitiveType.Cube, go.transform, new Vector3(0f, y, 0.03f) * k, new Vector3(0.46f, 0.05f, 0.02f) * k, iron);   // faixas de ferro
+            ArenaUtil.Prim(PrimitiveType.Sphere, go.transform, new Vector3(0f, 0f, 0.04f) * k, new Vector3(0.1f, 0.1f, 0.05f) * k, iron);
+            foreach (var c in go.GetComponentsInChildren<Collider>()) if (c != col) Destroy(c);
+            shieldCracks = new GameObject("Rachaduras").transform;
+            shieldCracks.SetParent(go.transform, false);
+            go.AddComponent<RagdollBone>().Init(this, RagBone.Escudo);
+            foreach (var bc in BodyColliders()) if (bc != col) Physics.IgnoreCollision(col, bc);
+        }
+
+        Vector3 ShieldTargetPos()
+        {
+            var t = bones[RagBone.Tronco].Rb;
+            var rot = anchor ? anchor.rotation : transform.rotation;
+            return t.position + rot * (new Vector3(-0.08f, -0.02f, 0.3f) * k);
+        }
+        Quaternion ShieldTargetRot() => anchor ? anchor.rotation : transform.rotation;
+
+        void UpdateShield()
+        {
+            if (!shieldRb || shieldState == null) return;
+            if (mode == Mode.Stand && !shieldState.Broken)
+            {
+                if (!shieldRb.isKinematic) { shieldRb.isKinematic = true; }   // levantou: pega o escudo de novo
+                shieldRb.MovePosition(ShieldTargetPos());
+                shieldRb.MoveRotation(ShieldTargetRot());
+            }
+            else if (shieldRb.isKinematic) shieldRb.isKinematic = false;   // caído ou morto: o escudo cai junto
+        }
+
+        void ShieldHit(ArenaPlayer pl, PlayerWeapon w, float speed, Vector3 contact)
+        {
+            if (!HasShield || hitCd > 0f) return;
+            speed = Mathf.Max(speed, w.PhysTipVelocity.magnitude);
+            if (speed < EnemyShieldState.MinSpeed) return;
+            hitCd = 0.25f;
+            bool aura = w == pl.Weapon && RedAura.Active;
+            bool broke = shieldState.Hit(speed, aura, w.Def.Weight > 5f, w.Def.Blunt);
+            ArenaAudio.Play(Sfx.Block, contact, 0.9f, aura ? 0.75f : 1f);
+            ArenaFx.Burst(contact, aura ? new Color(1f, 0.3f, 0.2f) : new Color(0.75f, 0.55f, 0.3f), aura ? 14 : 6, 2.5f);
+            ArenaInput.Haptic(aura ? 0.8f : 0.5f, 0.06f, left: w.IsLeft);
+            State.Posture.Add(aura ? 18f : 6f);
+            if (broke) { BreakShield(w.TipVelocity); return; }
+            int stage = shieldState.Stage;
+            if (stage != shieldStage) { shieldStage = stage; AddCracks(stage); ArenaFx.FloatText(stage >= 3 ? "VAI QUEBRAR!" : "RACHOU!", contact + Vector3.up * 0.25f, new Color(1f, 0.75f, 0.4f), 0.8f); }
+            else ArenaFx.FloatText(aura ? "TRINCOU" : "BLOQUEOU", contact + Vector3.up * 0.2f, new Color(0.85f, 0.85f, 0.85f), 0.6f);
+        }
+
+        // Rachaduras escuras aparecendo na frente do escudo, mais a cada etapa.
+        void AddCracks(int stage)
+        {
+            var dark = ArenaUtil.Unlit(new Color(0.08f, 0.04f, 0.02f));
+            int n = stage * 3;
+            while (shieldCracks.childCount < n)
+            {
+                var c = ArenaUtil.Prim(PrimitiveType.Cube, shieldCracks, new Vector3(Random.Range(-0.17f, 0.17f), Random.Range(-0.22f, 0.22f), 0.035f) * k,
+                                       new Vector3(0.012f, Random.Range(0.08f, 0.2f), 0.01f) * k, dark).transform;
+                c.localRotation = Quaternion.Euler(0f, 0f, Random.Range(-60f, 60f));
+                foreach (var col in c.GetComponents<Collider>()) Destroy(col);
+            }
+        }
+
+        // Quebrou: as tábuas voam em pedaços e somem.
+        void BreakShield(Vector3 hitVel)
+        {
+            var at = shieldRb.position;
+            ArenaFx.FloatText("ESCUDO QUEBROU!", at + Vector3.up * 0.4f, new Color(1f, 0.35f, 0.25f), 1.3f);
+            ArenaFx.Burst(at, new Color(0.6f, 0.4f, 0.2f), 30, 4f, 1.3f);
+            ArenaAudio.Play(Sfx.Broken, at, 1f, 0.8f);
+            ArenaInput.Haptic(1f, 0.15f);
+            var plank = ArenaUtil.Lit(new Color(0.5f, 0.33f, 0.17f));
+            for (int i = 0; i < 4; i++)
+            {
+                var piece = ArenaUtil.Prim(PrimitiveType.Cube, null, at + shieldRb.rotation * (new Vector3((i - 1.5f) * 0.11f, Random.Range(-0.15f, 0.15f), 0f) * k),
+                                           new Vector3(0.1f, Random.Range(0.2f, 0.35f), 0.04f) * k, plank, keepCollider: true);
+                piece.transform.rotation = shieldRb.rotation * Quaternion.Euler(0f, 0f, Random.Range(-40f, 40f));
+                var rb = piece.AddComponent<Rigidbody>();
+                rb.mass = 0.6f;
+                rb.linearVelocity = hitVel.normalized * Random.Range(1.5f, 3.5f) + Random.insideUnitSphere * 1.5f + Vector3.up * 1.5f;
+                rb.angularVelocity = Random.insideUnitSphere * 8f;
+                foreach (var bc in BodyColliders()) foreach (var pc in piece.GetComponents<Collider>()) Physics.IgnoreCollision(pc, bc);
+                Destroy(piece, 5f);
+            }
+            Destroy(shieldRb.gameObject);
+            shieldRb = null;
+            // Sem escudo: fica um instante desequilibrado (janela para punir).
+            State.ApplyStun(0.8f);
+        }
 
         // Região da cabeça: altura a partir da junta do pescoço e quanto está para a frente da cara.
         Vector3 NeckPoint()
@@ -1665,6 +1794,7 @@ namespace Arena
             All.Remove(this);
             ArenaGame.Tokens.Release(TokenId);
             if (clubRb && Armed) Destroy(clubRb.gameObject);
+            if (shieldRb) Destroy(shieldRb.gameObject);
             foreach (var s in stabs) if (s.Joint) Destroy(s.Joint);   // o corpo some junto: não precisa religar colisão
             foreach (var b in boneList) if (b.Rb) Destroy(b.Rb.gameObject);
         }

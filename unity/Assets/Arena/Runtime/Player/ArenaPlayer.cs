@@ -110,7 +110,9 @@ namespace Arena
             WeaponL = new GameObject("ArmaDoJogadorEsquerda").AddComponent<PlayerWeapon>();
             WeaponL.Init(this, left: true);
             Shield = GetComponent<PlayerShield>();
-            if (!GetComponent<Holsters>()) gameObject.AddComponent<Holsters>();   // coldres nos ombros e na cintura + mão esquerda
+            if (!GetComponent<Holsters>()) gameObject.AddComponent<Holsters>();
+            if (!GetComponent<RedAura>()) gameObject.AddComponent<RedAura>();
+            if (!GetComponent<ItemPull>()) gameObject.AddComponent<ItemPull>();   // mirar a arma no chão + grip + puxar = vem para a mão   // aura vermelha (habilidade do gatilho da Lâmina)   // coldres nos ombros e na cintura + mão esquerda
             if (!GetComponent<WeaponAbilityCaster>()) gameObject.AddComponent<WeaponAbilityCaster>();   // cenas antigas não têm
             pauseMenu = GetComponent<PauseMenu>();
             if (!pauseMenu) pauseMenu = gameObject.AddComponent<PauseMenu>();

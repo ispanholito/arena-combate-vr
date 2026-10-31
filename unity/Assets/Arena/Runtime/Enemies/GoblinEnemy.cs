@@ -284,6 +284,7 @@ namespace Arena
                             && (this is not SkeletonEnemy || CanAttackNow);   // esqueleto sem o braço da espada não bloqueia
             var from = (Player.FeetPosition - transform.position).Flat();
             float facing = from.sqrMagnitude > 1e-4f ? Vector3.Dot(transform.forward, from.normalized) : 0f;
+            canBlock &= !RedAura.Active;   // aura vermelha: a guarda não segura
             var r = GoblinTactics.ResolveBlock(Def.Kind, canBlock, facing, Random.value, tipSpeed, weapon.Weight, Player.Weapon.TwoHanded);
             if (r == GoblinTactics.BlockOutcome.None) return 1f;
             blockCd = GoblinTactics.BlockCooldown;

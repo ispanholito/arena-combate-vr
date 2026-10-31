@@ -99,7 +99,7 @@ namespace Arena.Core
         public static readonly SkillNode[] LaminaTree =
         {
             new SkillNode(Investida, "Investida Perfurante", "Aponte a espada para frente + A: avança ~4,5 m atravessando inimigos", 1, null, true, 3f, 20f),
-            new SkillNode(Contra, "Postura de Contra", "Gatilho: por 2 s o próximo aparo/bloqueio (espada ou escudo) vira um contra-ataque de dano alto", 2, new[] { Investida }, true, 4f, 15f),
+            new SkillNode(Contra, "Aura Vermelha", "Gatilho: a arma fica vermelha por 8 s — +25% de dano e quebra defesas (bloqueio com arma não segura, escudo racha e quebra)", 2, new[] { Investida }, true, 14f, 20f),
             new SkillNode(VentoLamina, "Lâmina de Vento", "Botão B: os próximos 2 golpes lançam cortes de vento", 4, new[] { Contra }, true, 2f, 15f),
             new SkillNode(FioAfiado, "Fio Afiado", "+25% de dano corpo a corpo", 2, new[] { Investida }),
             new SkillNode(PassoLeve, "Passo Leve", "Esquiva custa 40% menos estamina", 3, new[] { FioAfiado }),

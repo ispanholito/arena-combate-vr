@@ -5,7 +5,7 @@ namespace Arena.Core
 {
     // Regras do inimigo com corpo físico (ragdoll ativo, Fase A do plano — docs/plano-objetivo-final.md).
     // Ossos com juntas; "músculos" = molas que puxam a pose da animação; a bacia é presa à posição da IA.
-    public enum RagBone { Bacia, Tronco, Cabeca, BracoE, AntebracoE, BracoD, AntebracoD, CoxaE, CanelaE, CoxaD, CanelaD, Clava }
+    public enum RagBone { Bacia, Tronco, Cabeca, BracoE, AntebracoE, BracoD, AntebracoD, CoxaE, CanelaE, CoxaD, CanelaD, Clava, Escudo }
 
     public static class ActiveRagdollRules
     {
@@ -141,6 +141,7 @@ namespace Arena.Core
         public (float r, float g, float b) Skin = (0.37f, 0.54f, 0.23f), Cloth = (0.35f, 0.25f, 0.16f), Eye = (1f, 0.88f, 0.29f);
         public bool Ears = true;
         public float HelmetChance;               // chance de nascer de capacete (protege a cabeça; golpe forte nele derruba)
+        public float ShieldChance;               // chance de nascer com escudo (bloqueia; racha e quebra — EnemyShieldState)
 
         public const float ReassembleSeconds = 4f;   // como o SkeletonBody antigo
         public const float BreakSpeed = 2f;          // golpe numa peça caída (no chão) quebra a peça
@@ -153,7 +154,7 @@ namespace Arena.Core
                 DisarmMultiplier = 1.5f, SeverNeedsHeavy = true, Grabbable = false, Weapon = RagWeapon.Machado,
                 WeaponLength = 0.75f, WeaponRadius = 0.05f, WeaponMass = 3.5f,
                 Skin = (0.3f, 0.42f, 0.25f), Cloth = (0.35f, 0.35f, 0.38f), Eye = (1f, 0.3f, 0.2f), Ears = false,
-                HelmetChance = 1f,
+                HelmetChance = 1f, ShieldChance = 0.5f,
             },
             EnemyKind.Esqueleto => new RagdollSpec
             {

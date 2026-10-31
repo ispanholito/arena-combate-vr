@@ -13,6 +13,7 @@ namespace Arena
     //   - Rei Goblin: o chefe parado (imune) para ver o visual.
     //   - Inimigos: todos os tipos parados, na versão que o jogo está usando (físicos ou não, conforme a opção).
     //   - Armas: todas as armas no chão (objetos físicos; pegue para ver na mão).
+    //   - Escudo do orc: orc parado com escudo; bater racha e quebra (com a aura vermelha em 3-4 golpes).
     //   - Espada cravada: cadáver com a espada no peito; segure o cabo e puxe (ela vai saindo). Volta 3 s depois.
     //   - Paleta: as cores da docs/biblia-de-arte.md.
     // REGRA: todo design novo ganha uma estação aqui.
@@ -27,6 +28,7 @@ namespace Arena
         static readonly Vector3 KingSpot = new Vector3(6f, 0f, -3f);
         static readonly Vector3 WeaponSpot = new Vector3(-6.5f, 0f, -3f);
         static readonly Vector3 StuckSpot = new Vector3(-2.6f, 0f, -3.6f);
+        static readonly Vector3 ShieldSpot = new Vector3(2.6f, 0f, -3.6f);
         static readonly Vector3 LineStart = new Vector3(-4.8f, 0f, -6.5f);
 
         RagdollGoblin faller, walker;
@@ -36,6 +38,8 @@ namespace Arena
         readonly List<ArenaEnemy> line = new List<ArenaEnemy>();
         readonly List<WeaponPickup> weapons = new List<WeaponPickup>();
         StuckSword stuck;
+        RagdollGoblin shieldOrc;
+        float shieldOrcT;
         WeaponPickup stuckShield;   // o escudo do aventureiro caído, ao lado (roteiro: acha os dois juntos)
         Transform root;
         float fallT = 2f, respawnT, walkT, stuckT;
@@ -51,6 +55,7 @@ namespace Arena
             Label(HelmetSpot, "CAPACETES", "goblin · esqueleto · orc");
             Label(KingSpot, "REI GOBLIN", "chefe da demo (imune)");
             Label(WeaponSpot, "ARMAS", "pegue para ver na mão");
+            Label(ShieldSpot, "ESCUDO DO ORC", "bata: racha e quebra (aura vermelha: 3-4 golpes)");
             Label(StuckSpot, "ESPADA CRAVADA", "segure o cabo e puxe; o escudo está do lado");
             Label(LineStart + new Vector3(4.8f, 0f, 0f), "INIMIGOS", "como aparecem no jogo");
             Palette(new Vector3(-10.5f, 0f, 3.5f));
@@ -66,6 +71,7 @@ namespace Arena
             if (root) Destroy(root.gameObject);
             foreach (var g in new[] { faller, walker }) if (g) Destroy(g.gameObject);
             foreach (var g in helmets) if (g) Destroy(g.gameObject);
+            if (shieldOrc) Destroy(shieldOrc.gameObject);
             foreach (var w in weapons) if (w) Destroy(w.gameObject);
             if (stuck) Destroy(stuck.gameObject);
             if (stuckShield) Destroy(stuckShield.gameObject);
@@ -77,6 +83,8 @@ namespace Arena
             float dt = Time.deltaTime;
             respawnT -= dt;
             if (respawnT <= 0f) { respawnT = 1.5f; Respawn(); }
+            // Escudo do orc: quebrou (ou o orc morreu) = outro em 3 s.
+            if (!Alive(shieldOrc) || !shieldOrc.HasShield) { shieldOrcT -= dt; if (shieldOrcT <= 0f) { if (shieldOrc) Destroy(shieldOrc.gameObject); shieldOrc = Showcase(EnemyDef.Orc, ShieldSpot); shieldOrc.ForceShield(); shieldOrcT = 3f; } }
             // Espada cravada: depois de arrancada, outro cadáver com espada aparece em 3 s.
             if (!stuck || stuck.Freed) { stuckT -= dt; if (stuckT <= 0f) { if (stuck) Destroy(stuck.gameObject); stuck = StuckSword.Spawn(new ItemInstance(WeaponDef.EspadaLonga), StuckSpot, Vector3.forward, root); stuckT = 3f;
                 if (!stuckShield) stuckShield = WeaponPickup.Spawn(new ItemInstance(WeaponDef.Escudo), StuckSpot + new Vector3(0.7f, 0.2f, 0.1f)); } }

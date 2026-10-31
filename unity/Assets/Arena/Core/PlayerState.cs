@@ -17,7 +17,10 @@ namespace Arena.Core
 
         public float Invulnerable { get; private set; }
         public float HurtCooldown { get; private set; }
-        public float CounterStance { get; private set; }
+        // Postura de Contra saiu (2026-10-30): virou a Aura Vermelha (RedAuraRules). Fica 0 para quem ainda consulta.
+        public float CounterStance => 0f;
+        public float RedAura { get; private set; }
+        public bool AuraActive => RedAura > 0f;
         public int WindCharges { get; private set; }
         public int Kills { get; private set; }
         public int Gold { get; private set; }
@@ -355,7 +358,7 @@ namespace Arena.Core
             LastGoldLost = DeathRules.GoldLost(Penalty, Gold);
             Gold -= LastGoldLost;
             Hp.Fill(); Stamina.Fill(); Mana.Fill();
-            CounterStance = 0f; WindCharges = 0; Kills = 0;
+            RedAura = 0f; WindCharges = 0; Kills = 0;
             cooldowns.Clear();
             Died?.Invoke(lost);
         }
@@ -396,17 +399,12 @@ namespace Arena.Core
             float cd = node.Cooldown;
             if (id == SkillIds.Investida && Has(SkillIds.InvestidaCadeia)) cd *= 0.5f;
             cooldowns[id] = cd * Blessings.CooldownMultiplier;
-            if (id == SkillIds.Contra) CounterStance = 2f;
+            if (id == SkillIds.Contra) RedAura = RedAuraRules.Duration;
             if (id == SkillIds.VentoLamina) WindCharges = 2;
             return r;
         }
 
-        public bool ConsumeCounterStance()
-        {
-            if (CounterStance <= 0f) return false;
-            CounterStance = 0f;
-            return true;
-        }
+        public bool ConsumeCounterStance() => false;
 
         public bool ConsumeWindCharge()
         {
@@ -449,7 +447,7 @@ namespace Arena.Core
             TickPotion(dt);
             Invulnerable = Math.Max(0f, Invulnerable - dt);
             HurtCooldown = Math.Max(0f, HurtCooldown - dt);
-            CounterStance = Math.Max(0f, CounterStance - dt);
+            RedAura = Math.Max(0f, RedAura - dt);
             BackstabReady = Math.Max(0f, BackstabReady - dt);
             Mana.RegenPerSecond = (Has(SkillIds.FonteArcana) ? ManaRegenFonte : ManaRegen) * Blessings.ManaRegenMultiplier;
             Stamina.RegenPerSecond = StaminaRegen * Blessings.StaminaRegenMultiplier;

@@ -27,7 +27,7 @@ namespace Arena
         Vector3 leftPrevPos, leftVel;
 
         void Awake() { player = GetComponent<ArenaPlayer>(); Instance = this; }
-        void OnDestroy() { if (Instance == this) Instance = null; foreach (var v in visuals) if (v) Destroy(v.gameObject); }
+        void OnDestroy() { if (Instance == this) Instance = null; foreach (var v in visuals) if (v) Destroy(v.gameObject); foreach (var h in hint) if (h) Destroy(h.gameObject); }
 
         PlayerState S => player.State;
 
@@ -124,7 +124,7 @@ namespace Arena
             PlaceSlots();
             UpdateVisuals();
             if (ArenaGame.Blocked || player.TreeOpen) return;
-            if (player.IsVr) UpdateLeftHand();
+            if (player.IsVr) { UpdateLeftHand(); UpdateHints(); }
             else UpdateDesktop();
         }
 
@@ -173,7 +173,8 @@ namespace Arena
                 Feedback(s, false, "Sacou ");
                 return;
             }
-            if (WeaponPickup.TryPickup(player, hand: 1)) { leftArmedFor = S.LeftItem; leftArmed = true; }
+            if (WeaponPickup.TryPickup(player, hand: 1)) { leftArmedFor = S.LeftItem; leftArmed = true; return; }
+            if (ItemPull.Instance) ItemPull.Instance.TryStart(0);   // mirando uma arma no chão: grip + puxar traz
         }
 
         // Soltou o que estava na mão esquerda: perto de um coldre livre = guarda; senão cai (arremessa se a mão vinha rápida).
@@ -249,6 +250,59 @@ namespace Arena
             }
             player.EquipActive();
             ArenaGame.Instance?.Message(next.DisplayName, 0.9f);
+        }
+
+        // ---------- Aviso do coldre (Pablo, 2026-10-30, como no B&S) ----------
+        // Segurando uma arma perto de um coldre livre onde ela cabe: aparece "CINTURA DIREITA" / "OMBRO ESQUERDO"... e um
+        // anel no lugar (soltar o grip guarda). Mão vazia perto de um coldre com arma: aparece o nome da arma (grip saca).
+        static readonly string[] SlotNames = { "OMBRO ESQUERDO", "OMBRO DIREITO", "CINTURA ESQUERDA", "CINTURA DIREITA" };
+        readonly Transform[] hint = new Transform[2];
+        readonly int[] hintSlot = { -1, -1 };
+
+        void UpdateHints()
+        {
+            for (int side = 0; side < 2; side++)
+            {
+                var hand = side == 0 ? player.leftHand : player.rightHand;
+                ItemInstance held = side == 0 ? S.LeftItem : (player.Weapon.Held ? S.Loadout[0] : null);
+                bool controller = side == 0 ? player.Input.LeftControllerConnected : !player.Input.RightHandFree;
+                int slot = -1; string text = null;
+                if (controller && held != null)
+                {
+                    slot = NearestSlot(hand.position, StoreRange, fitting: held);
+                    if (slot >= 0) text = SlotNames[slot] + "\n<size=40>solte para guardar</size>";
+                }
+                else if (controller && (side == 0 ? S.LeftItem == null : S.Loadout[0] == null || player.Weapon.Stowed))
+                {
+                    slot = NearestSlot(hand.position, DrawRange, needItem: true);
+                    if (slot >= 0) text = S.Holsters[slot].DisplayName + "\n<size=40>" + SlotNames[slot].ToLower() + " · grip</size>";
+                }
+                if (slot != hintSlot[side] && slot >= 0) ArenaInput.Haptic(0.2f, 0.03f, left: side == 0);   // entrou no alcance
+                hintSlot[side] = slot;
+                ShowHint(side, slot, text);
+            }
+        }
+
+        void ShowHint(int side, int slot, string text)
+        {
+            if (!hint[side])
+            {
+                hint[side] = new GameObject("AvisoColdre").transform;
+                var ring = ArenaUtil.Prim(PrimitiveType.Sphere, hint[side], Vector3.zero, Vector3.one * 0.12f, ArenaUtil.Unlit(new Color(1f, 0.85f, 0.35f, 0.35f))).transform;
+                foreach (var c in ring.GetComponents<Collider>()) Destroy(c);
+                var t = ArenaFx.MakeText(hint[side], "", 0.0035f, new Color(1f, 0.9f, 0.55f));
+                t.transform.localPosition = new Vector3(0f, 0.11f, 0f);
+            }
+            if (slot < 0) { hint[side].gameObject.SetActive(false); return; }
+            hint[side].gameObject.SetActive(true);
+            hint[side].position = anchor[slot];
+            hint[side].GetChild(0).localScale = Vector3.one * (0.12f + 0.015f * Mathf.Sin(Time.time * 10f));
+            var label = hint[side].GetComponentInChildren<TextMesh>();
+            label.text = text;
+            // O texto fica entre o coldre e os olhos (os da cintura/ombro saem do campo de visão): puxa para a frente.
+            var head = player.Head;
+            label.transform.position = Vector3.Lerp(anchor[slot], head.position, 0.35f) + player.HeadForward.Flat().normalized * 0.15f;
+            label.transform.rotation = Quaternion.LookRotation(label.transform.position - head.position);
         }
 
         // ---------- Armas nos coldres (visíveis no VR) ----------

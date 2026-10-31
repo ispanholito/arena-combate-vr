@@ -12,8 +12,8 @@ Inspiração de monstros: SAO temporada 1 (conceito e clima, nunca copiar desenh
 | 2 | **Esqueleto** | 1º inimigo, sozinho. | Golpe, aparo, peso da arma; membros saem e voltam | Sim (esqueleto físico) |
 | 3 | **Estátua do fogo** (depois de matar o esqueleto) | Estátua segura uma chama. Tocar com a **mão livre** passa a chama para a mão → Bola de Fogo. Depois: **mergulhar a espada** na bola = lâmina em chamas. | Soltar o controle esquerdo, magia da mão, combo arma+magia | Parcial (bola e lâmina em chamas existem; falta a estátua/desbloqueio) |
 | 4 | **3 goblins** | Sala de grupo, só corpo a corpo. | Lutar contra vários (fichas, cerco), usar o fogo | Sim |
-| 5 | **Orc + apoio** | Orc **com escudo** + 1 arqueiro + 1 xamã. | Prioridade de alvo, rebater orbe/flecha, escudo que racha | Parcial (falta escudo quebrável) |
-| 5b | **Recompensa do orc** | Ao matar o orc: **aura vermelha** (substitui a Postura de Contra) — quebra defesas e escudos. | Quebrar escudo | Não |
+| 5 | **Orc + apoio** | Orc **com escudo** + 1 arqueiro + 1 xamã. | Prioridade de alvo, rebater orbe/flecha, escudo que racha | Sim (escudo quebrável, 2026-10-31) — falta montar a sala |
+| 5b | **Recompensa do orc** | Ao matar o orc: **aura vermelha** (substitui a Postura de Contra) — quebra defesas e escudos. | Quebrar escudo | Sim (habilidade) — falta dar como recompensa |
 | 6 | **Baú** | Baú com **Lâmina de Vento** (cortes de vento com a espada). | Ataque à distância | Sim (habilidade existe; falta dar pelo baú) |
 | 7 | **Fogueira** | Cura e salva antes do chefe. | Checkpoint | Sim |
 | 8 | **Rei Goblin (X1)** | Entra **quebrando a parede** e rugindo. Fase 1: **clava de madeira + escudo (porta velha surrada)**; o escudo racha e quebra com a aura. Fase 2 (50% da vida): larga o que sobrou e pega **duas espadas** (de onde: decidir no teste — costas ou outro lugar), repertório novo, mais rápido. | Ler padrões, aparo, postura, quebrar escudo | Parcial (chefe existe com clava/fúria; falta entrada pela parede, escudo-porta, duas espadas, modelo) |

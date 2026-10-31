@@ -9,6 +9,12 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000000000000000000000000000000000000000000000. NOVO — aura vermelha, escudo do orc, aviso do coldre e puxar arma do chão
+- **Aura vermelha** (gatilho da Lâmina, no lugar da Postura de Contra): a espada fica vermelha 8 s (brilho, luz, brasas; pisca no fim). +25% de dano. Bater na guarda de um goblin/esqueleto = "DEFESA QUEBRADA!" (atordoa). Recarga 14 s.
+- **Escudo do orc** (Sala de Criação → ESCUDO DO ORC; orcs normais têm 50% de chance): a arma bate e PARA no escudo; ele racha ("RACHOU!", rachaduras escuras) e quebra em pedaços. Sem aura ~13 golpes, com aura 4. Quebrou = orc atordoado 0,8 s. Conferir se o escudo fica na frente do peito e se o braço acompanha.
+- **Aviso do coldre**: segurando uma arma perto da cintura/ombro aparece "CINTURA DIREITA"/"OMBRO ESQUERDO"... e uma bolinha no lugar (vibra ao entrar). Mão vazia perto de um coldre com arma: mostra o nome dela.
+- **Puxar a arma do chão**: mão vazia, aponte o controle para uma arma no chão perto dos pés (até 2,5 m) → anel azul + nome. Grip e puxe a mão para você → ela voa para a mão. Testar com as duas mãos.
+
 ## 0000000000000000000000000000000000000000000000. NOVO — coldres, mão esquerda com arma e escudo como item
 - Começo (Lâmina): espada na direita, escudo na esquerda, machado no coldre do OMBRO direito (aparece nas costas).
 - **Guardar**: leve a arma até a cintura (ou por cima do ombro) e solte o grip → ela fica no coldre (aparece pendurada). Arma grande (escudo, machado, lança, martelo, cajado) só entra nos ombros.

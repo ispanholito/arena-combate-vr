@@ -33,7 +33,7 @@ namespace Arena
             ("Sem controle", "Pausa e menus", "Pausa: palma esquerda virada para você + pinça (gesto de menu da Meta). Nos menus: aponte com a mão e encoste o indicador no polegar para clicar."),
             ("Lâmina", "Investida Perfurante", "Aponte a espada para frente e aperte A: você avança uns 4,5 m atravessando os inimigos."),
             ("Lâmina", "Lâmina de Vento", "Aperte B: os próximos 2 golpes de espada soltam cortes de vento na direção do golpe."),
-            ("Lâmina", "Postura de Contra", "Aperte o gatilho: por 2 s, o próximo aparo ou bloqueio vira um contra-ataque forte (90 de dano)."),
+            ("Lâmina", "Aura Vermelha", "Aperte o gatilho: a arma fica vermelha por 8 s. +25% de dano, a guarda dos inimigos não segura (atordoa) e escudos racham e quebram em 3-4 golpes. Recarga de 14 s."),
             ("Elementalista", "Bola de Fogo (cajado)", "Segure o gatilho, faça o movimento de arremesso e solte. Explode em área; mais forte em enraizados."),
             ("Elementalista", "Lança de Gelo", "Aponte o cajado e aperte A: perfura até 3 inimigos e deixa lento."),
             ("Elementalista", "Raízes (cajado)", "Segure B, mire no chão com o cajado e solte: prende os inimigos por 3 s."),
