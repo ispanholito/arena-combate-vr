@@ -5,13 +5,14 @@ using UnityEngine;
 namespace Arena
 {
     // Puxar a arma do chão com a mão (Pablo, 2026-10-30: "ninguém quer se abaixar tanto"; como no Blade & Sorcery).
-    // Com a mão VAZIA (controle na mão), aponte o controle para uma arma no chão perto dos pés (até 2,5 m): ela acende
-    // (anel embaixo + nome). Aperte o grip e PUXE a mão em direção ao corpo: a arma voa até a mão e fica nela.
-    // Soltar o grip antes de puxar cancela.
+    // Com a mão VAZIA (controle na mão), aponte o controle para uma arma no chão perto dos pés (até 4 m): ela acende
+    // como no telecinese do B&S — contorno ciano em volta da arma, linha fina da mão até ela, anel embaixo, nome e um
+    // toque de vibração ao travar a mira. Aperte o grip (fica amarelo) e PUXE a mão em direção ao corpo: a arma voa
+    // até a mão. Soltar o grip antes de puxar cancela. A mira prefere a arma mais alinhada; a distância pesa pouco.
     [RequireComponent(typeof(ArenaPlayer))]
     public sealed class ItemPull : MonoBehaviour
     {
-        public const float MaxFeetDistance = 2.5f, AimDegrees = 14f, PullSpeed = 1.1f, PullDistance = 0.12f, LockSeconds = 1.5f, FlySeconds = 0.25f;
+        public const float MaxFeetDistance = 4f, AimDegrees = 18f, PullSpeed = 1.1f, PullDistance = 0.12f, LockSeconds = 1.5f, FlySeconds = 0.25f;
         public static ItemPull Instance { get; private set; }
 
         ArenaPlayer player;
@@ -20,14 +21,23 @@ namespace Arena
         readonly Vector3[] lockHandPos = new Vector3[2], prevHand = new Vector3[2];
         readonly float[] lockT = new float[2];
         readonly Transform[] marker = new Transform[2];
-        Material markMat;
+        readonly Transform[] outline = new Transform[2];
+        readonly LineRenderer[] beam = new LineRenderer[2];
+        readonly WeaponPickup[] shownFor = new WeaponPickup[2];
+        Material markMat, outlineMat, lockMat;
 
         // Arma voando para a mão.
         sealed class Flight { public WeaponPickup Item; public int Hand; public float T; public Vector3 From; }
         readonly List<Flight> flights = new List<Flight>();
 
         void Awake() { player = GetComponent<ArenaPlayer>(); Instance = this; }
-        void OnDestroy() { if (Instance == this) Instance = null; foreach (var m in marker) if (m) Destroy(m.gameObject); }
+        void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+            foreach (var m in marker) if (m) Destroy(m.gameObject);
+            foreach (var o in outline) if (o) Destroy(o.gameObject);
+            foreach (var b in beam) if (b) Destroy(b.gameObject);
+        }
 
         Transform Hand(int side) => side == 0 ? player.leftHand : player.rightHand;
 
@@ -87,7 +97,7 @@ namespace Arena
         // Arma no chão perto dos pés mais alinhada com a direção para onde o controle aponta.
         WeaponPickup FindAimed(Transform h)
         {
-            WeaponPickup best = null; float bestA = AimDegrees;
+            WeaponPickup best = null; float bestScore = float.MaxValue;
             var dir = h.forward;
             foreach (var p in WeaponPickup.All)
             {
@@ -96,7 +106,11 @@ namespace Arena
                 var to = p.Center - h.position;
                 if (to.magnitude < 0.25f) continue;   // já está na mão: pega direto
                 float a = Vector3.Angle(dir, to);
-                if (a < bestA) { bestA = a; best = p; }
+                // Longe a arma fica pequena na mira: o cone abre um pouco com a distância (até +6°).
+                float limit = AimDegrees + Mathf.Clamp01((to.magnitude - 1.5f) / 2.5f) * 6f;
+                if (a > limit) continue;
+                float score = a + to.magnitude * 1.5f;
+                if (score < bestScore) { bestScore = score; best = p; }
             }
             return best;
         }
@@ -147,6 +161,8 @@ namespace Arena
                 t.name = "Nome";
             }
             var m = marker[side];
+            bool isLocked = p && locked[side] == p;
+            ShowOutline(side, p, isLocked);
             if (!p) { m.gameObject.SetActive(false); return; }
             m.gameObject.SetActive(true);
             var c = p.Center;
@@ -160,6 +176,58 @@ namespace Arena
             label.transform.rotation = Quaternion.LookRotation(label.transform.position - cam.position);
         }
 
-        void HideAll() { foreach (var m in marker) if (m) m.gameObject.SetActive(false); }
+        // Contorno em volta da própria arma (caixa translúcida do tamanho dela) + linha da mão até ela. Ciano = dá para
+        // puxar; amarelo = travada no grip, falta o puxão. Vibra de leve quando a mira pega uma arma nova.
+        void ShowOutline(int side, WeaponPickup p, bool isLocked)
+        {
+            if (!outlineMat)
+            {
+                outlineMat = ArenaUtil.Unlit(new Color(0.4f, 0.9f, 1f, 0.28f));
+                lockMat = ArenaUtil.Unlit(new Color(1f, 0.85f, 0.3f, 0.38f));
+            }
+            if (p != shownFor[side])
+            {
+                if (outline[side]) Destroy(outline[side].gameObject);
+                outline[side] = null;
+                shownFor[side] = p;
+                if (p)
+                {
+                    ArenaInput.Haptic(0.15f, 0.02f, left: side == 0);
+                    var box = p.GetComponent<BoxCollider>();
+                    if (box)
+                    {
+                        var shell = ArenaUtil.Prim(PrimitiveType.Cube, p.transform, box.center, box.size * 1.25f + Vector3.one * 0.03f, outlineMat).transform;
+                        shell.name = "ContornoPuxar";
+                        foreach (var c in shell.GetComponents<Collider>()) Destroy(c);
+                        outline[side] = shell;
+                    }
+                }
+            }
+            if (outline[side])
+            {
+                var r = outline[side].GetComponent<Renderer>();
+                r.sharedMaterial = isLocked ? lockMat : outlineMat;
+            }
+            if (!beam[side])
+            {
+                beam[side] = new GameObject("LinhaPuxar").AddComponent<LineRenderer>();
+                beam[side].material = ArenaUtil.Unlit(new Color(0.5f, 0.92f, 1f, 0.5f));
+                beam[side].positionCount = 2;
+                beam[side].numCapVertices = 2;
+            }
+            var b = beam[side];
+            b.gameObject.SetActive(p);
+            if (!p) return;
+            b.widthMultiplier = isLocked ? 0.008f : 0.004f;
+            b.material.color = isLocked ? new Color(1f, 0.85f, 0.3f, 0.7f) : new Color(0.5f, 0.92f, 1f, 0.45f);
+            b.SetPosition(0, Hand(side).position);
+            b.SetPosition(1, p.Center);
+        }
+
+        void HideAll()
+        {
+            foreach (var m in marker) if (m) m.gameObject.SetActive(false);
+            for (int s = 0; s < 2; s++) ShowOutline(s, null, false);
+        }
     }
 }

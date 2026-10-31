@@ -9,6 +9,10 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 000000000000000000000000000000000000000000000000. NOVO — escudo do orc corrigido e puxar arma mais longe com contorno
+- **Escudo do orc** (Sala de Criação → ESCUDO DO ORC): antes a batida no escudo era ignorada (nunca rachava). Agora: sem aura racha a cada ~3 golpes e quebra em ~9-13; **com a aura vermelha quebra em 3** (no editor). Conferir "RACHOU!"/"VAI QUEBRAR!"/"ESCUDO QUEBROU!".
+- **Puxar arma do chão**: agora até **4 m** dos pés (era 2,5) e a mira é um pouco mais larga (18°, abre até 24° longe). **Marca de "dá para puxar"**: contorno ciano em volta da própria arma + linha fina da mão até ela + vibração leve quando a mira pega a arma. Grip = fica **amarelo** (travada) → puxe a mão para você.
+
 ## 00000000000000000000000000000000000000000000000. NOVO — aura vermelha, escudo do orc, aviso do coldre e puxar arma do chão
 - **Aura vermelha** (gatilho da Lâmina, no lugar da Postura de Contra): a espada fica vermelha 8 s (brilho, luz, brasas; pisca no fim). +25% de dano. Bater na guarda de um goblin/esqueleto = "DEFESA QUEBRADA!" (atordoa). Recarga 14 s.
 - **Escudo do orc** (Sala de Criação → ESCUDO DO ORC; orcs normais têm 50% de chance): a arma bate e PARA no escudo; ele racha ("RACHOU!", rachaduras escuras) e quebra em pedaços. Sem aura ~13 golpes, com aura 4. Quebrou = orc atordoado 0,8 s. Conferir se o escudo fica na frente do peito e se o braço acompanha.

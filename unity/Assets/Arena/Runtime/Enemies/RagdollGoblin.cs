@@ -1057,7 +1057,8 @@ namespace Arena
             var w = pl.WeaponOf(c.rigidbody);   // direita ou esquerda
             if (!w || !w.Body) return;
             Bone bone = null;
-            if (c.contactCount == 0 || (id != RagBone.Clava && !bones.TryGetValue(id, out bone))) return;
+            // Clava e escudo não são ossos (antes o escudo caía aqui e nunca rachava — teste de 2026-10-31).
+            if (c.contactCount == 0 || (id != RagBone.Clava && id != RagBone.Escudo && !bones.TryGetValue(id, out bone))) return;
             WeaponContact(pl, w, id, bone, c.GetContact(0).point, c.relativeVelocity, slicing: false);
         }
 
