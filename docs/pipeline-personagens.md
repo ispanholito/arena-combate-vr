@@ -73,25 +73,56 @@ Plano B: Google Colab grátis (NVIDIA), créditos diários da Meshy/Tripo para o
 
 ---
 
-## Ficha — Goblin (inimigo comum)
-- **Papel**: o inimigo mais comum (arena e dungeon). Ataca com clava; pode ser desarmado, agarrado, espetado, desmembrado.
-- **Silhueta**: baixo (~1,3 m), magro e nervoso, cabeça um pouco grande, **orelhas longas e pontudas** para os lados, nariz comprido e torto, dentes tortos para fora.
-- **Paleta**: pele verde-oliva (#5E8A3A), olhos amarelos brilhantes (#FFE04A), roupa marrom-escura de couro gasto e trapos (#5A4028), detalhes de corda e osso.
-- **Roupa**: tanga/saiote de couro, cinto de corda, uma ombreira de couro só num ombro, faixas de pano nos pulsos e canelas; pés descalços com unhas compridas. Nada solto e comprido (capa, cabelo longo) — atrapalha o corte por osso.
-- **Arma (separada)**: clava de madeira nodosa com pregos/anel de ferro na ponta, ~50 cm.
+## Fichas v2 (2026-10-31) — fantasia sombria com toque de anime
+Decisões do Pablo: goblins **cruéis** (Goblin Slayer: pequenos, feios, sujos, espertos); roupa **mínima** (só tanga e trapos), no limite do que um público de 13+ aceita — **sem nudez**: a tanga sempre cobre; Rei Goblin **gordo e forte**, inspirado no conceito do 1º chefe de SAO (Illfang, o Senhor Kobold). **Só o conceito**: não usar o nome nem copiar o design (direito autoral). As fichas antigas (2026-10-28) foram substituídas.
 
-### Prompt do goblin para o Gemini (frente)
+Trecho de estilo fixo (repetir em todo personagem):
+`stylized low-poly dark fantasy game character with a subtle anime influence, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, full body, front view, T-pose, arms straight out to the sides, legs slightly apart, symmetrical, no weapon in hands, no text`
+
+Dica: o Gemini às vezes recusa "quase nu"; "loincloth and leather scraps" passa. Gere várias e escolha a mais limpa (corpo inteiro, mãos abertas, nada cortado, tanga cobrindo).
+
+## Ficha — Goblin (inimigo comum)
+- **Papel**: o inimigo mais comum. Clava; pode ser desarmado, agarrado, desmembrado.
+- **Silhueta**: baixo (~1,2 m), magro, costas curvadas, **braços compridos**, cabeça grande, orelhas pontudas para trás, nariz adunco.
+- **Rosto cruel**: sorriso largo de dentes pontudos e tortos, olhos amarelos fundos e pequenos (brilham no escuro), testa franzida, cicatrizes.
+- **Paleta**: pele verde-oliva suja (#6F8A3A), trapos marrons (#6B4A33), olhos #FFD23F, sujeira e manchas escuras.
+- **Roupa (mínima)**: só uma tanga de couro rasgado com cinto de corda, um colar de dentes e ossos pequenos, faixas sujas nos pulsos. Descalço, unhas compridas e pretas. Nada comprido e solto (atrapalha o corte por osso).
+- **Arma (separada)**: clava torta com pregos enferrujados, ~50 cm.
+
+### Prompt do goblin (frente)
 ```
-stylized low-poly dark fantasy game character, hand-painted texture, flat neutral lighting, no cast shadows, plain white background, full body, front view, T-pose, arms straight out to the sides, legs slightly apart, symmetrical, no weapon in hands, no text.
-A small wiry goblin warrior, about 1.3 meters tall, slightly large head, long pointed ears sticking out sideways, long crooked nose, crooked teeth showing, glowing yellow eyes, olive green skin. Wearing a worn dark brown leather loincloth, rope belt, a single leather shoulder pad on the left shoulder, cloth wraps on wrists and shins, barefoot with long toenails. Menacing but slightly comical, readable silhouette.
+stylized low-poly dark fantasy game character with a subtle anime influence, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, full body, front view, T-pose, arms straight out to the sides, legs slightly apart, symmetrical, no weapon in hands, no text.
+A small cruel goblin, about 1.2 meters tall, skinny with a hunched back and long arms, large head, pointed ears swept backwards, hooked nose, wide sadistic grin full of sharp crooked teeth, small sunken glowing yellow eyes, furrowed brow, scars on the face and body, dirty olive green skin with dark grime. Wearing only a ragged dark leather loincloth with a rope belt, a necklace of small teeth and bones, dirty cloth wraps on the wrists, barefoot with long black toenails. Menacing and nasty, not comical, readable silhouette.
 ```
 
 ### Prompt do goblin (folha de giro)
 ```
-character turnaround sheet of the same goblin: front view, side view and back view side by side, T-pose, same proportions and colors in all views, stylized low-poly dark fantasy, hand-painted texture, flat neutral lighting, plain white background, no weapon, no text.
+character turnaround sheet of the same goblin: front view, side view and back view side by side, T-pose, same proportions and colors in all views, stylized low-poly dark fantasy game character with a subtle anime influence, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, no weapon in hands, no text.
 ```
 
 ### Prompt da clava (separada)
 ```
-stylized low-poly dark fantasy game prop, hand-painted texture, flat neutral lighting, plain white background, single object centered, side view: a crude knotted wooden club about 50 cm long, thick head wrapped with an iron ring and a few rusty nails, leather-wrapped handle, no text.
+stylized low-poly dark fantasy game prop, hand-painted texture with dirt and wear, flat neutral lighting, plain white background, single object centered, side view: a crude crooked wooden club about 50 cm long, thick head studded with rusty nails, dark stains, leather-wrapped handle, no text.
 ```
+
+## Ficha — Rei Goblin (chefe da demo)
+- **Papel**: chefe da demo. Fase 1 = clava grande + porta velha com chapas de ferro como escudo; fase 2 = duas espadas. Entra curvado pela porta.
+- **Silhueta**: **2,6-3 m** (≈ 2× o goblin), **gordo e forte**: barriga enorme e dura, peito e ombros largos, braços muito grossos, pernas curtas e grossas. Lê como "lutador de sumô brutal".
+- **Rosto**: mesmo DNA do goblin (orelhas para trás, nariz adunco, dentes pontudos) com mandíbula larga, presas inferiores, cicatriz atravessando um olho, olhos amarelos que ficam vermelhos na fúria (já no jogo).
+- **Paleta**: pele verde-oliva mais escura (#5A7430), coroa de ouro gasto (#E0B040), capa vermelho-escura (#7A1E1E), couro escuro, ferro enferrujado.
+- **Roupa**: coroa torta de ouro com pontas irregulares, tanga grande de couro com cinto largo de fivela de crânio, ombreiras de ferro amassadas, uma pele de animal curta no ombro (capa curta — capa longa atrapalha o corte por osso; se o Gemini fizer longa, cortamos depois), braceletes de ferro, cicatrizes de batalha.
+- **Armas (separadas)**: clava grande (~1,2 m), porta de madeira com chapas de ferro (escudo), duas espadas largas de goblin (cimitarras toscas).
+
+### Prompt do Rei Goblin (frente)
+```
+stylized low-poly dark fantasy game character with a subtle anime influence, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, full body, front view, T-pose, arms straight out to the sides, legs slightly apart, symmetrical, no weapon in hands, no text.
+A huge goblin king boss, about 2.8 meters tall, fat and very strong like a brutal sumo wrestler: enormous hard belly, broad chest and shoulders, very thick muscular arms, short thick legs. Goblin face with pointed ears swept backwards, hooked nose, wide jaw with lower tusks and sharp crooked teeth, a scar across one eye, glowing yellow eyes, cruel arrogant expression, darker olive green skin. Wearing a crooked worn gold crown with irregular spikes, a large dark leather loincloth with a wide belt and a skull buckle, dented iron shoulder plates, a short animal fur mantle over the shoulders, iron bracers, battle scars all over. Intimidating final boss, readable silhouette.
+```
+
+### Prompt das armas do Rei (separadas, uma por imagem)
+```
+stylized low-poly dark fantasy game prop, hand-painted texture with dirt and wear, flat neutral lighting, plain white background, single object centered, no text: (1) a huge crude wooden club about 1.2 meters long with iron spikes; (2) an old wooden door used as a shield, reinforced with dented iron plates and rivets, a crude leather handle; (3) a crude wide goblin scimitar about 1 meter long, chipped rusty blade, bone handle.
+```
+
+## Depois de escolher as imagens
+Salve em `arte/goblin/` e `arte/rei-goblin/` e passe no TRELLIS.2 (passo 2). Mande as imagens para o Claude antes de gerar o 3D se quiser uma segunda opinião.

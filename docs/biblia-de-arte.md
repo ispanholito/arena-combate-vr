@@ -65,4 +65,4 @@ Regra de ouro: **tudo que aparece no jogo segue esta folha**. Modelo que não ca
 - **Depois da demo**: as outras armas, outros chefes, biomas.
 
 ## Próximas decisões
-- Design do goblin (rosto, roupa, arma) e do Rei Goblin — primeiros a fazer.
+- Goblin e Rei Goblin: fichas e prompts em `docs/pipeline-personagens.md` ("Fichas v2"). Goblins cruéis, roupa mínima (só tanga, sem nudez), Rei gordo e forte inspirado no conceito do Illfang (SAO) sem copiar.
