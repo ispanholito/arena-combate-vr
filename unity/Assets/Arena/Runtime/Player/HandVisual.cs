@@ -110,9 +110,10 @@ namespace Arena
                     continue;
                 }
                 var w = side == 1 ? player.Weapon : player.WeaponL;
-                bool holdingWeapon = w && w.Held;   // a luva no cabo já é a mão
-                if (holdingWeapon) { Pose(rig, default, false, side); continue; }
-                ControllerHand(rig, side);
+                var t = side == 0 ? player.leftHand : player.rightHand;
+                // Segurando arma: a mão é desenhada grudada no cabo (fechada), não onde está o controle.
+                if (w && w.Held && w.TryGetGluedHand(out var gp, out var gr)) ControllerHand(rig, side, gp, gr, true);
+                else ControllerHand(rig, side, t.position, t.rotation, false);
             }
         }
 
@@ -130,19 +131,20 @@ namespace Arena
         static readonly float[] FingerScale = { 1f, 1.05f, 0.97f, 0.8f };
         readonly Dictionary<XRHandJointID, Vector3> synth = new Dictionary<XRHandJointID, Vector3>();
 
-        void ControllerHand(HandRig h, int side)
+        readonly List<XRHandJointID> synthKeys = new List<XRHandJointID>();
+
+        void ControllerHand(HandRig h, int side, Vector3 origin, Quaternion rot, bool onWeapon)
         {
-            var t = side == 0 ? player.leftHand : player.rightHand;
             var c = side == 0 ? OVRInput.Controller.LTouch : OVRInput.Controller.RTouch;
             float mx = side == 0 ? -1f : 1f;   // espelho da mão esquerda
-            float grip = Mathf.Max(0.12f, OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, c));
+            float grip = Mathf.Max(onWeapon ? 0.9f : 0.12f, OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, c));
             float trig = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, c);
             bool indexNear = OVRInput.Get(OVRInput.NearTouch.PrimaryIndexTrigger, c) || trig > 0.05f;
             float index = indexNear ? Mathf.Max(0.35f, trig) : 0.08f;   // dedo fora do gatilho = apontando
             bool thumbDown = OVRInput.Get(OVRInput.NearTouch.PrimaryThumbButtons, c) || OVRInput.Get(OVRInput.Touch.PrimaryThumbstick, c)
                              || OVRInput.Get(OVRInput.Touch.One, c) || OVRInput.Get(OVRInput.Touch.Two, c);
             synth.Clear();
-            Vector3 P(float x, float y, float z) => t.TransformPoint(new Vector3(x * mx, y, z));
+            Vector3 P(float x, float y, float z) => origin + rot * new Vector3(x * mx, y, z);
             var wrist = new Vector3(0.012f, -0.035f, -0.095f);
             synth[XRHandJointID.Wrist] = P(wrist.x, wrist.y, wrist.z);
             synth[XRHandJointID.Palm] = P(0.018f, -0.03f, -0.045f);
@@ -171,6 +173,13 @@ namespace Arena
             synth[XRHandJointID.ThumbProximal] = P(-0.012f, -0.0f, -0.045f);
             synth[XRHandJointID.ThumbDistal] = thumbDown ? P(-0.008f, 0.018f, -0.018f) : P(-0.012f, 0.03f, -0.025f);
             synth[XRHandJointID.ThumbTip] = thumbDown ? P(-0.002f, 0.022f, 0.004f) : P(-0.01f, 0.05f, -0.008f);
+            // Segurando o cabo da espada cravada: a mão fica grudada nele enquanto puxa.
+            if (StuckSword.TryGetHeldHilt(side, out var hilt))
+            {
+                var off = hilt - synth[XRHandJointID.Palm];
+                synthKeys.Clear(); synthKeys.AddRange(synth.Keys);
+                foreach (var key in synthKeys) synth[key] += off;
+            }
             PoseFrom(h, synth);
         }
 
@@ -198,6 +207,8 @@ namespace Arena
             var grabber = EnemyGrabber.Instance;
             if (grabber && grabber.TryGetGrabPoint(side, out var gp) && hand.GetJoint(XRHandJointID.Palm).TryGetPose(out UnityEngine.Pose palmPose))
                 offset = gp - space.TransformPoint(palmPose.position);
+            else if (StuckSword.TryGetHeldHilt(side, out var hilt) && hand.GetJoint(XRHandJointID.Palm).TryGetPose(out UnityEngine.Pose palm2))
+                offset = hilt - space.TransformPoint(palm2.position);   // mão livre segurando o cabo da espada cravada
             foreach (var kv in h.Joints)
             {
                 if (!hand.GetJoint(kv.Key).TryGetPose(out UnityEngine.Pose p)) { kv.Value.gameObject.SetActive(false); h.Pos.Remove(kv.Key); continue; }

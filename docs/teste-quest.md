@@ -9,6 +9,11 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000000000000000000000000000000000000000000000000000. NOVO — inimigos com alcance de verdade e mão grudada na arma
+- **Inimigos acertam mais**: continuam chegando enquanto erguem a arma, avançam no golpe até alcançar e o seu corpo ficou mais largo para eles (cintura até a cabeça, raio 34 cm; antes 22). Goblin físico agora testa a clava inteira entre quadros (antes só a ponta). Vale para o Rei. **Me diga** se ficou difícil demais esquivar (recuar um passo no aviso não salva mais; é preciso sair de lado, aparar ou bloquear).
+- **Mão grudada na arma** (estilo B&S): segurando arma, a mão aparece fechada NO CABO e acompanha a arma (atrasada pelo peso, parada no inimigo). A luva marrom saiu; a mão fantasma (onde o controle está) só aparece se a arma ficar a mais de 30 cm.
+- **Espada cravada**: segurando o cabo, a mão fica grudada nele enquanto puxa (controle ou mão livre).
+
 ## 0000000000000000000000000000000000000000000000000000. NOVO — Rei Goblin com escudo de porta de verdade e fase 2 com duas espadas
 - **Escudo de porta** (protege a FRENTE): golpe normal para nele e racha pouco (~10 golpes); **com a aura** racha forte e quebra em ~3 ("RACHOU!" → "VAI QUEBRAR!" → "ESCUDO QUEBROU!", ele fica atordoado 1,2 s). Corte de vento de frente = "CLANG!" e some; bola de fogo de frente = "GROSSA DEMAIS!"; espada em chamas solta faísca e fumaça. Bater no escudo também enche a postura dele.
 - **Janelas**: depois do pisão, da investida e do golpe no chão ele fica aberto ~1-2 s (aí o golpe pega no corpo). Pelas costas sempre pega.

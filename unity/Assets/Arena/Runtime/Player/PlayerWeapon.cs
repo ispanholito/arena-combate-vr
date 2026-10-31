@@ -76,6 +76,18 @@ namespace Arena
         Material ghostMat;
 
         public Transform Visual => visual;
+
+        // Mão "grudada" na arma (estilo B&S, 2026-10-31): a pose que a mão teria se a arma estivesse exatamente onde a junta
+        // quer (o cabo é a origem do modelo). A HandVisual desenha a mão aí, então ela fica no cabo mesmo com a arma
+        // atrasada pelo peso ou parada num obstáculo.
+        public bool TryGetGluedHand(out Vector3 pos, out Quaternion rot)
+        {
+            pos = default; rot = Quaternion.identity;
+            if (mode != Mode.Held || !visual || !player || !player.IsVr) return false;
+            pos = visual.position;
+            rot = visual.rotation * Quaternion.Inverse(Quaternion.Euler(Def.IsGun ? GunRules.GunPitch : VrGripPitch, 0, 0));
+            return true;
+        }
         public Rigidbody Body => body;
         public Vector3 RigVelocity => rigVel;   // velocidade do corpo do jogador (andar/esquivar)
         public Vector3 PhysTipVelocity => physTipVel;   // velocidade da ponta no passo de física ANTES do contato
@@ -408,7 +420,7 @@ namespace Arena
 
             UpdateSecondHandStretch(dt);
             Separation = mode == Mode.Held ? Vector3.Distance(visual.position, targetPos) : 0f;
-            if (glove) glove.gameObject.SetActive(vr && mode == Mode.Held);
+            if (glove) glove.gameObject.SetActive(false);   // a mão de verdade (HandVisual) é desenhada grudada no cabo
             UpdateGhost();
 
             basePrev = BasePoint; tipPrev = TipPoint;
@@ -521,7 +533,7 @@ namespace Arena
         // Mão fantasma: um contorno translúcido no lugar do controle quando a arma está presa longe dele.
         void UpdateGhost()
         {
-            bool show = player.IsVr && mode == Mode.Held && Separation > WeaponPhysics.GhostHandDistance;
+            bool show = player.IsVr && mode == Mode.Held && Separation > WeaponPhysics.GhostHandDistance;   // só longe: a mão fica no cabo
             ghost.gameObject.SetActive(show);
             if (!show) return;
             ghost.SetPositionAndRotation(HandT.position, HandT.rotation);

@@ -238,6 +238,9 @@ namespace Arena
         // Repertório de ataques (EnemyAttacks): o próximo é sorteado ao fim de cada ataque.
         protected EnemyAttack attack = EnemyAttack.Cima, nextAttack = EnemyAttack.Cima;
 
+        // Raio do corpo do jogador para os golpes inimigos (era 0,22: só a cabeça/coluna; no VR quase tudo errava).
+        public const float PlayerHitRadius = 0.34f;
+
         public void ClubSegment(out Vector3 a, out Vector3 b)
         {
             a = arm.TransformPoint(new Vector3(0, 0.1f, 0));
@@ -392,7 +395,8 @@ namespace Arena
                 }
                 case AiState.Windup:
                     LerpPose(EnemyAttacks.Poses(attack).windup, 8f, dt);
-                    if (attack == EnemyAttack.Passo && d > 1.2f * k) Move(dir * 0.8f, dt);   // vem chegando
+                    // Continua chegando durante o aviso (antes parava e você saía do alcance só recuando um passo — 2026-10-31).
+                    if (d > (attack == EnemyAttack.Passo ? 1.2f : 0.95f) * k) Move(dir * Mathf.Max(0.8f, Def.MoveSpeed * 0.7f), dt);
                     if (stateT > WindupTime * (riposting ? CombatAI.RiposteWindupMultiplier : 1f)) SetState(AiState.Strike);
                     break;
                 case AiState.Strike:
@@ -402,6 +406,8 @@ namespace Arena
                     float e = kk * kk;
                     SetPose(Mathf.Lerp(w0.Pitch, w1.Pitch, e), Mathf.Lerp(w0.Yaw, w1.Yaw, e), Mathf.Lerp(w0.Forward, w1.Forward, e));
                     float lunge = attack == EnemyAttack.Passo ? EnemyAttacks.StepSpeed : attack == EnemyAttack.Estocada ? EnemyAttacks.ThrustLunge : 1.2f;
+                    // Avanço do golpe: cobre a distância que falta até a clava alcançar (no começo do arco).
+                    if (stateT < 0.25f) lunge = Mathf.Max(lunge, Mathf.Min(4.5f * k, (d - 0.85f * k) / 0.2f));
                     if (d > 0.8f * k) Move(dir * lunge, dt);
                     if (!hitDone) CheckClubContact(kk, d);
                     if (stateT > 0.4f) SetState(AiState.Recover);
@@ -470,9 +476,9 @@ namespace Arena
             }
             // Corpo do jogador: da cintura à cabeça. Só toma dano se a clava realmente chegar nele.
             var head = Player.HeadPosition;
-            var waist = new Vector3(head.x, Player.FeetPosition.y + 0.6f, head.z);
+            var waist = new Vector3(head.x, Player.FeetPosition.y + 0.45f, head.z);
             if (wind && Geometry.SweptSegmentsHit(waist.ToN(), head.ToN(), waist.ToN(), head.ToN(),
-                                                  clubPrevA.ToN(), clubPrevB.ToN(), a.ToN(), b.ToN(), 0.22f + tol))
+                                                  clubPrevA.ToN(), clubPrevB.ToN(), a.ToN(), b.ToN(), PlayerHitRadius + tol))
             {
                 hitDone = true;
                 Player.TakeDamage(Def.AttackDamage, transform.position);

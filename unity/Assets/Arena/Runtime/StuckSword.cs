@@ -97,6 +97,14 @@ namespace Arena
             return true;
         }
 
+        // Cabo da espada que esta mão (0 = esquerda, 1 = direita) está segurando: a mão é desenhada grudada nele.
+        public static bool TryGetHeldHilt(int side, out Vector3 hilt)
+        {
+            foreach (var s in All)
+                if (s && !s.Freed && s.holder == side) { hilt = s.Hilt; return true; }
+            hilt = default; return false;
+        }
+
         static StuckSword Nearest(Vector3 hand)
         {
             StuckSword best = null; float bestD = ExtractRules.GrabRange;

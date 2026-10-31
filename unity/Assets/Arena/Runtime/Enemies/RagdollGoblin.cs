@@ -804,6 +804,7 @@ namespace Arena
             circling = false;
             if (dodgeT > 0f && !stuck) { move = dodgeDir * CombatSteering.DodgeSpeed; }
             else if (retreatT > 0f && !stuck) { move = -dir * 1.6f; hasToken = false; tokens.Release(TokenId); }
+            else if (!stuck && attack == Attack.Windup && dist > 0.95f * k) move = dir * 1.2f;   // continua chegando no aviso
             else if (attack == Attack.None && !stuck && guardT <= 0f)
             {
                 if (hasToken && dist > reach - 0.15f)
@@ -830,8 +831,9 @@ namespace Arena
                 }
             }
             // Passo à frente: avança durante o golpe.
-            bool lunging = attack == Attack.Strike && curAttack == EnemyAttack.Passo && attackT < 0.2f;
-            if (lunging) move = lungeDir * (ActiveRagdollPoses.StepLunge / 0.2f);
+            bool lunging = attack == Attack.Strike && attackT < 0.2f && (curAttack == EnemyAttack.Passo || dist > 0.95f * k);
+            if (lunging) move = curAttack == EnemyAttack.Passo ? lungeDir * (ActiveRagdollPoses.StepLunge / 0.2f)
+                                                               : dir * Mathf.Min(4f, (dist - 0.9f * k) / 0.2f);   // avança até alcançar
             else if (!stuck) move = Steer(move);   // separação dos vizinhos + desvio dos pilares
             // Acelera e freia (não muda de velocidade de uma vez), inclusive na esquiva; só o avanço do golpe é instantâneo.
             if (!lunging) { smoothMove = Vector3.MoveTowards(smoothMove, move, (move.sqrMagnitude > smoothMove.sqrMagnitude ? EnemyMotion.Accel : EnemyMotion.Decel) * dt); move = smoothMove; }
@@ -985,8 +987,10 @@ namespace Arena
                 strikeHit = true;
                 ResolveGuard(pl, Guard.ResolveShield(shield.GuardSpeed, pl.State.CounterStance > 0f, pl.State.Stamina.Current), shield.Center);
             }
+            sweepA = hasClubPrev ? clubPrevA : a; sweepB = hasClubPrev ? clubPrevB : b;
             clubPrevA = a; clubPrevB = b; hasClubPrev = true;
         }
+        Vector3 sweepA, sweepB;   // clava no passo anterior (para a varredura do acerto no corpo)
 
         void ResolveGuard(ArenaPlayer pl, GuardResult r, Vector3 at)
         {
@@ -1040,10 +1044,11 @@ namespace Arena
             // Ponta da clava (armado) ou o punho (desarmado).
             var tip = Armed ? clubRb.position + clubRb.rotation * weaponTip
                             : fr.Rb.position + fr.Rb.rotation * new Vector3(0f, -0.12f * k, 0f);
-            var head = pl.HeadPosition; var waist = new Vector3(head.x, pl.FeetPosition.y + 0.7f, head.z);
-            var ab = head - waist;
-            var c = waist + ab * Mathf.Clamp01(Vector3.Dot(tip - waist, ab) / ab.sqrMagnitude);
-            if (Vector3.Distance(tip, c) > (Armed ? 0.28f : 0.22f)) return;
+            var head = pl.HeadPosition; var waist = new Vector3(head.x, pl.FeetPosition.y + 0.45f, head.z);
+            // Varre a clava inteira (punho → ponta) entre o passo anterior e este (antes só a ponta, e o golpe rápido pulava).
+            var hand = fr.Rb.position + fr.Rb.rotation * new Vector3(0f, -0.12f * k, 0f);
+            float r = Armed ? GoblinEnemy.PlayerHitRadius : 0.26f;
+            if (!Geometry.SweptSegmentsHit(waist.ToN(), head.ToN(), waist.ToN(), head.ToN(), sweepA.ToN(), sweepB.ToN(), hand.ToN(), tip.ToN(), r)) return;
             strikeHit = true;
             pl.TakeDamage(State.Def.AttackDamage * (Armed ? 1f : ActiveRagdollRules.PunchDamageFraction), Center);
             ArenaAudio.Play(Sfx.Impact, tip, 0.8f);

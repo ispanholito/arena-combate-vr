@@ -113,7 +113,7 @@ namespace Arena.Core
         // para a arma parar no obstáculo em vez de atravessar.
         public const float GripLimit = 0.03f, GripLimitSpring = 40000f, GripLimitDamper = 600f, ContactRelaxSeconds = 0.15f;
         public const float ThrowMinHandSpeed = 2f;     // soltar o grip com a mão mais rápida que isso arremessa; mais devagar, só larga
-        public const float GhostHandDistance = 0.08f;  // a partir daqui mostra a mão fantasma
+        public const float GhostHandDistance = 0.3f;   // a partir daqui mostra a mão fantasma (era 0,08; a mão agora fica grudada no cabo)
 
         // Massa em kg (peso real aproximado; o "Weight" do WeaponDef é a escala de jogo usada no FollowRate).
         public static float Mass(WeaponDef w) => w.MassKg > 0f ? w.MassKg : w.Kind switch
