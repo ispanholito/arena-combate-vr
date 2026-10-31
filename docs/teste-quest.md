@@ -9,6 +9,13 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 0000000000000000000000000000000000000000000000000. NOVO — andar não trava, sem teia, aura e vento nas duas armas, aura quebra capacete
+- **Andar com o analógico direito** (controle esquerdo largado): não pode mais parar do nada. Causa provável: o controle esquerdo parado no sofá/mesa, visto pelas câmeras, era contado como "na mão" e o andar passava para o analógico esquerdo. Agora os dois analógicos só valem com o esquerdo tocado há menos de 0,6 s. **Se ainda parar, me diga onde estava o controle esquerdo.**
+- **Teia fora**: as bolinhas de gancho sumiram (santuário, arena, dungeon). O sinal do chifre 2× (dash para trás) continua. Tutorial pula o passo da teia.
+- **Aura vermelha nas duas mãos**: com uma arma na esquerda, as duas ficam vermelhas e as duas dão +25%, quebram guarda e racham escudo.
+- **Lâmina de Vento nas duas**: botão B dá 2 cortes para a direita e 2 para a esquerda (se tiver arma nela).
+- **Aura quebra capacete**: golpe ≥ 3,5 m/s com a aura na cabeça de quem tem elmo = "CAPACETE QUEBROU!", as peças voam e a cabeça fica sem proteção (Sala de Criação → CAPACETES).
+
 ## 000000000000000000000000000000000000000000000000. NOVO — escudo do orc corrigido e puxar arma mais longe com contorno
 - **Escudo do orc** (Sala de Criação → ESCUDO DO ORC): antes a batida no escudo era ignorada (nunca rachava). Agora: sem aura racha a cada ~3 golpes e quebra em ~9-13; **com a aura vermelha quebra em 3** (no editor). Conferir "RACHOU!"/"VAI QUEBRAR!"/"ESCUDO QUEBROU!".
 - **Puxar arma do chão**: agora até **4 m** dos pés (era 2,5) e a mira é um pouco mais larga (18°, abre até 24° longe). **Marca de "dá para puxar"**: contorno ciano em volta da própria arma + linha fina da mão até ela + vibração leve quando a mira pega a arma. Grip = fica **amarelo** (travada) → puxe a mão para você.

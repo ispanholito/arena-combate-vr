@@ -872,7 +872,7 @@ namespace Arena
                 float mult = TwoHandRules.DamageMultiplier(Def, TwoHanded);
                 if (Thrown) mult *= DamageTypes.ThrownMultiplier(Def.Kind, DamageTypes.Classify(Def.Kind, edge, thrust));   // adaga arremessada x3
                 mult *= FlameBlade.DamageMultiplier;   // arma em chamas: +30%
-                if (!IsLeft) mult *= RedAura.DamageMultiplier;   // aura vermelha
+                mult *= RedAura.DamageMultiplier;   // aura vermelha (as duas mãos)
                 if (e.TakeMeleeHit(speed, edge, strikeVel, Def, player.State, mult, height, thrust))
                 {
                     FlameBlade.OnHit(e.State);

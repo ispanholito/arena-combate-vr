@@ -20,7 +20,9 @@ namespace Arena
             public Func<ArenaPlayer, bool> Done;   // condição em vez de evento (ou além dele)
         }
 
-        static readonly Step[] Steps =
+        static Step[] steps;
+        static Step[] Steps => steps ??= Array.FindAll(AllSteps, s => Demo.Web || s.Event != "puxar");   // demo sem teia (lido depois de AllSteps existir)
+        static readonly Step[] AllSteps =
         {
             new Step { Title = "Golpe com a arma", Event = "golpe",
                 How = "Segure o controle direito e golpeie o boneco com a espada. O dano vem da VELOCIDADE e do ÂNGULO: golpes rápidos com o fio cortam mais. (No PC: botão esquerdo do mouse.)" },

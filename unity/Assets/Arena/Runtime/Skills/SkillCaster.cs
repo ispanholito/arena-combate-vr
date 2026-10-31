@@ -11,7 +11,9 @@ namespace Arena
     public sealed class SkillCaster : MonoBehaviour
     {
         ArenaPlayer player;
-        float fireCharge, slashCd, hintCd;
+        float fireCharge, slashCd, hintCd, slashCdL;
+        int leftWind;   // cortes de vento da arma da mão esquerda
+        public int LeftWindCharges => leftWind;
         Transform fireOrb, rootMarker;
         bool rootAim;
         Vector3 handPrev, handVel;
@@ -29,7 +31,7 @@ namespace Arena
         {
             if (ArenaGame.Blocked) return;
             float dt = Time.deltaTime;
-            hintCd -= dt; slashCd -= dt;
+            hintCd -= dt; slashCd -= dt; slashCdL -= dt;
             // Velocidade da mão relativa ao corpo (andando, a Bola de Fogo ia na direção do passo e não do arremesso).
             var handLocal = player.trackingSpace.InverseTransformPoint(player.RightHand.position);
             if (dt > 0f) { handVel = player.trackingSpace.TransformDirection((handLocal - handPrev) / dt); handPrev = handLocal; }
@@ -111,6 +113,7 @@ namespace Arena
             }
             if (I.BPressed && Cast(SkillIds.VentoLamina))
             {
+                leftWind = player.WeaponL && player.WeaponL.Held ? 2 : 0;   // a arma da mão esquerda também ganha 2 cortes
                 ArenaGame.Instance?.Message("Lâmina carregada: 2 cortes", 0.9f);
                 ArenaAudio.Play2D(Sfx.Skill, 0.6f);
                 ArenaInput.Haptic(0.6f, 0.1f);
@@ -125,6 +128,14 @@ namespace Arena
                 float dmg = Combat.WindSlashDamage * (S.Has(SkillIds.FioAfiado) ? Combat.SharpEdgeBonus : 1f);
                 LaunchSlash(w.TipPoint, player.HeadForward, w.TipVelocity, dmg, new Color(0.81f, 0.96f, 1f), Combat.WindSlashWidth, Combat.WindSlashHitRadius);
                 ArenaInput.Haptic(0.8f, 0.08f);
+            }
+            var wl = player.WeaponL;
+            if (leftWind > 0 && wl && wl.Held && wl.TipSpeed > 5f && slashCdL <= 0f)
+            {
+                leftWind--; slashCdL = 0.35f;
+                float dmg = Combat.WindSlashDamage * (S.Has(SkillIds.FioAfiado) ? Combat.SharpEdgeBonus : 1f);
+                LaunchSlash(wl.TipPoint, player.HeadForward, wl.TipVelocity, dmg, new Color(0.81f, 0.96f, 1f), Combat.WindSlashWidth, Combat.WindSlashHitRadius);
+                ArenaInput.Haptic(0.8f, 0.08f, left: true);
             }
         }
 

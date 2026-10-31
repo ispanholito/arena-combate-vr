@@ -1089,7 +1089,7 @@ namespace Arena
                     else Parried(contact);
                     strikeHit = true;
                 }
-                else if (guardT > 0f && w == pl.Weapon && RedAura.Active)
+                else if (guardT > 0f && RedAura.Active)
                 {
                     // Aura vermelha: a guarda não segura — atordoa e abre a defesa.
                     guardT = 0f;
@@ -1142,6 +1142,8 @@ namespace Arena
             // Cabeça (e o alto do tronco, no pescoço): regra por região — HeadHitRules.
             bool headHit = id == RagBone.Cabeca || (id == RagBone.Tronco && NearNeck(contact));
             var zone = headHit ? HeadZoneAt(contact) : HeadZone.Cranio;
+            // Aura vermelha quebra o capacete (o golpe já pega a cabeça sem proteção).
+            if (headHit && helmet && zone != HeadZone.Pescoco && RedAura.Active && speed >= HeadHitRules.MinSpeed && mode != Mode.Dead) BreakHelmet(vel);
             var headOut = HeadOutcome.Nada;
             if (headHit)
             {
@@ -1157,7 +1159,7 @@ namespace Arena
             float dmg = Combat.MeleeDamage(speed, def, Combat.SharpEdge(pl.State.Has(SkillIds.FioAfiado), def), true, def.Blunt ? 1f : edge)
                         * zoneMul * DamageTypes.Multiplier(DamageTypes.MaterialOf(Kind), dtype);
             dmg *= FlameBlade.DamageMultiplier;   // arma em chamas: +30% e põe calor
-            if (w == pl.Weapon) dmg *= RedAura.DamageMultiplier;   // aura vermelha (arma da mão direita)
+            dmg *= RedAura.DamageMultiplier;   // aura vermelha (as duas mãos)
             FlameBlade.OnHit(State);
             if (def.HeatPerHit > 0f && mode != Mode.Dead) State.Status.AddHeat(def.HeatPerHit);   // tocha
             if (def.Funny) WeaponModels.FunnyHit(def, contact);
@@ -1256,7 +1258,7 @@ namespace Arena
             speed = Mathf.Max(speed, w.PhysTipVelocity.magnitude);
             if (speed < EnemyShieldState.MinSpeed) return;
             hitCd = 0.25f;
-            bool aura = w == pl.Weapon && RedAura.Active;
+            bool aura = RedAura.Active;
             bool broke = shieldState.Hit(speed, aura, w.Def.Weight > 5f, w.Def.Blunt);
             ArenaAudio.Play(Sfx.Block, contact, 0.9f, aura ? 0.75f : 1f);
             ArenaFx.Burst(contact, aura ? new Color(1f, 0.3f, 0.2f) : new Color(0.75f, 0.55f, 0.3f), aura ? 14 : 6, 2.5f);
@@ -1399,6 +1401,33 @@ namespace Arena
                     Part(PrimitiveType.Sphere, new Vector3(Mathf.Sin(a) * 0.52f, -0.07f, Mathf.Cos(a) * 0.52f), Vector3.one * 0.07f, bronze);
                 }
             }
+        }
+
+        // Aura vermelha: o elmo racha e as peças voam (física), a cabeça fica sem proteção.
+        void BreakHelmet(Vector3 hitVel)
+        {
+            helmet = false;
+            var root = bones[RagBone.Cabeca].Rb.transform.Find("Elmo");
+            if (!root) return;
+            var at = root.position;
+            ArenaFx.FloatText("CAPACETE QUEBROU!", at + Vector3.up * 0.35f, new Color(1f, 0.35f, 0.25f), 1.2f);
+            ArenaFx.Burst(at, new Color(1f, 0.3f, 0.2f), 20, 3.5f, 1f);
+            ArenaAudio.Play(Sfx.Broken, at, 1f, 1.2f);
+            ArenaInput.Haptic(0.9f, 0.1f);
+            var cols = BodyColliders();
+            foreach (var r in root.GetComponentsInChildren<MeshRenderer>())
+            {
+                var piece = r.gameObject;
+                piece.transform.SetParent(null, true);
+                var bc = piece.AddComponent<BoxCollider>();
+                foreach (var c in cols) Physics.IgnoreCollision(bc, c);
+                var rb = piece.AddComponent<Rigidbody>();
+                rb.mass = 0.3f;
+                rb.linearVelocity = hitVel.normalized * Random.Range(1.5f, 3f) + Random.insideUnitSphere * 1.5f + Vector3.up * 2f;
+                rb.angularVelocity = Random.insideUnitSphere * 10f;
+                Destroy(piece, 4f);
+            }
+            Destroy(root.gameObject);
         }
 
         void KnockDown()

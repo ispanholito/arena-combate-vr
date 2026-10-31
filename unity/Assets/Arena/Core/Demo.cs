@@ -5,5 +5,7 @@ namespace Arena.Core
     {
         // Bênçãos (altar e estátua) — Pablo: "meio meme". Fora da demo.
         public const bool Blessings = false;
+        // Teia (pontos de gancho): saiu com a corrida dos braços (Pablo, 2026-10-31). O dash para trás continua.
+        public const bool Web = false;
     }
 }

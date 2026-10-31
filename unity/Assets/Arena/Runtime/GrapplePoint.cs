@@ -26,6 +26,7 @@ namespace Arena
             g.haloMat = ArenaUtil.Unlit(new Color(Idle.r, Idle.g, Idle.b, 0.25f));
             g.core = ArenaUtil.Prim(PrimitiveType.Sphere, go.transform, Vector3.zero, Vector3.one * 0.16f, g.coreMat).transform;
             g.halo = ArenaUtil.Prim(PrimitiveType.Sphere, go.transform, Vector3.zero, Vector3.one * 0.34f, g.haloMat).transform;
+            if (!Arena.Core.Demo.Web) go.SetActive(false);   // demo sem teia: o ponto fica escondido e não acende
             return g;
         }
 

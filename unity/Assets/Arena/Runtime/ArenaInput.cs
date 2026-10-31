@@ -59,8 +59,15 @@ namespace Arena
             UpdateLeftInHand(dt);
             UpdateRightInHand(dt);
             var rStick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, R);
+            // Controle esquerdo largado (sofá, mesa) mas visto pelas câmeras às vezes conta como "na mão" (o sensor diz
+            // NoHand e a posição está rastreada) — aí o andar passava para o analógico ESQUERDO e o jogador parava do nada
+            // andando com o direito (teste de 2026-10-31). Os dois analógicos só valem com o esquerdo tocado há < 0,6 s.
+            bool leftTouched = OVRInput.Get(OVRInput.Touch.Any, L) || OVRInput.Get(OVRInput.NearTouch.Any, L)
+                               || OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, L) > 0.2f || OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, L) > 0.2f
+                               || OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, L).sqrMagnitude > 0.02f;
+            leftUntouchedT = leftTouched ? 0f : leftUntouchedT + dt;
 
-            if (LeftControllerConnected)
+            if (LeftControllerConnected && leftUntouchedT < 0.6f)
             {
                 Move = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, L);
                 Dash = OVRInput.GetDown(OVRInput.Button.One, L);          // X
@@ -116,7 +123,7 @@ namespace Arena
         }
 
         // Usa o sensor da Meta que diz se o controle está na mão; o estado só muda depois de 0,2 s estável (evita piscar).
-        float inHandStableT, rightInHandStableT;
+        float inHandStableT, rightInHandStableT, leftUntouchedT = 99f;
 
         void UpdateRightInHand(float dt)
         {
