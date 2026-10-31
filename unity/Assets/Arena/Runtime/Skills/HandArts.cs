@@ -29,7 +29,9 @@ namespace Arena
         void Update()
         {
             float dt = Time.deltaTime;
-            cd -= dt; waveCd -= dt;
+            cd -= dt;
+            if (DemoGate.Hidden) return;   // fora da demo waveCd -= dt;
+            if (DemoGate.Hidden) return;   // fora da demo
             if (activeT > 0f) { activeT -= dt; if (activeT <= 0f) End(); else Aura(); }
             var hm = HandMagic.Instance;
             if (!player.IsVr || ArenaGame.Blocked || !hm || !player.Input.LeftHandFree || !player.Input.RightHandFree) return;
@@ -205,6 +207,7 @@ namespace Arena
         {
             float dt = Time.deltaTime;
             cd -= dt;
+            if (DemoGate.Hidden) return;   // fora da demo
             var hm = HandMagic.Instance;
             if (!player.IsVr || ArenaGame.Blocked || !hm || Muralha.Active) { heldT = 0f; return; }
             if (heldT > 0f) { Held(hm, dt); return; }

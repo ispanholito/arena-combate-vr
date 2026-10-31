@@ -63,11 +63,12 @@ namespace Arena
 
             // Trava de mão (HandLock): duas mãos só com as duas livres; bola de fogo só na mão livre para ela.
             if (Muralha.Active) { MuralhaClap(dt); CancelFire(0); CancelFire(1); HideKameOrb(); return; }   // na Muralha: só soco e ondas
-            if (leftFree && rightFree && HandLock.BothFree("duas") && TwoHandMagic(dt)) { CancelFire(0); CancelFire(1); return; }
+            if (!DemoGate.Hidden && leftFree && rightFree && HandLock.BothFree("duas") && TwoHandMagic(dt)) { CancelFire(0); CancelFire(1); return; }
             if (kameCharging) { kameCharging = false; kameT = 0f; }
             HideKameOrb();
-            if (leftFree && HandLock.Free(0, "fogo")) Fireball(0, dt); else CancelFire(0);
-            if (rightFree && HandLock.Free(1, "fogo")) Fireball(1, dt); else CancelFire(1);
+            bool fireOk = DemoGate.FireAllowed;   // demo: só depois da estátua
+            if (fireOk && leftFree && HandLock.Free(0, "fogo")) Fireball(0, dt); else CancelFire(0);
+            if (fireOk && rightFree && HandLock.Free(1, "fogo")) Fireball(1, dt); else CancelFire(1);
         }
 
         void Track(int side, float dt)

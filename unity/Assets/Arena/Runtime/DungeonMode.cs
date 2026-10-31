@@ -166,7 +166,7 @@ namespace Arena
         // Sem janela nem parede quebrada: atrás da parede da dungeon é o vazio.
         static readonly string[] WallVariants = { "wall", "wall", "wall_cracked", "wall" };
 
-        static void FloorTiles(Transform parent, float x0, float z0, float x1, float z1, System.Random rng)
+        internal static void FloorTiles(Transform parent, float x0, float z0, float x1, float z1, System.Random rng)
         {
             float w = x1 - x0, d = z1 - z0;
             int nx = Mathf.Max(1, Mathf.CeilToInt(w / 4f - 0.01f)), nz = Mathf.Max(1, Mathf.CeilToInt(d / 4f - 0.01f));
@@ -180,7 +180,7 @@ namespace Arena
                 }
         }
 
-        void WallPieces(Transform parent, WalkArea area, float x0, float z0, float x1, float z1, bool alongX, float len, System.Random rng)
+        internal static void WallPieces(Transform parent, WalkArea area, float x0, float z0, float x1, float z1, bool alongX, float len, System.Random rng)
         {
             var inward = -OutsideNormal(area, x0, z0, x1, z1);
             float yaw = Quaternion.LookRotation(inward).eulerAngles.y;   // a face decorada olha para dentro da sala
@@ -199,7 +199,7 @@ namespace Arena
 
         static readonly string[] Props = { "barrel_large", "barrel_small_stack", "crates_stacked", "box_large", "barrel_large_decorated", "box_stacked", "keg", "trunk_medium_A" };
 
-        static void CornerProps(Transform parent, Rect2 r, System.Random rng)
+        internal static void CornerProps(Transform parent, Rect2 r, System.Random rng)
         {
             // 2 cantos sorteados com um objeto (longe das aberturas, que ficam no meio das paredes).
             var corners = new[] { (r.MinX + 1f, r.MinZ + 1f), (r.MaxX - 1f, r.MinZ + 1f), (r.MinX + 1f, r.MaxZ - 1f), (r.MaxX - 1f, r.MaxZ - 1f) };
@@ -303,7 +303,7 @@ namespace Arena
             }
         }
 
-        Vector3 OutsideNormal(WalkArea area, float x0, float z0, float x1, float z1)
+        internal static Vector3 OutsideNormal(WalkArea area, float x0, float z0, float x1, float z1)
         {
             var mid = new Vector3((x0 + x1) * 0.5f, 0f, (z0 + z1) * 0.5f);
             var n = Mathf.Approximately(z0, z1) ? Vector3.forward : Vector3.right;

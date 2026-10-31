@@ -42,7 +42,7 @@ namespace Arena
                 rows.Add(("<color=#ffd36b>Sair do tutorial</color>" + Note + "(volta ao santuário; dá para rever pelo portal TUTORIAL)</color></size>", () => { game.FinishTutorial(); return false; }));
             }
             rows.Add(("<color=#ffd36b>Livro de magias</color>" + Note + "(como fazer cada poder e habilidade)</color></size>", () => { SpellBook.Open(); return false; }));
-            rows.Add(("Árvore de habilidades", () => { if (!ArenaGame.InMenu) { game.SetPaused(false); player.TreeOpen = true; } return false; }));
+            if (!DemoGate.Hidden) rows.Add(("Árvore de habilidades", () => { if (!ArenaGame.InMenu) { game.SetPaused(false); player.TreeOpen = true; } return false; }));
             rows.Add(("Volume: " + Mathf.RoundToInt(o.volume * 100f) + "%", () => { o.CycleVolume(); return true; }));
             rows.Add(("Giro (com dois controles): " + o.TurnLabel, () => { o.CycleTurn(); return true; }));
             rows.Add(("Vinheta ao andar: " + (o.moveVignette ? "ligada" : "desligada"), () => { o.moveVignette = !o.moveVignette; return true; }));
@@ -55,7 +55,7 @@ namespace Arena
             rows.Add(("Música: " + (o.music ? "ligada" : "desligada"), () => { o.music = !o.music; return true; }));
             rows.Add(("Morte: " + DeathRules.Label(o.DeathPenalty), () => { o.CycleDeathPenalty(); if (player.State != null) player.State.Penalty = o.DeathPenalty; return true; }));
             rows.Add(("Inimigos físicos no Treino: " + o.TrainingGoblins + Note + "(teste de desempenho)</color></size>", () => { o.CycleTrainingGoblins(); return true; }));
-            rows.Add((inHub ? "Menu inicial (trocar de personagem)" : "Voltar ao santuário", () => { cursor = 0; game.BackFromPause(); return false; }));
+            rows.Add((DemoGate.InDemo ? "Recomeçar a demo" : inHub ? "Menu inicial (trocar de personagem)" : "Voltar ao santuário", () => { cursor = 0; game.BackFromPause(); return false; }));
         }
 
         // Chamado pelo ArenaPlayer enquanto pausado.

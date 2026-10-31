@@ -89,7 +89,7 @@ namespace Arena
             switch (r)
             {
                 case SkillCastResult.Ok: return true;
-                case SkillCastResult.Locked: Hint("Habilidade bloqueada: abra a árvore"); break;
+                case SkillCastResult.Locked: if (!DemoGate.Hidden) Hint("Habilidade bloqueada: abra a árvore"); break;   // demo: ainda não achou
                 case SkillCastResult.NoStamina: Hint("Sem estamina"); break;
                 case SkillCastResult.NoMana: Hint("Sem mana"); break;
             }
@@ -100,7 +100,7 @@ namespace Arena
         void Lamina()
         {
             var w = player.Weapon;
-            if (I.APressed) Investida();
+            if (I.APressed && !DemoGate.Hidden) Investida();   // demo: sem Investida
             if (Trig || (I.TriggerPressed && !w.Held))
             {
                 if (!w.Held) w.Recall();
@@ -239,6 +239,7 @@ namespace Arena
             ArenaFx.Ring(pos, new Color(1f, 0.48f, 0.13f), radius);
             ArenaFx.Burst(pos, new Color(1f, 0.6f, 0.19f), 24, 5f, 2f);
             Breakable.OnExplosion(pos, radius);   // caixas quebram, barris vermelhos explodem em cadeia
+            DemoMode.OnFireExplosion(pos);        // demo: a estante pega fogo
             SecretWall.OnExplosion(pos, radius);  // explosão também abre a parede rachada
             foreach (var e in ArenaEnemy.All.ToArray())
             {

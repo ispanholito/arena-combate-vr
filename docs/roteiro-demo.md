@@ -3,7 +3,25 @@
 Demo **linear e montada à mão** (não usa o gerador de dungeon), numa caverna. Classe: Lâmina. Duração-alvo: 12-20 min.
 Inspiração de monstros: SAO temporada 1 (conceito e clima, nunca copiar desenho/nome). Rei Goblin com porte de brutamonte (2-2,5 m), luta de espada de igual para igual (como Kirito × Illfang).
 
-## Sequência
+## Sequência FINAL (Pablo, 2026-10-31) — substitui a tabela de baixo
+
+| # | Sala | O que acontece | Ganha |
+|---|------|----------------|-------|
+| 0 | Cela | Amarrado; puxar os braços com força rompe a corda. | — |
+| 1 | Cadáver | Puxar a espada cravada (sai aos poucos); escudo ao lado. | Espada + escudo |
+| 2 | Esqueleto | 1 esqueleto enfraquecido (60% da vida). | — |
+| 3 | Estátua do fogo | Pôr a mão na mão da estátua. Fogueira (checkpoint). | **Bola de Fogo** + espada em chamas |
+| 4 | 3 goblins | Testar o fogo neles. | — |
+| 5 | Orc + arqueiro + xamã | Orc com escudo. Ao limpar: orbe. | **Lâmina de Vento** |
+| 6 | Fogueira | Checkpoint antes do chefe. | — |
+| 7 | Porta pesada → sala do chefe | Porta só abre empurrando com as **duas mãos** (armas guardadas). Altar com a aura → **cena**: o Rei entra curvado pela porta, arranca a porta e usa de **escudo**, ruge e a **estante tomba** fechando a saída. Luta. | **Aura Vermelha** |
+| 8 | Fim | Rei morto → **coroa** (pegar e pôr na cabeça); **queimar a estante** com fogo (espada em chamas ou bola); sair = "FIM DA DEMO", recomeça em 12 s. | Coroa |
+
+**Escudo de porta do Rei** (falta fazer): porta **com chapas de ferro** — corte de vento faz CLANG e some, espada em chamas solta faísca/"GROSSA DEMAIS!", golpe comum racha pouco, **aura** racha forte (4 golpes ≈ 2 ciclos de aura). O escudo cobre só a frente; depois de pisão/investida o Rei fica aberto 1-2 s. Fase 2: duas espadas.
+
+**Montado (2026-10-31, versão BRUTA)**: `Runtime/DemoMode.cs` (modo `GameMode.Demo`; `Demo.OnlyDemo = true` = o build abre direto nela; pausa → "Recomeçar a demo"). `DemoGate`: na demo ficam escondidos árvore, Investida, habilidade da arma, raio/soco/palma, raízes/onda, Muralha, raio do céu; Bola de Fogo só depois da estátua; Vento e Aura pela árvore com `Tree.Grant` ao pegar o orbe. Falta: escudo de porta funcional, fase 2 com duas espadas, arte das salas e do cadáver.
+
+## Sequência (versão anterior, 2026-10-30)
 
 | # | Cena | O que acontece | Ensina | Já temos? |
 |---|------|----------------|---------|-----------|

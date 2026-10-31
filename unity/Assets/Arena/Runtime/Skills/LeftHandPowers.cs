@@ -150,6 +150,7 @@ namespace Arena
                 if (fist && !h.WasFist && grabber.TryGrab(side, palm, tracked: true)) { h.WasFist = true; h.OpenT = 0f; return; }
             }
             h.WasFist = fist;
+            if (DemoGate.Hidden) { h.BeamCharge = 0f; ChargeDot(h, Vector3.zero, -1f); return; }   // demo: só agarrar (raio, soco e palma escondidos)
 
             // Soco: punho fechado indo rápido para frente (na direção em que você olha, no plano do chão).
             var flatVel = h.WristVel.Flat();

@@ -35,6 +35,7 @@ namespace Arena
         public PlayerShield Shield { get; private set; }
         public bool IsVr { get; private set; }
         public bool TreeOpen { get; set; }
+        public bool Bound { get; set; }   // demo: amarrado na cela (não anda nem esquiva)
 
         public Transform Head => head;
         public Transform RightHand => rightHand;
@@ -221,7 +222,7 @@ namespace Arena
             if (!IsVr) DesktopLook();
             else VrHeight(dt);
 
-            if (Input.ToggleTree && !ArenaGame.InMenu) TreeOpen = !TreeOpen;
+            if (Input.ToggleTree && !ArenaGame.InMenu && !DemoGate.Hidden) TreeOpen = !TreeOpen;   // demo: sem árvore
             UpdatePotion(dt);
             if (!TreeOpen)
             {
@@ -306,7 +307,7 @@ namespace Arena
             }
             else
             {
-                var mv = TeleportLocomotion.Enabled(this) ? Vector2.zero : Input.Move;   // teletransporte: o analógico mira o arco
+                var mv = TeleportLocomotion.Enabled(this) || Bound ? Vector2.zero : Input.Move;   // teletransporte: o analógico mira o arco
                 float speed = Combat.MoveSpeed * State.Blessings.MoveMultiplier;   // bênção Pés Leves
                 rigRoot.position += (f * mv.y + r * mv.x) * speed * dt;
                 // Passos: um a cada 0,75 m andados com o analógico.
@@ -336,7 +337,7 @@ namespace Arena
 
         public void DashBack()
         {
-            if (dashT > 0f || chargeT > 0f || !State.TryDash()) return;
+            if (Bound || dashT > 0f || chargeT > 0f || !State.TryDash()) return;
             dashT = Combat.DashDuration;
             dashDir = -HeadForward;
             TutorialEvents.Raise("dash_tras");
@@ -379,7 +380,7 @@ namespace Arena
 
         public void TryDash()
         {
-            if (dashT > 0f || chargeT > 0f || !State.TryDash()) return;
+            if (Bound || dashT > 0f || chargeT > 0f || !State.TryDash()) return;
             dashT = Combat.DashDuration;
             var f = HeadForward; var r = new Vector3(f.z, 0, -f.x);
             var mv = Input.Move;

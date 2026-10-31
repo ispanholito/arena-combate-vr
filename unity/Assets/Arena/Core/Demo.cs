@@ -7,5 +7,7 @@ namespace Arena.Core
         public const bool Blessings = false;
         // Teia (pontos de gancho): saiu com a corrida dos braços (Pablo, 2026-10-31). O dash para trás continua.
         public const bool Web = false;
+        // Build só com a demo (Pablo, 2026-10-31: "o que vai para o VR será só a demo"): abre direto na caverna.
+        public const bool OnlyDemo = true;
     }
 }

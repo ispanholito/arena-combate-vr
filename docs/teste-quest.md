@@ -9,6 +9,18 @@ Para cada item: ✅ ok · ⚠️ funciona mas precisa ajuste (diga o quê) · �
 
 ---
 
+## 00000000000000000000000000000000000000000000000000. NOVO — A DEMO (o jogo abre direto nela)
+Jogue de ponta a ponta e anote o que travou, confundiu ou ficou chato. Pausa → "Recomeçar a demo".
+- **Cela**: amarrado — puxe os braços com força (separar as mãos rápido) até a corda romper.
+- **Cadáver**: puxe a espada; pegue o escudo do lado.
+- **Esqueleto** fraco → **estátua**: ponha a mão na mão dela = Bola de Fogo (mão livre: punho esticado → abrir → jogar). Mergulhe a espada na bola.
+- **3 goblins** → **orc com escudo + arqueiro + xamã** → orbe da Lâmina de Vento (B).
+- **Fogueira** → **porta pesada**: guarde as armas nos coldres e empurre com as DUAS mãos.
+- **Sala do chefe**: toque o orbe da aura (gatilho) → o Rei entra curvado pela porta, pega a porta (escudo só visual por enquanto), ruge, a estante tomba na saída → luta.
+- Matou: pegue a **coroa** e ponha na cabeça; **queime a estante** (espada em chamas ou bola de fogo); entre na saída = FIM.
+- Morrer: volta à última fogueira e a sala recomeça.
+- **Me diga**: tempo total, onde ficou perdido, se a porta pesada funciona com as mãos/controles, se o Rei é difícil demais.
+
 ## 0000000000000000000000000000000000000000000000000. NOVO — andar não trava, sem teia, aura e vento nas duas armas, aura quebra capacete
 - **Andar com o analógico direito** (controle esquerdo largado): não pode mais parar do nada. Causa provável: o controle esquerdo parado no sofá/mesa, visto pelas câmeras, era contado como "na mão" e o andar passava para o analógico esquerdo. Agora os dois analógicos só valem com o esquerdo tocado há menos de 0,6 s. **Se ainda parar, me diga onde estava o controle esquerdo.**
 - **Teia fora**: as bolinhas de gancho sumiram (santuário, arena, dungeon). O sinal do chifre 2× (dash para trás) continua. Tutorial pula o passo da teia.

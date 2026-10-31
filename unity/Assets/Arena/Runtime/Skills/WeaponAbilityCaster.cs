@@ -31,7 +31,7 @@ namespace Arena
         {
             hintCd -= Time.deltaTime;
             var w = player.Weapon;
-            if (ArenaGame.Blocked || player.TreeOpen || w == null || w.Def == null || !w.Held) { charge.Cancel(); UpdateGlow(); return; }
+            if (ArenaGame.Blocked || DemoGate.Hidden || player.TreeOpen || w == null || w.Def == null || !w.Held) { charge.Cancel(); UpdateGlow(); return; }
             bool aiming = skills && skills.Aiming;
 
             if (!player.IsVr)

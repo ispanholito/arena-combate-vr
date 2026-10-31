@@ -26,7 +26,7 @@ namespace Arena
         void Update()
         {
             cd -= Time.deltaTime;
-            if (!Enabled(player) || ArenaGame.Blocked || player.TreeOpen || player.Hanging) { Hide(); aiming = false; return; }
+            if (!Enabled(player) || ArenaGame.Blocked || player.TreeOpen || player.Hanging || player.Bound) { Hide(); aiming = false; return; }
             var stick = player.Input.Move;
             if (!aiming && stick.y > AimOn && cd <= 0f) aiming = true;
             if (!aiming) { Hide(); return; }

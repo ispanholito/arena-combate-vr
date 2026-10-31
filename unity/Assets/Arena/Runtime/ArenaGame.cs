@@ -82,7 +82,7 @@ namespace Arena
         }
 
         // ---------- Modos: menu inicial, Arena (ondas + chefe), Dungeon (2 andares + chefe) e Treino (boneco) ----------
-        public enum GameMode { Menu, Santuario, Arena, Dungeon, Treino }
+        public enum GameMode { Menu, Santuario, Arena, Dungeon, Treino, Demo }
         public GameMode Mode { get; private set; } = GameMode.Menu;
         public static bool InMenu => Instance && Instance.Mode == GameMode.Menu;
         // Bloqueia habilidades, poderes e árvore (pausado ou no menu inicial).
@@ -92,6 +92,8 @@ namespace Arena
         Transform arenaBonfire;
         DungeonMode dungeon;
         SanctuaryMode sanctuary;
+        DemoMode demo;
+        public DemoMode DemoRun => demo;
         public DungeonMode Dungeon => dungeon;
         public SanctuaryMode Sanctuary => sanctuary;
         // Santuário, Arena e Dungeon salvam o progresso; o Treino (nível 10 de mentira) não.
@@ -121,6 +123,7 @@ namespace Arena
         // Pausa → B: do santuário vai ao menu inicial (trocar de personagem); de qualquer outro lugar, ao santuário.
         public void BackFromPause()
         {
+            if (Mode == GameMode.Demo || Demo.OnlyDemo) { StartDemo(); return; }
             if (Mode == GameMode.Santuario) ReturnToMenu();
             else GoToSanctuary();
         }
@@ -128,7 +131,16 @@ namespace Arena
         void Start()
         {
             SpawnArenaGrapples();
-            ReturnToMenu();
+            if (Demo.OnlyDemo) StartDemo(); else ReturnToMenu();
+        }
+
+        // ---------- Demo (DemoMode): caverna linear do roteiro ----------
+        public void StartDemo()
+        {
+            var ch = new PlayerState(ClassId.Lamina);
+            ch.ClearAllItems();
+            SetPaused(false);
+            StartMode(GameMode.Demo, ch);
         }
 
         // ---------- Tutorial dos gestos (TutorialMode) ----------
@@ -379,6 +391,14 @@ namespace Arena
             // Mercenário contratado com o Capitão: vai junto nesta ida (arena ou dungeon) e o contrato acaba.
             if ((mode == GameMode.Arena || mode == GameMode.Dungeon) && character.MercenaryHired) { character.MercenaryHired = false; Mercenary.Spawn(player); }
             SaveNow();
+            if (mode == GameMode.Demo)
+            {
+                spawnWaves = false;
+                if (arenaWorld) arenaWorld.gameObject.SetActive(false);
+                if (!demo) demo = gameObject.AddComponent<DemoMode>();
+                demo.Begin();
+                return;
+            }
             if (mode == GameMode.Santuario)
             {
                 spawnWaves = false;
@@ -408,6 +428,7 @@ namespace Arena
         void LeaveDungeon()
         {
             if (dungeon && dungeon.Active) dungeon.End();
+            if (demo && demo.Active) demo.End();
             if (sanctuary && sanctuary.Active) sanctuary.End();
             ArenaUtil.Area = null;
             bonfire = arenaBonfire;
@@ -583,6 +604,7 @@ namespace Arena
                 var saved = SaveSystem.Load();
                 SaveSystem.Save(player.State, -1, (saved?.bossesDefeated ?? 0) + 1);
             }
+            else if (e is IBoss && Mode == GameMode.Demo) { Boss = null; demo.OnBossKilled(e.Center); }
             else if (e is IBoss)
             {
                 Director.OnBossDefeated();
@@ -594,7 +616,7 @@ namespace Arena
             // Arena: altar de bênçãos a cada N abates (no centro, se não houver outro).
             if (Mode == GameMode.Arena && Boss == null && player.State.Kills > 0 && player.State.Kills % RunBlessings.ArenaKillsPerAltar == 0 && BlessingAltar.All.Count == 0)
                 OfferBlessings(Vector3.zero, null);
-            if (player.State.Progression.Level > levelBefore)
+            if (player.State.Progression.Level > levelBefore && Mode != GameMode.Demo)
                 Message($"Nível {player.State.Progression.Level}! +1 ponto de habilidade (abra a árvore)", 2f);
             RequestSave();
         }
@@ -602,7 +624,7 @@ namespace Arena
         // Ouro vai direto para o jogador; às vezes cai uma arma (o chefe sempre deixa uma rara ou melhor).
         void DropLoot(ArenaEnemy e)
         {
-            if (Mode == GameMode.Treino) return;
+            if (Mode == GameMode.Treino || Mode == GameMode.Demo) return;   // demo: sem ouro nem armas caindo
             int gold = Loot.RollGold(e.Def.Kind, CurrentTier);
             if (e.State.Elite != EliteKind.Nenhum) gold = Mathf.RoundToInt(gold * EliteRules.GoldMultiplier);
             gold = player.State.Blessings.ScaleGold(gold);
@@ -658,7 +680,8 @@ namespace Arena
             Boss = null;
             Director.Reset(3f);
             if (Mode == GameMode.Dungeon) dungeon.OnPlayerDied();
-            if (!player.Weapon.Held) player.Weapon.Recall();
+            if (Mode == GameMode.Demo) demo.OnPlayerDied();
+            if (!player.Weapon.Held && !player.Weapon.Stowed) player.Weapon.Recall();
             player.TeleportTo(BonfireStandPoint, Vector3.zero);
             Message($"Você morreu: {lossText}", 2.6f);
             RequestSave();

@@ -21,7 +21,7 @@ namespace Arena
         void Update()
         {
             float dt = Time.deltaTime;
-            bool allowed = player.IsVr && SaveSystem.Options.armSwingRun && !ArenaGame.Blocked && !player.TreeOpen && !player.Hanging
+            bool allowed = player.IsVr && SaveSystem.Options.armSwingRun && !ArenaGame.Blocked && !player.TreeOpen && !player.Hanging && !player.Bound
                            && player.Input.LeftHandFree && player.Input.RightHandFree;
             if (!magic) magic = GetComponent<HandMagic>();
             if (!allowed || !magic || !magic.GetHand(0, out var lp, out var lv, out var ls) || !magic.GetHand(1, out var rp, out var rv, out var rs))

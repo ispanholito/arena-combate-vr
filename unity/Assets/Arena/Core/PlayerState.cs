@@ -100,6 +100,13 @@ namespace Arena.Core
         }
 
         public float Strength => Class.Strength(Progression.Level);
+
+        // Demo: começa sem nada (a espada vem do cadáver, o escudo do lado dele).
+        public void ClearAllItems()
+        {
+            Loadout[0] = Loadout[1] = null;
+            for (int i = 0; i < Holsters.Length; i++) Holsters[i] = null;
+        }
         public bool Has(string skillId) => Tree.Has(skillId);
 
         public void SetClass(ClassId cls)
