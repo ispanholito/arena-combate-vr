@@ -124,5 +124,24 @@ A huge goblin king boss, about 2.8 meters tall, fat and very strong like a bruta
 stylized low-poly dark fantasy game prop, hand-painted texture with dirt and wear, flat neutral lighting, plain white background, single object centered, no text: (1) a huge crude wooden club about 1.2 meters long with iron spikes; (2) an old wooden door used as a shield, reinforced with dented iron plates and rivets, a crude leather handle; (3) a crude wide goblin scimitar about 1 meter long, chipped rusty blade, bone handle.
 ```
 
+## Ficha — Esqueleto (1º inimigo da demo)
+- **Papel**: 1º inimigo da demo (sala 2, sozinho, enfraquecido). Espada; membros saem e voltam a se encaixar em 4 s.
+- **Silhueta**: humano magro, ~1,8 m, ossos grossos e estilizados (finos somem na lente), crânio um pouco grande com órbitas fundas, postura curvada de morto-vivo.
+- **Rosto**: crânio com mandíbula torta e dentes quebrados, rachadura na testa, **brasas laranja** nas órbitas.
+- **Paleta**: osso amarelado sujo (#D8CDB0), sombras marrons, ferrugem (#8A4A2A), brasas #FF7A2A.
+- **Roupa**: restos de um guerreiro antigo: elmo enferrujado amassado (opcional, o jogo põe capacete por chance), uma ombreira de ferro, trapos de pano rasgado na cintura, braçadeira de couro podre. Nada comprido e solto.
+- **Arma (separada)**: espada longa enferrujada e lascada, ~90 cm.
+
+### Prompt do esqueleto (frente)
+```
+stylized low-poly dark fantasy game character with a subtle anime influence, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, full body, front view, T-pose, arms straight out to the sides, legs slightly apart, symmetrical, no weapon in hands, no text.
+An undead skeleton warrior, about 1.8 meters tall, thin human skeleton with thick stylized bones, slightly large skull with deep eye sockets glowing with orange embers, crooked jaw with broken teeth, a crack across the forehead, hunched undead posture, dirty yellowed bone with brown grime. Wearing remains of an ancient warrior: one rusty dented iron shoulder plate, torn rotten cloth rags around the waist, a rotten leather bracer. Eerie and threatening, readable silhouette.
+```
+
+### Prompt da espada do esqueleto (separada)
+```
+stylized low-poly dark fantasy game prop, hand-painted texture with dirt and wear, flat neutral lighting, plain white background, single object centered, side view: an old rusty longsword about 90 cm long, chipped notched blade, simple iron crossguard, rotten leather grip, no text.
+```
+
 ## Depois de escolher as imagens
-Salve em `arte/goblin/` e `arte/rei-goblin/` e passe no TRELLIS.2 (passo 2). Mande as imagens para o Claude antes de gerar o 3D se quiser uma segunda opinião.
+Salve em `arte/goblin/`, `arte/rei-goblin/` e `arte/esqueleto/` e passe no TRELLIS.2 (passo 2). Mande as imagens para o Claude antes de gerar o 3D se quiser uma segunda opinião.
