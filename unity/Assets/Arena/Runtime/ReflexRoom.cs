@@ -23,7 +23,7 @@ namespace Arena
         const float MachineDistance = 1.3f, PivotHeight = 1.6f;
         const float ArmIn = 0.7f, ArmOut = 1.45f;   // trecho da clava ao longo do braço (m a partir do pivô)
         // Sala limpa: retângulo em volta do círculo, com folga para os totens do arco mais aberto.
-        const float RoomX0 = -11f, RoomX1 = 11f, RoomZ0 = -8f, RoomZ1 = 8f, WallH = 4f;
+        const float RoomX0 = -11f, RoomX1 = 11f, RoomZ0 = -8f, RoomZ1 = 24f, WallH = 4f;   // 32 m de fundo (Pablo, 2026-11-04: "2x mais profunda")
         static readonly Color OrbCol = new Color(0.55f, 1f, 0.35f), ArrowCol = new Color(1f, 0.85f, 0.3f), Warn = new Color(1f, 0.5f, 0.1f);
 
         public readonly ReflexScore MachineScore = new ReflexScore(), ProjectileScore = new ReflexScore();
@@ -100,6 +100,10 @@ namespace Arena
             fill.transform.SetParent(root, false);
             fill.transform.position = Stand + Vector3.up * 3.5f + Facing * 2f;
             fill.type = LightType.Point; fill.range = 14f; fill.intensity = 1.2f;
+            var far = new GameObject("LuzFundo").AddComponent<Light>();
+            far.transform.SetParent(root, false);
+            far.transform.position = new Vector3(0f, 3.5f, RoomZ1 - 7f);
+            far.type = LightType.Point; far.range = 16f; far.intensity = 1.1f;
         }
 
         // Zera o placar e recomeça o progressivo.
