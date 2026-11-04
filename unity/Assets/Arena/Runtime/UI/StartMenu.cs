@@ -20,7 +20,7 @@ namespace Arena
         bool wasShown;
         readonly List<string> rows = new List<string>();
 
-        const int Rows = 6;
+        const int Rows = 7;
 
         void Start()
         {
@@ -60,6 +60,7 @@ namespace Arena
                     if (pick == 0 && save == null) pick = 1;
                     confirmOverwrite = false;
                 }
+                else if (cursor == 6) ArenaGame.Instance.StartDemo();
                 else if (cursor == 5) ArenaGame.Instance.StartTutorial(pick != 0 || save == null ? new PlayerState(pick == 2 ? ClassId.Elementalista : ClassId.Lamina) : save.ToPlayer());
                 else Begin(cursor == 1 ? ArenaGame.GameMode.Santuario : cursor == 2 ? ArenaGame.GameMode.Arena : cursor == 3 ? ArenaGame.GameMode.Dungeon : ArenaGame.GameMode.Treino);
             }
@@ -95,6 +96,7 @@ namespace Arena
             Row(3, "Dungeon", "2 andares de salas, baús, fogueiras e o Rei Goblin no fim");
             Row(4, "Treino", "boneco parado com medidor de dano; nível 10, sem tomar dano (não salva)");
             Row(5, "Tutorial dos gestos", "aprenda a usar a arma, os poderes da mão, a teia e os menus (não salva)");
+            Row(6, "Demo", "a caverna do Rei Goblin (o que vai para o Quest); na pausa dá para voltar ao jogo completo");
             string footer = (confirmOverwrite ? "<color=#ff9090>Confirme de novo para APAGAR o salvo e começar do zero</color>\n" : "")
                 + "<size=40><color=#999>"
                 + (player.IsVr ? "Sem controle: aponte com a mão e encoste o indicador no polegar · Controle: analógico direito + A" : "Setas ou W/S: cima/baixo · Enter ou E: escolher")

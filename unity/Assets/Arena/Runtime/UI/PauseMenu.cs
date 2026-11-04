@@ -41,6 +41,7 @@ namespace Arena
                 rows.Add(("<color=#ffd36b>Pular este passo do tutorial</color>", () => { TutorialMode.Instance?.Skip(); game.SetPaused(false); return false; }));
                 rows.Add(("<color=#ffd36b>Sair do tutorial</color>" + Note + "(volta ao santuário; dá para rever pelo portal TUTORIAL)</color></size>", () => { game.FinishTutorial(); return false; }));
             }
+            if (ReflexRoom.Instance) ReflexRoom.ReflexRows(rows);
             rows.Add(("<color=#ffd36b>Livro de magias</color>" + Note + "(como fazer cada poder e habilidade)</color></size>", () => { SpellBook.Open(); return false; }));
             if (!DemoGate.Hidden) rows.Add(("Árvore de habilidades", () => { if (!ArenaGame.InMenu) { game.SetPaused(false); player.TreeOpen = true; } return false; }));
             rows.Add(("Volume: " + Mathf.RoundToInt(o.volume * 100f) + "%", () => { o.CycleVolume(); return true; }));
@@ -55,6 +56,10 @@ namespace Arena
             rows.Add(("Música: " + (o.music ? "ligada" : "desligada"), () => { o.music = !o.music; return true; }));
             rows.Add(("Morte: " + DeathRules.Label(o.DeathPenalty), () => { o.CycleDeathPenalty(); if (player.State != null) player.State.Penalty = o.DeathPenalty; return true; }));
             rows.Add(("Inimigos físicos no Treino: " + o.TrainingGoblins + Note + "(teste de desempenho)</color></size>", () => { o.CycleTrainingGoblins(); return true; }));
+            // Troca entre a demo e o jogo completo (Pablo, 2026-11-04): o APK abre na demo, mas dá para ir ao santuário
+            // (dungeon, Sala de Criação, Sala de Reflexo...) e voltar.
+            if (DemoGate.InDemo) rows.Add(("<color=#9fd0ff>Ir para o jogo completo</color>" + Note + "(santuário: dungeon, arena, Sala de Criação, Sala de Reflexo)</color></size>", () => { cursor = 0; game.GoToSanctuary(); return false; }));
+            else if (game && !ArenaGame.InMenu) rows.Add(("<color=#9fd0ff>Ir para a demo</color>" + Note + "(caverna do Rei Goblin, começa do zero)</color></size>", () => { cursor = 0; game.StartDemo(); return false; }));
             rows.Add((DemoGate.InDemo ? "Recomeçar a demo" : inHub ? "Menu inicial (trocar de personagem)" : "Voltar ao santuário", () => { cursor = 0; game.BackFromPause(); return false; }));
         }
 

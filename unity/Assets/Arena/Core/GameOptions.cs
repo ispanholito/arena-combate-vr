@@ -57,6 +57,8 @@ namespace Arena.Core
         public float dailyBest;                // segundos (0 = sem recorde)
         public int hordeBest;                  // maior onda
         public float bossRushBest;             // segundos (0 = sem recorde)
+        // Sala de Reflexo (Core/Reflex.cs): o que está ligado e as velocidades.
+        public ReflexSettings reflex = new ReflexSettings();
         public int TrainingGoblins => trainingGoblins >= 6 ? 6 : trainingGoblins >= 3 ? 3 : 1;
         public void CycleTrainingGoblins() => trainingGoblins = TrainingGoblins == 1 ? 3 : TrainingGoblins == 3 ? 6 : 1;
 
@@ -90,6 +92,7 @@ namespace Arena.Core
             difficulty = (int)Difficulty;
             deathPenalty = (int)DeathPenalty;
             trainingGoblins = TrainingGoblins;
+            if (reflex == null) reflex = new ReflexSettings();
             return this;
         }
     }

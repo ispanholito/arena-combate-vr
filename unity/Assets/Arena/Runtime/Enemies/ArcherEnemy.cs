@@ -87,6 +87,9 @@ namespace Arena
         float damage, life = 4f;
         bool reflected, dead;
         ArenaEnemy shooter;
+        public System.Action<ReflexOutcome> OnResult;   // Sala de Reflexo: como terminou (uma vez)
+        public Vector3 ReturnTo;                        // rebatida sem atirador: volta para este ponto (lançador)
+        void Report(ReflexOutcome o) { var r = OnResult; OnResult = null; r?.Invoke(o); }
 
         public static Arrow Spawn(Vector3 pos, Vector3 velocity, float damage, ArenaEnemy shooter)
         {
@@ -128,6 +131,7 @@ namespace Arena
                 ArenaAudio.Play(Sfx.Block, now, 0.8f, 1.3f);
                 ArenaFx.Burst(now, new Color(1f, 0.82f, 0.56f), 6, 2f);
                 ArenaInput.Haptic(0.4f, 0.05f, left: true);
+                Report(ReflexOutcome.Bloqueou);
                 Kill();
                 return;
             }
@@ -135,7 +139,7 @@ namespace Arena
                                                                   prev.ToN(), prev.ToN(), now.ToN(), now.ToN(), ArrowRules.DeflectRadius))
             {
                 if (w.TipSpeed > ArrowRules.DeflectSpeed || (!pl.IsVr && pl.Input.DesktopParry)) Reflect(now);
-                else { ArenaAudio.Play(Sfx.Block, now, 0.6f, 1.5f); Kill(); }
+                else { ArenaAudio.Play(Sfx.Block, now, 0.6f, 1.5f); Report(ReflexOutcome.Bloqueou); Kill(); }
                 return;
             }
             // Desktop: segurar o aparo olhando para a flecha também rebate.
@@ -146,6 +150,7 @@ namespace Arena
             if (Geometry.SweptSegmentsHit(waist.ToN(), head.ToN(), waist.ToN(), head.ToN(), prev.ToN(), prev.ToN(), now.ToN(), now.ToN(), 0.22f))
             {
                 pl.TakeDamage(damage, now - vel.normalized);
+                Report(ReflexOutcome.Acertou);
                 ArenaAudio.Play(Sfx.Stab, now, 0.7f, 1.5f);
                 Kill();
             }
@@ -155,7 +160,8 @@ namespace Arena
         {
             reflected = true;
             life = 3f;
-            var target = shooter && !shooter.Dead ? shooter.Center : at - vel.normalized * 10f;
+            Report(ReflexOutcome.Rebateu);
+            var target = shooter && !shooter.Dead ? shooter.Center : ReturnTo != Vector3.zero ? ReturnTo : at - vel.normalized * 10f;
             vel = (target - at).normalized * ArrowRules.Speed * 1.3f;
             ArenaAudio.Play(Sfx.Parry, at, 0.9f, 1.4f);
             ArenaFx.FloatText("REBATEU!", at + Vector3.up * 0.2f, new Color(0.62f, 0.88f, 1f), 1f);
@@ -177,7 +183,7 @@ namespace Arena
         }
 
         // Para no chão/parede e some depois de um tempo.
-        void Stick() { dead = true; Destroy(gameObject, 2f); }
+        void Stick() { Report(ReflexOutcome.Desviou); dead = true; Destroy(gameObject, 2f); }
         void Kill() { dead = true; Destroy(gameObject); }
     }
 }

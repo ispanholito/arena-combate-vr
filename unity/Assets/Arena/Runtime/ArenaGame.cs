@@ -103,7 +103,7 @@ namespace Arena
         public void GoToSanctuary()
         {
             if (Persistent) SaveNow();
-            var character = Mode == GameMode.Treino || player.State == null
+            var character = Mode == GameMode.Treino || Mode == GameMode.Demo || player.State == null
                 ? SaveSystem.Load()?.ToPlayer() ?? new PlayerState(player.State?.Class.Id ?? ClassId.Lamina)
                 : player.State;
             SetPaused(false);
@@ -123,7 +123,7 @@ namespace Arena
         // Pausa → B: do santuário vai ao menu inicial (trocar de personagem); de qualquer outro lugar, ao santuário.
         public void BackFromPause()
         {
-            if (Mode == GameMode.Demo || Demo.OnlyDemo) { StartDemo(); return; }
+            if (Mode == GameMode.Demo) { StartDemo(); return; }
             if (Mode == GameMode.Santuario) ReturnToMenu();
             else GoToSanctuary();
         }
@@ -160,6 +160,14 @@ namespace Arena
             StartMode(GameMode.Treino, character ?? player.State);
             if (ragdollSpawner) Destroy(ragdollSpawner.gameObject);
             new GameObject("SalaDeCriacaoModo").AddComponent<CreationRoom>();
+        }
+
+        // Sala de Reflexo: orbes, flechas e máquina de aparo com velocidade ajustável (roda dentro do Treino).
+        public void StartReflexRoom(PlayerState character = null)
+        {
+            StartMode(GameMode.Treino, character ?? player.State);
+            if (ragdollSpawner) Destroy(ragdollSpawner.gameObject);
+            new GameObject("SalaDeReflexoModo").AddComponent<ReflexRoom>();
         }
 
         public void FinishTutorial()
@@ -221,6 +229,7 @@ namespace Arena
             Mode = GameMode.Menu;
             if (TutorialMode.Instance) Destroy(TutorialMode.Instance.gameObject);
             if (CreationRoom.Instance) Destroy(CreationRoom.Instance.gameObject);
+            if (ReflexRoom.Instance) Destroy(ReflexRoom.Instance.gameObject);
             SetTrainingHall(true);   // fundo do menu inicial com a arte
             spawnWaves = false;
             player.TreeOpen = false;
@@ -366,6 +375,7 @@ namespace Arena
             LeaveDungeon();
             if (TutorialMode.Instance) Destroy(TutorialMode.Instance.gameObject);
             if (CreationRoom.Instance) Destroy(CreationRoom.Instance.gameObject);
+            if (ReflexRoom.Instance) Destroy(ReflexRoom.Instance.gameObject);
             Mode = mode;
             SetTrainingHall(mode == GameMode.Treino || mode == GameMode.Arena);
             NavObstacles.SetFromArena(arenaWorld, mode == GameMode.Arena || mode == GameMode.Treino);

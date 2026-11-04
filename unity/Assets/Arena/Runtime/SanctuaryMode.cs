@@ -10,6 +10,8 @@ namespace Arena
     {
         public const float HalfSize = 8f;
         public const float AnvilRange = 1.6f, PortalRange = 1.1f;
+        // Marcador do portal da Sala de Reflexo (não é um modo de verdade: ela roda dentro do Treino).
+        const ArenaGame.GameMode ReflexMarker = (ArenaGame.GameMode)99;
 
         public bool Active => root;
 
@@ -70,6 +72,7 @@ namespace Arena
             Portal(new Vector3(4.5f, 0, 6f), ArenaGame.GameMode.Treino, "TREINO", "boneco; nível 10 (não salva)", new Color(0.4f, 0.9f, 0.5f));
             Portal(new Vector3(4.5f, 0, -5.5f), ArenaGame.GameMode.Menu, "TUTORIAL", "aprenda os gestos e poderes", new Color(1f, 0.85f, 0.4f));   // Menu = marcador do tutorial
             Portal(new Vector3(-5f, 0, -5.5f), ArenaGame.GameMode.Santuario, "CRIAÇÃO", "veja arte e animações em teste", new Color(0.4f, 0.85f, 1f));   // Santuario = marcador da Sala de Criação
+            Portal(new Vector3(5f, 0, -2.4f), ArenaGame.GameMode.Treino, "REFLEXO", "orbes, flechas e máquina de aparo", new Color(1f, 0.4f, 0.75f), reflex: true);
             // Ganchos de teia (pedido do Pablo, 2026-10-29): acima de cada portal, nos cantos e no meio das paredes,
             // para atravessar o santuário voando e cair na frente do portal.
             foreach (var g in new[] { new Vector3(-4.5f, 3.6f, 6.6f), new Vector3(0f, 3.6f, 7.1f), new Vector3(4.5f, 3.6f, 6.6f), new Vector3(4.5f, 3.6f, -6.4f),
@@ -178,7 +181,7 @@ namespace Arena
             return false;
         }
 
-        void Portal(Vector3 pos, ArenaGame.GameMode mode, string title, string desc, Color c)
+        void Portal(Vector3 pos, ArenaGame.GameMode mode, string title, string desc, Color c, bool reflex = false)
         {
             var t = new GameObject("Portal " + title).transform;
             t.SetParent(root, false);
@@ -194,12 +197,12 @@ namespace Arena
             var label = ArenaFx.MakeText(t, title + "\n<size=40>" + desc + "</size>", 0.012f, Color.white);
             label.transform.localPosition = new Vector3(0, 3.3f, 0);
             label.transform.localRotation = Quaternion.LookRotation(Vector3.forward);
-            portalLabels[mode] = (label, title, desc);
+            if (!reflex) portalLabels[mode] = (label, title, desc);   // a Sala de Reflexo usa o marcador do Treino: não mexe no rótulo dele
             var l = new GameObject("Luz").AddComponent<Light>();
             l.transform.SetParent(t, false);
             l.transform.localPosition = new Vector3(0, 1.5f, -0.8f);
             l.type = LightType.Point; l.color = c; l.range = 4f; l.intensity = 1.5f;
-            portals.Add((t, mode));
+            portals.Add((t, reflex ? ReflexMarker : mode));
         }
 
         void Update()
@@ -215,6 +218,7 @@ namespace Arena
                     {
                         ArenaAudio.Play2D(Sfx.Skill, 0.8f, 0.6f);
                         if (mode == ArenaGame.GameMode.Menu) { game.SaveNow(); game.StartTutorial(); }
+                        else if (mode == ReflexMarker) { game.SaveNow(); game.StartReflexRoom(); }
                         else if (mode == ArenaGame.GameMode.Santuario) { game.SaveNow(); game.StartCreationRoom(); }
                         else game.EnterFromSanctuary(mode);
                         return;

@@ -79,6 +79,8 @@ namespace Arena
         float damage, life = MagicOrbRules.Life;
         bool reflected, dead, passed;
         ArenaEnemy shooter, target;
+        public System.Action<ReflexOutcome> OnResult;   // Sala de Reflexo: como terminou (uma vez)
+        void Report(ReflexOutcome o) { var r = OnResult; OnResult = null; r?.Invoke(o); }
         static readonly Color Col = new Color(0.55f, 1f, 0.35f);
 
         public static MagicOrb Spawn(Vector3 pos, Vector3 velocity, float damage, ArenaEnemy shooter)
@@ -125,6 +127,7 @@ namespace Arena
             {
                 ArenaAudio.Play(Sfx.Block, now, 0.8f, 0.9f);
                 ArenaInput.Haptic(0.5f, 0.06f, left: true);
+                Report(ReflexOutcome.Bloqueou);
                 Pop(now, false);
                 return;
             }
@@ -141,6 +144,7 @@ namespace Arena
             if (Geometry.SweptSegmentsHit(waist.ToN(), head.ToN(), waist.ToN(), head.ToN(), prev.ToN(), prev.ToN(), now.ToN(), now.ToN(), 0.22f + MagicOrbRules.Radius))
             {
                 pl.TakeDamage(damage, now - vel.normalized);
+                Report(ReflexOutcome.Acertou);
                 Pop(now, false);
             }
         }
@@ -149,6 +153,7 @@ namespace Arena
         {
             reflected = true;
             life = 4f;
+            Report(ReflexOutcome.Rebateu);
             // Direção do golpe (VR) ou do olhar (desktop), puxada para a frente do jogador.
             var swing = pl.IsVr && pl.Weapon.TipSpeed > 0.5f ? pl.Weapon.TipVelocity.normalized : pl.HeadForward;
             var dir = (swing + pl.HeadForward).normalized;
@@ -182,6 +187,7 @@ namespace Arena
         // Rebatido: explode em área nos inimigos. Normal: só some com um brilho.
         void Pop(Vector3 at, bool boom)
         {
+            Report(ReflexOutcome.Desviou);
             dead = true;
             ArenaFx.Burst(at, Col, boom ? 26 : 10, boom ? 4f : 2f);
             if (boom)
