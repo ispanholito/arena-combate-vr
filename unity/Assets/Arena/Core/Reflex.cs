@@ -2,20 +2,51 @@ using System;
 
 namespace Arena.Core
 {
-    // Sala de Reflexo (pedido do Pablo, 2026-11-04): treino de reação fora da demo. Lançadores atiram orbes de magia
-    // (os do xamã) e flechas (as do arqueiro) em você; uma máquina de aparo golpeia com uma clava. Cada estação tem a
-    // própria velocidade (×). O modo progressivo começa lento e acelera até um limite num tempo escolhido; vale para
-    // as duas estações. As escolhas ficam no arena_options.json (GameOptions.reflex).
+    // Sala de Reflexo (pedido do Pablo, 2026-11-04): treino de reação fora da demo, numa sala limpa. Totens atiram
+    // orbes de magia (os do xamã) e flechas (as do arqueiro) em você; uma máquina de aparo golpeia com uma clava.
+    // Você escolhe quantos totens (1 a 8) e o que cada um atira. Cada estação tem a própria velocidade (×). O modo
+    // progressivo começa lento e acelera até um limite no tempo escolhido; vale para as duas estações.
+    // As escolhas ficam no arena_options.json (GameOptions.reflex).
+    public enum TotemShot { Orbe, Flecha, Misto }
+
     [Serializable]
     public sealed class ReflexSettings
     {
-        public bool orbs = true, arrows = true, machine = true;
+        public const int MaxTotems = 8;
+
+        public bool projectiles = true, machine = true;
+        public int totems = 4;
+        public int[] shots = { 2, 2, 2, 2, 2, 2, 2, 2 };   // TotemShot de cada totem (2 = os dois)
         public int projectileSpeed = 2;   // índice em ReflexRules.Speeds (2 = 1×)
         public int machineSpeed = 2;
         public bool ramp;
         public int rampStart = 0;         // índice em ReflexRules.RampStarts
         public int rampLimit = 2;         // índice em ReflexRules.RampLimits
         public int rampTime = 1;          // índice em ReflexRules.RampTimes
+
+        public int TotemCount => totems < 1 ? 1 : totems > MaxTotems ? MaxTotems : totems;
+        public void CycleTotems() => totems = TotemCount % MaxTotems + 1;
+
+        public TotemShot ShotOf(int i)
+        {
+            if (shots == null || i < 0 || i >= shots.Length) return TotemShot.Misto;
+            int v = shots[i];
+            return v >= 0 && v <= 2 ? (TotemShot)v : TotemShot.Misto;
+        }
+
+        public void CycleShot(int i)
+        {
+            if (shots == null || shots.Length < MaxTotems)
+            {
+                var n = new int[MaxTotems];
+                for (int k = 0; k < MaxTotems; k++) n[k] = shots != null && k < shots.Length ? shots[k] : 2;
+                shots = n;
+            }
+            if (i >= 0 && i < MaxTotems) shots[i] = ((int)ShotOf(i) + 1) % 3;
+        }
+
+        // Todos os totens com o mesmo tipo (atalho do painel).
+        public void SetAllShots(TotemShot s) { shots = new int[MaxTotems]; for (int k = 0; k < MaxTotems; k++) shots[k] = (int)s; }
 
         public float ProjectileSpeed => ReflexRules.Speeds[ReflexRules.Clamp(projectileSpeed, ReflexRules.Speeds.Length)];
         public float MachineSpeed => ReflexRules.Speeds[ReflexRules.Clamp(machineSpeed, ReflexRules.Speeds.Length)];
@@ -45,6 +76,8 @@ namespace Arena.Core
 
         public static int Clamp(int i, int n) => i < 0 ? 0 : i >= n ? n - 1 : i;
 
+        public static string ShotLabel(TotemShot s) => s == TotemShot.Orbe ? "orbe" : s == TotemShot.Flecha ? "flecha" : "orbe e flecha";
+
         // Rampa linear de start até limit em seconds; depois fica no limite.
         public static float Ramp(float start, float limit, float seconds, float elapsed)
         {
@@ -56,14 +89,25 @@ namespace Arena.Core
         // Aceleração da rampa em "× por minuto" (para mostrar no painel).
         public static float RampPerMinute(float start, float limit, float seconds) => seconds <= 0f ? 0f : (limit - start) / seconds * 60f;
 
-        // ---------- Lançadores ----------
-        // Em 1×: um disparo a cada 2,4 s, aviso de 0,6 s, orbe na velocidade do xamã e flecha na do arqueiro.
-        public const float BaseShotInterval = 2.4f, MinShotInterval = 0.45f;
+        // ---------- Totens ----------
+        // Em arco na frente do jogador, a 9 m. Um só fica a 25° (não atrás da máquina de aparo); mais totens abrem o
+        // arco 30° por totem, até 150°.
+        public const float TotemRadius = 9f;
+        public static float TotemAngle(int i, int n)
+        {
+            if (n <= 1) return 25f;
+            float spread = Math.Min(150f, 30f * (n - 1));
+            return -spread / 2f + spread * i / (n - 1);
+        }
+
+        // Cada totem atira sozinho: em 1×, um disparo a cada 5 s por totem (4 totens ≈ 1 disparo por segundo), aviso
+        // de 0,6 s, orbe na velocidade do xamã e flecha na do arqueiro.
+        public const float BaseShotInterval = 5f, MinShotInterval = 0.8f;
         public const float BaseTelegraph = 0.6f, MinTelegraph = 0.15f;
         public static float ShotInterval(float speed) => Math.Max(MinShotInterval, BaseShotInterval / Math.Max(0.1f, speed));
         public static float Telegraph(float speed) => Math.Max(MinTelegraph, BaseTelegraph / Math.Max(0.1f, speed));
         public static float OrbSpeed(float speed) => MagicOrbRules.Speed * speed;
-        // Flecha tem gravidade: abaixo de ~10,5 m/s não alcança os 9 m do lançador (alcance máximo v²/g).
+        // Flecha tem gravidade: abaixo de ~10,5 m/s não alcança os 9 m do totem (alcance máximo v²/g).
         public const float MinArrowSpeed = 10.5f;
         public static float ArrowSpeed(float speed) => Math.Max(MinArrowSpeed, ArrowRules.Speed * speed);
 

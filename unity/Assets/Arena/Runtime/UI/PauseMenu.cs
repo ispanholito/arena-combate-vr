@@ -41,7 +41,7 @@ namespace Arena
                 rows.Add(("<color=#ffd36b>Pular este passo do tutorial</color>", () => { TutorialMode.Instance?.Skip(); game.SetPaused(false); return false; }));
                 rows.Add(("<color=#ffd36b>Sair do tutorial</color>" + Note + "(volta ao santuário; dá para rever pelo portal TUTORIAL)</color></size>", () => { game.FinishTutorial(); return false; }));
             }
-            if (ReflexRoom.Instance) ReflexRoom.ReflexRows(rows);
+            if (ReflexRoom.Instance) rows.Add(("<color=#7fe0ff>Ajustes da Sala de Reflexo</color>" + Note + "(totens, máquina de aparo, velocidades, progressivo)</color></size>", () => { ReflexRoom.OpenPanel(); return false; }));
             rows.Add(("<color=#ffd36b>Livro de magias</color>" + Note + "(como fazer cada poder e habilidade)</color></size>", () => { SpellBook.Open(); return false; }));
             if (!DemoGate.Hidden) rows.Add(("Árvore de habilidades", () => { if (!ArenaGame.InMenu) { game.SetPaused(false); player.TreeOpen = true; } return false; }));
             rows.Add(("Volume: " + Mathf.RoundToInt(o.volume * 100f) + "%", () => { o.CycleVolume(); return true; }));
@@ -66,7 +66,7 @@ namespace Arena
         // Chamado pelo ArenaPlayer enquanto pausado.
         public void HandleInput()
         {
-            if (panel == null || SpellBook.IsOpen || SpellBook.ClosedFrame == Time.frameCount) return;
+            if (panel == null || SpellBook.IsOpen || SpellBook.ClosedFrame == Time.frameCount || ReflexRoom.PanelOpen || ReflexRoom.PanelClosedFrame == Time.frameCount) return;
             var game = ArenaGame.Instance;
             var input = player.Input;
             BuildRows();
@@ -87,7 +87,7 @@ namespace Arena
         void Update()
         {
             if (panel == null) return;
-            bool show = ArenaGame.Paused && !SpellBook.IsOpen;
+            bool show = ArenaGame.Paused && !SpellBook.IsOpen && !ReflexRoom.PanelOpen;
             if (!show) { panel.Hide(); if (!ArenaGame.Paused) cursor = 0; return; }
             panel.Show(player);
             BuildRows();

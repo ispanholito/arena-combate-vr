@@ -62,5 +62,33 @@ namespace Arena.Core.Tests
             sc.Reset();
             Assert.AreEqual(0, sc.Total);
         }
+        [Test]
+        public void Totems_CountAndShotTypesCycleSafely()
+        {
+            var s = new ReflexSettings { totems = 0 };
+            Assert.AreEqual(1, s.TotemCount);
+            s.totems = 8; s.CycleTotems();
+            Assert.AreEqual(1, s.TotemCount);
+            s.CycleTotems();
+            Assert.AreEqual(2, s.TotemCount);
+            s.shots = new[] { 0 };   // salvo antigo/curto
+            Assert.AreEqual(TotemShot.Orbe, s.ShotOf(0));
+            Assert.AreEqual(TotemShot.Misto, s.ShotOf(5));
+            s.CycleShot(5);
+            Assert.AreEqual(TotemShot.Orbe, s.ShotOf(5));
+            Assert.AreEqual(TotemShot.Orbe, s.ShotOf(0));
+            s.SetAllShots(TotemShot.Flecha);
+            Assert.AreEqual(TotemShot.Flecha, s.ShotOf(7));
+        }
+
+        [Test]
+        public void TotemAngles_SpreadSymmetricAndCapped()
+        {
+            Assert.AreEqual(25f, ReflexRules.TotemAngle(0, 1), 1e-4f);
+            Assert.AreEqual(-15f, ReflexRules.TotemAngle(0, 2), 1e-4f);
+            Assert.AreEqual(15f, ReflexRules.TotemAngle(1, 2), 1e-4f);
+            Assert.AreEqual(-75f, ReflexRules.TotemAngle(0, 8), 1e-4f);
+            Assert.AreEqual(75f, ReflexRules.TotemAngle(7, 8), 1e-4f);
+        }
     }
 }
