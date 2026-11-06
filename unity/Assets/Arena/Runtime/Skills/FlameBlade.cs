@@ -13,9 +13,12 @@ namespace Arena
     [RequireComponent(typeof(ArenaPlayer))]
     public sealed class FlameBlade : MonoBehaviour
     {
-        public static FlameBlade Instance { get; private set; }
+        public static FlameBlade Instance { get; private set; }   // a da mão direita
+        static readonly List<FlameBlade> all = new List<FlameBlade>();
+        public bool Left;   // instância da mão esquerda (ArenaPlayer cria as duas)
 
         ArenaPlayer player;
+        PlayerWeapon W => player ? (Left ? player.WeaponL : player.Weapon) : null;
         float flameT, sparkT;
         readonly List<Transform> flames = new List<Transform>();
         readonly HashSet<Collider> ignored = new HashSet<Collider>();
@@ -25,22 +28,25 @@ namespace Arena
         Material flameMat;
         const int FlameCount = 6;
 
-        // A arma da mão está em chamas?
-        public static bool Burning => Instance && Instance.flameT > 0f;
-        public static float DamageMultiplier => Burning ? FlameBladeRules.DamageMultiplier : 1f;
+        // Alguma das armas está em chamas? (estante da demo, escudo-porta do Rei)
+        public static bool Burning { get { foreach (var f in all) if (f && f.flameT > 0f) return true; return false; } }
+        // Esta arma (direita ou esquerda) está em chamas?
+        public static bool IsBurning(PlayerWeapon w) { foreach (var f in all) if (f && f.flameT > 0f && f.W == w) return true; return false; }
+        public static float DamageMultiplierFor(PlayerWeapon w) => IsBurning(w) ? FlameBladeRules.DamageMultiplier : 1f;
 
         // Chamado nos acertos da arma: põe calor no inimigo atingido.
-        public static void OnHit(EnemyState target)
+        public static void OnHit(PlayerWeapon w, EnemyState target)
         {
-            if (Burning && target != null && !target.Dead) target.Status.AddHeat(FlameBladeRules.HeatPerHit);
+            if (IsBurning(w) && target != null && !target.Dead) target.Status.AddHeat(FlameBladeRules.HeatPerHit);
         }
 
-        void Awake() { player = GetComponent<ArenaPlayer>(); Instance = this; }
-        void OnDestroy() { if (Instance == this) Instance = null; Clear(); Restore(); }
+        void Awake() { player = GetComponent<ArenaPlayer>(); all.Add(this); }
+        void Start() { if (!Left) Instance = this; }
+        void OnDestroy() { all.Remove(this); if (Instance == this) Instance = null; Clear(); Restore(); }
 
         void Update()
         {
-            var w = player.Weapon;
+            var w = W;
             bool usable = w && w.Def != null && w.Held && FlameBladeRules.CanIgnite(w.Def.Kind);
             if (!usable) { if (flameT > 0f) { flameT = 0f; Clear(); } Restore(); return; }
             if (flameT > 0f) flameT -= Time.deltaTime;
@@ -58,13 +64,13 @@ namespace Arena
         void FixedUpdate()
         {
             if (flameT <= 0f) return;
-            var w = player.Weapon;
+            var w = W;
             if (!w || !w.Held || w.Def == null) return;
             int n = Physics.OverlapCapsuleNonAlloc(w.BasePoint, w.TipPoint, 0.05f, overlap, ~0, QueryTriggerInteraction.Ignore);
             for (int i = 0; i < n; i++)
             {
                 var bone = overlap[i].GetComponent<RagdollBone>();
-                if (bone && bone.Owner) bone.Owner.OnWeaponSlice(bone.Id, overlap[i].ClosestPoint(Vector3.Lerp(w.BasePoint, w.TipPoint, 0.5f)));
+                if (bone && bone.Owner) bone.Owner.OnWeaponSlice(bone.Id, overlap[i].ClosestPoint(Vector3.Lerp(w.BasePoint, w.TipPoint, 0.5f)), w);
             }
         }
 
@@ -85,7 +91,7 @@ namespace Arena
         void Restore()
         {
             if (ignored.Count == 0) return;
-            var w = player ? player.Weapon : null;
+            var w = W;
             if (w && w.Body)
             {
                 var mine = w.Body.GetComponentsInChildren<Collider>();
@@ -114,7 +120,7 @@ namespace Arena
             if (was) return;
             ArenaAudio.Play(Sfx.FireCast, w.TipPoint, 1f, 0.8f);
             ArenaFx.Burst(w.TipPoint, new Color(1f, 0.5f, 0.1f), 20, 3f, 0.8f);
-            ArenaInput.Haptic(0.7f, 0.15f);
+            ArenaInput.Haptic(0.7f, 0.15f, Left);
             ArenaGame.Instance?.Message("Arma em chamas!", 1.2f);
             TutorialEvents.Raise("arma_fogo");
         }

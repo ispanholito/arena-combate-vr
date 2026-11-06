@@ -8,6 +8,8 @@ namespace Arena
     public sealed class GunController : MonoBehaviour
     {
         ArenaPlayer player;
+        public bool Left;   // instância da mão esquerda: atira com o gatilho esquerdo
+        PlayerWeapon W => player ? (Left ? player.WeaponL : player.Weapon) : null;
         int ammo = -1;
         float cd, reloadT = -1f, desktopReloadT;
         WeaponLook lastLook;
@@ -17,11 +19,11 @@ namespace Arena
 
         void Awake() => player = GetComponent<ArenaPlayer>();
 
-        GunSpec Spec => player && player.Weapon && player.Weapon.Def != null ? GunRules.For(player.Weapon.Def.Look) : null;
+        GunSpec Spec => W && W.Def != null && W.Held ? GunRules.For(W.Def.Look) : null;
 
         void Update()
         {
-            var w = player.Weapon;
+            var w = W;
             var spec = Spec;
             if (spec == null) { HideDots(); lastLook = WeaponLook.Padrao; return; }
             if (lastLook != w.Def.Look || ammo < 0) { ammo = spec.Shots; lastLook = w.Def.Look; reloadT = -1f; }
@@ -38,7 +40,7 @@ namespace Arena
                 {
                     reloadT = -1f; ammo = spec.Shots;
                     ArenaAudio.Play(Sfx.Click, w.TipPoint, 1f, 0.8f);
-                    ArenaInput.Haptic(0.4f, 0.05f);
+                    ArenaInput.Haptic(0.4f, 0.05f, Left);
                 }
             }
             else if (GunRules.NeedsReload && ammo < spec.Shots)
@@ -51,7 +53,7 @@ namespace Arena
                 else if (ammo <= 0 && (desktopReloadT += dt) >= GunRules.DesktopReload) { desktopReloadT = 0f; StartReload(w); }
             }
 
-            bool fire = player.IsVr ? player.Input.TriggerPressed : player.Input.DesktopSwing;
+            bool fire = Left ? player.IsVr && player.Input.ShieldToggle : player.IsVr ? player.Input.TriggerPressed : player.Input.DesktopSwing;
             if (fire && !player.TreeOpen && cd <= 0f)
             {
                 if (ammo <= 0 || reloadT >= 0f)
@@ -91,7 +93,7 @@ namespace Arena
             ArenaAudio.Play(Sfx.Shot, muzzle, 1f, 0.7f);
             ArenaFx.Burst(muzzle + dir * 0.05f, new Color(1f, 0.75f, 0.3f), 10, 4f, 0.8f);
             ArenaFx.Burst(muzzle + dir * 0.1f, new Color(0.75f, 0.75f, 0.75f), 8, 1.2f, 1.6f);
-            ArenaInput.Haptic(1f, spec.Pellets > 1 ? 0.15f : 0.08f);
+            ArenaInput.Haptic(1f, spec.Pellets > 1 ? 0.15f : 0.08f, Left);
         }
 
         void Shoot(Vector3 from, Vector3 dir, GunSpec spec, float dmg)
@@ -152,7 +154,7 @@ namespace Arena
         // Munição: bolinhas em cima da arma (cheia = dourada, gasta = escura).
         void UpdateDots(GunSpec spec)
         {
-            var vis = player.Weapon.Visual;
+            var vis = W.Visual;
             if (!vis) return;
             if (!ammoRoot || ammoRoot.parent != vis || ammoDots == null || ammoDots.Length != spec.Shots)
             {

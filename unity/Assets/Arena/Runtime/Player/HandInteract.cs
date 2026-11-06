@@ -41,16 +41,17 @@ namespace Arena
                 if (was) { if (dist > PinchOff) pinching[side] = false; }
                 else if (dist < PinchOn) pinching[side] = true;
                 if (!pinching[side] || was || cd > 0f) continue;
-                if (Interact(player, (index + thumb) * 0.5f)) { cd = Cooldown; ArenaInput.Haptic(0.4f, 0.05f, left: side == 0); }
+                if (Interact(player, (index + thumb) * 0.5f, side == 0 ? 1 : 0)) { cd = Cooldown; ArenaInput.Haptic(0.4f, 0.05f, left: side == 0); }
             }
         }
 
         // Mesma lista do grip/gatilho (as distâncias também contam pelos pés, então a mão livre funciona).
-        static bool Interact(ArenaPlayer p, Vector3 at)
+        // hand: a mão que fez a pinça (0 = direita, 1 = esquerda) — a arma pega vai para ELA (antes ia sempre para a direita).
+        static bool Interact(ArenaPlayer p, Vector3 at, int hand)
         {
             var g = ArenaGame.Instance;
             return (g && g.Sanctuary && g.Sanctuary.TryInteract(p)) || TreasureChest.TryOpen(p) || RescueCage.TryOpen(p)
-                   || BlessingStatue.TryUse(p) || WeaponPickup.TryPickup(p);
+                   || BlessingStatue.TryUse(p) || WeaponPickup.TryPickup(p, hand: hand);
         }
 
         bool World(XRHand hand, XRHandJointID id, out Vector3 world)

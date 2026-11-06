@@ -937,9 +937,10 @@ namespace Arena
             }
             // Guarda: a arma do jogador vem rápida perto do corpo.
             guardT -= dt; guardCd -= dt;
-            var w = pl.Weapon;
-            if (Armed && attack == Attack.None && guardCd <= 0f && w && w.Held && w.TipSpeed > ActiveRagdollRules.GuardTriggerSpeed
-                && Vector3.Distance(w.TipPoint, bones[RagBone.Cabeca].Rb.position) < ActiveRagdollRules.GuardTriggerDistance)
+            bool threat = false;
+            foreach (var w in pl.Hands)
+                if (w && w.Held && w.TipSpeed > ActiveRagdollRules.GuardTriggerSpeed && Vector3.Distance(w.TipPoint, bones[RagBone.Cabeca].Rb.position) < ActiveRagdollRules.GuardTriggerDistance) threat = true;
+            if (Armed && attack == Attack.None && guardCd <= 0f && threat)
             {
                 guardCd = ActiveRagdollRules.GuardCooldown;
                 if (Random.value < ActiveRagdollRules.GuardChance(Diff)) reactGuardT = CombatSteering.ReactionDelay(Diff, Random.value);
@@ -1143,11 +1144,10 @@ namespace Arena
         }
 
         // Arma em chamas atravessando o corpo (FlameBlade: sem colisão física, detectado por sobreposição da lâmina).
-        public void OnWeaponSlice(RagBone id, Vector3 contact)
+        public void OnWeaponSlice(RagBone id, Vector3 contact, PlayerWeapon w)
         {
             var pl = Player;
             if (!pl || id == RagBone.Clava) return;
-            var w = pl.Weapon;
             if (!w || !w.Body || !bones.TryGetValue(id, out var bone)) return;
             WeaponContact(pl, w, id, bone, contact, w.PhysTipVelocity, slicing: true);
         }
@@ -1238,9 +1238,9 @@ namespace Arena
             float zoneMul = headHit ? HeadHitRules.DamageMultiplier(zone, def.Blunt, helmet && zone != HeadZone.Pescoco) : ActiveRagdollRules.DamageMultiplier(id);
             float dmg = Combat.MeleeDamage(speed, def, Combat.SharpEdge(pl.State.Has(SkillIds.FioAfiado), def), true, def.Blunt ? 1f : edge)
                         * zoneMul * DamageTypes.Multiplier(DamageTypes.MaterialOf(Kind), dtype);
-            dmg *= FlameBlade.DamageMultiplier;   // arma em chamas: +30% e põe calor
+            dmg *= FlameBlade.DamageMultiplierFor(w);   // arma em chamas: +30% e põe calor
             dmg *= RedAura.DamageMultiplier;   // aura vermelha (as duas mãos)
-            FlameBlade.OnHit(State);
+            FlameBlade.OnHit(w, State);
             if (def.HeatPerHit > 0f && mode != Mode.Dead) State.Status.AddHeat(def.HeatPerHit);   // tocha
             if (def.Funny) WeaponModels.FunnyHit(def, contact);
             if (dmg > 0f && mode != Mode.Dead) Damage(dmg, contact);

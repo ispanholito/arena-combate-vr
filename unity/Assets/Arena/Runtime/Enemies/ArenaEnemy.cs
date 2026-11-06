@@ -220,7 +220,7 @@ namespace Arena
         void ReleaseWeapon()
         {
             var pl = Player;
-            if (pl && pl.Weapon) pl.Weapon.OnEnemyRemoved(this);
+            if (pl) foreach (var w in pl.Hands) if (w) w.OnEnemyRemoved(this);
         }
 
         public Vector3 Center => transform.position + Vector3.up * (bodyBottom + bodyTop) * 0.5f;
@@ -352,8 +352,9 @@ namespace Arena
             ArenaFx.Burst(Center, bloodColor, 20, 4f, 1.4f);
             if (ArenaGame.Instance) ArenaGame.Instance.OnEnemyKilled(this);
             // Morreu espetado na espada: o corpo fica pendurado nela (Blade & Sorcery).
-            var w = Player ? Player.Weapon : null;
-            bool pin = w && w.IsSkewering(this);
+            PlayerWeapon w = null;
+            if (Player) foreach (var hw in Player.Hands) if (hw && hw.IsSkewering(this)) w = hw;
+            bool pin = w;
             var pinPoint = pin ? w.SkewerWorldPoint : Vector3.zero;
             ReleaseWeapon();   // solta a espada cravada antes de o corpo sumir
             if (LeavesCorpse && visualPivot)

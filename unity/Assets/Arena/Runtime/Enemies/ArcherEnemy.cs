@@ -125,7 +125,6 @@ namespace Arena
             if (!game) return;
             var pl = game.Player;
             var shield = pl.Shield;
-            var w = pl.Weapon;
             if (shield && shield.Equipped && shield.Intercepts(prev, prev, now, now, 0.05f))
             {
                 ArenaAudio.Play(Sfx.Block, now, 0.8f, 1.3f);
@@ -135,11 +134,12 @@ namespace Arena
                 Kill();
                 return;
             }
-            if (w != null && w.Held && Geometry.SweptSegmentsHit(w.BasePrev.ToN(), w.TipPrev.ToN(), w.BasePoint.ToN(), w.TipPoint.ToN(),
-                                                                  prev.ToN(), prev.ToN(), now.ToN(), now.ToN(), ArrowRules.DeflectRadius))
+            foreach (var w in pl.Hands)   // as duas mãos rebatem (2026-11-06)
             {
-                if (w.TipSpeed > ArrowRules.DeflectSpeed || (!pl.IsVr && pl.Input.DesktopParry)) Reflect(now);
-                else { ArenaAudio.Play(Sfx.Block, now, 0.6f, 1.5f); Report(ReflexOutcome.Bloqueou); Kill(); }
+                if (w == null || !w.Held || !Geometry.SweptSegmentsHit(w.BasePrev.ToN(), w.TipPrev.ToN(), w.BasePoint.ToN(), w.TipPoint.ToN(),
+                                                                       prev.ToN(), prev.ToN(), now.ToN(), now.ToN(), ArrowRules.DeflectRadius)) continue;
+                if (w.TipSpeed > ArrowRules.DeflectSpeed || (!pl.IsVr && pl.Input.DesktopParry)) Reflect(now, w.IsLeft);
+                else { ArenaAudio.Play(Sfx.Block, now, 0.6f, 1.5f); ArenaInput.Haptic(0.4f, 0.05f, w.IsLeft); Report(ReflexOutcome.Bloqueou); Kill(); }
                 return;
             }
             // Desktop: segurar o aparo olhando para a flecha também rebate.
@@ -156,7 +156,7 @@ namespace Arena
             }
         }
 
-        void Reflect(Vector3 at)
+        void Reflect(Vector3 at, bool left = false)
         {
             reflected = true;
             life = 3f;
@@ -166,7 +166,7 @@ namespace Arena
             ArenaAudio.Play(Sfx.Parry, at, 0.9f, 1.4f);
             ArenaFx.FloatText("REBATEU!", at + Vector3.up * 0.2f, new Color(0.62f, 0.88f, 1f), 1f);
             ArenaFx.Burst(at, new Color(1f, 0.91f, 0.63f), 12, 3f);
-            ArenaInput.Haptic(0.8f, 0.07f);
+            ArenaInput.Haptic(0.8f, 0.07f, left);
         }
 
         void CheckEnemies(Vector3 now)

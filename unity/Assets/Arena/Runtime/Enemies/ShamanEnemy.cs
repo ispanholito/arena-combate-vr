@@ -122,7 +122,6 @@ namespace Arena
         {
             var pl = ArenaGame.Instance ? ArenaGame.Instance.Player : null;
             if (!pl) return;
-            var w = pl.Weapon;
             if (pl.Shield && pl.Shield.Equipped && pl.Shield.Intercepts(prev, prev, now, now, 0.1f))
             {
                 ArenaAudio.Play(Sfx.Block, now, 0.8f, 0.9f);
@@ -131,10 +130,11 @@ namespace Arena
                 Pop(now, false);
                 return;
             }
-            if (w != null && w.Held && Geometry.SweptSegmentsHit(w.BasePrev.ToN(), w.TipPrev.ToN(), w.BasePoint.ToN(), w.TipPoint.ToN(),
-                                                                  prev.ToN(), prev.ToN(), now.ToN(), now.ToN(), MagicOrbRules.DeflectRadius))
+            foreach (var w in pl.Hands)   // as duas mãos rebatem (2026-11-06)
             {
-                if (w.TipSpeed >= MagicOrbRules.DeflectSpeed || (!pl.IsVr && pl.Input.DesktopParry)) { Reflect(now, pl); return; }
+                if (w == null || !w.Held || !Geometry.SweptSegmentsHit(w.BasePrev.ToN(), w.TipPrev.ToN(), w.BasePoint.ToN(), w.TipPoint.ToN(),
+                                                                       prev.ToN(), prev.ToN(), now.ToN(), now.ToN(), MagicOrbRules.DeflectRadius)) continue;
+                if (w.TipSpeed >= MagicOrbRules.DeflectSpeed || (!pl.IsVr && pl.Input.DesktopParry)) { Reflect(now, pl, w); return; }
             }
             // Desktop: segurar o aparo olhando para o orbe rebate.
             if (!pl.IsVr && pl.Input.DesktopParry && (now - pl.HeadPosition).magnitude < 1.4f &&
@@ -149,13 +149,14 @@ namespace Arena
             }
         }
 
-        void Reflect(Vector3 at, ArenaPlayer pl)
+        void Reflect(Vector3 at, ArenaPlayer pl, PlayerWeapon w = null)
         {
+            if (!w) w = pl.Weapon;
             reflected = true;
             life = 4f;
             Report(ReflexOutcome.Rebateu);
             // Direção do golpe (VR) ou do olhar (desktop), puxada para a frente do jogador.
-            var swing = pl.IsVr && pl.Weapon.TipSpeed > 0.5f ? pl.Weapon.TipVelocity.normalized : pl.HeadForward;
+            var swing = pl.IsVr && w.TipSpeed > 0.5f ? w.TipVelocity.normalized : pl.HeadForward;
             var dir = (swing + pl.HeadForward).normalized;
             target = null; float best = MagicOrbRules.AimConeDeg;
             foreach (var e in ArenaEnemy.All)
@@ -169,7 +170,7 @@ namespace Arena
             ArenaAudio.Play(Sfx.Parry, at, 1f, 1.1f);
             ArenaFx.FloatText("REBATEU!", at + Vector3.up * 0.2f, Col, 1.1f);
             ArenaFx.Burst(at, Col, 14, 3f);
-            ArenaInput.Haptic(0.9f, 0.08f);
+            ArenaInput.Haptic(0.9f, 0.08f, w.IsLeft);
             TutorialEvents.Raise("rebater");
         }
 

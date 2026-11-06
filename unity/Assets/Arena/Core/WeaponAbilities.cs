@@ -27,6 +27,7 @@ namespace Arena.Core
     public static class WeaponAbilities
     {
         public const string CooldownId = "arma";
+        public static string CooldownIdOf(int hand) => hand == 1 ? "arma_esq" : CooldownId;
 
         public static readonly WeaponAbilityDef CorteAmplo = new WeaponAbilityDef(WeaponAbilityKind.CorteAmplo, "Corte Amplo",
             "o golpe acerta todos à frente (2,8 m)", 5f, 20f, ResourceKind.Stamina);

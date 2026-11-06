@@ -11,6 +11,10 @@ namespace Arena
     {
         ArenaPlayer player;
         SkillCaster skills;
+        public bool Left;   // instância da mão esquerda (ArenaPlayer cria as duas)
+        int HandIx => Left ? 1 : 0;
+        PlayerWeapon W => Left ? player.WeaponL : player.Weapon;
+        ItemInstance Item => Left ? S.LeftItem : S.ActiveItem;
         readonly WeaponCharge charge = new WeaponCharge();
         Transform glow;
         Material glowMat;
@@ -30,13 +34,13 @@ namespace Arena
         void Update()
         {
             hintCd -= Time.deltaTime;
-            var w = player.Weapon;
+            var w = W;
             if (ArenaGame.Blocked || DemoGate.Hidden || player.TreeOpen || w == null || w.Def == null || !w.Held) { charge.Cancel(); UpdateGlow(); return; }
             bool aiming = skills && skills.Aiming;
 
             if (!player.IsVr)
             {
-                if (player.Input.WeaponAbility && !aiming) TryRelease(player.HeadForward, desktop: true);
+                if (!Left && player.Input.WeaponAbility && !aiming) TryRelease(player.HeadForward, desktop: true);
                 UpdateGlow();
                 return;
             }
@@ -45,11 +49,11 @@ namespace Arena
             switch (charge.Tick(Time.deltaTime, raised, w.TipSpeed, !aiming && !w.TwoHanded))
             {
                 case WeaponCharge.Event.Charged:
-                    var r = S.CanUseWeaponAbility();
+                    var r = S.CanUseWeaponAbility(HandIx);
                     if (r != SkillCastResult.Ok) { charge.Cancel(); Hint(Reason(r)); break; }
-                    ArenaInput.Haptic(0.7f, 0.12f);
+                    ArenaInput.Haptic(0.7f, 0.12f, Left);
                     ArenaAudio.Play(Sfx.Skill, w.TipPoint, 0.7f, 1.3f);
-                    ArenaGame.Instance?.Message(S.ActiveItem.Ability.Name + ": golpeie!", 1f);
+                    ArenaGame.Instance?.Message(Item.Ability.Name + ": golpeie!", 1f);
                     break;
                 case WeaponCharge.Event.Released:
                     if (aiming) break;
@@ -78,17 +82,17 @@ namespace Arena
 
         void TryRelease(Vector3 dir, bool desktop)
         {
-            var r = S.TryWeaponAbility();
+            var r = S.TryWeaponAbility(HandIx);
             if (r != SkillCastResult.Ok) { Hint(Reason(r)); return; }
-            var item = S.ActiveItem;
-            if (desktop) player.Weapon.DesktopSwing();
+            var item = Item;
+            if (desktop) W.DesktopSwing();
             Fire(item, dir.Flat().normalized);
         }
 
         // ---------- Efeitos ----------
         void Fire(ItemInstance item, Vector3 dir)
         {
-            var w = player.Weapon;
+            var w = W;
             var def = w.Def;
             float power = WeaponAbilities.Power(item.Rarity);
             float dmg = WeaponAbilities.BaseDamage(item.Ability.Kind) * def.DamageMultiplier * WeaponAbilities.DamagePower(item.Rarity);
@@ -96,7 +100,7 @@ namespace Arena
             var color = WeaponModels.RarityColor(item.Rarity == Rarity.Comum ? Rarity.Raro : item.Rarity);
             ArenaGame.Instance?.Message(item.Ability.Name + "!", 0.9f);
             bool legend = item.Rarity == Rarity.Lendario;
-            ArenaInput.Haptic(1f, 0.15f);
+            ArenaInput.Haptic(1f, 0.15f, Left);
             switch (item.Ability.Kind)
             {
                 case WeaponAbilityKind.CorteAmplo:
@@ -204,8 +208,8 @@ namespace Arena
             var vis = new GameObject("LancaEspectral");
             ArenaUtil.Prim(PrimitiveType.Cube, vis.transform, Vector3.zero, new Vector3(0.06f, 0.06f, 1.2f), ArenaUtil.Unlit(new Color(color.r, color.g, color.b, 0.85f))).name = "Haste";
             var guide = ArenaUtil.Prim(PrimitiveType.Cube, vis.transform, new Vector3(0, 0, 4.6f), new Vector3(0.015f, 0.015f, 8f), ArenaUtil.Unlit(new Color(color.r, color.g, color.b, 0.25f)));
-            ArenaAudio.Play(Sfx.Skill, player.Weapon.TipPoint, 0.6f, 0.8f);
-            Vector3 start = player.Weapon.TipPoint, aim = player.HeadForward;
+            ArenaAudio.Play(Sfx.Skill, W.TipPoint, 0.6f, 0.8f);
+            Vector3 start = W.TipPoint, aim = player.HeadForward;
             for (float t = 0f; t < SpearAimSeconds; t += Time.deltaTime)
             {
                 Aim(out start, out aim);
@@ -234,7 +238,7 @@ namespace Arena
 
         void Aim(out Vector3 start, out Vector3 aim)
         {
-            var w = player.Weapon;
+            var w = W;
             if (player.IsVr && w && w.Held) { aim = w.BladeDir; start = w.TipPoint + aim * 0.3f; }
             else { aim = player.Head.forward; start = player.Head.position + aim * 0.6f - Vector3.up * 0.25f; }
         }
@@ -243,13 +247,13 @@ namespace Arena
         {
             if (!e || e.Dead) return;
             var ev = e.ApplyDamage(dmg, postureFactor, dir, knock, WeaponModels.RarityColor(item.Rarity == Rarity.Comum ? Rarity.Raro : item.Rarity));
-            S.OnDealtDamage(ev.Amount, player.Weapon.Def);
+            S.OnDealtDamage(ev.Amount, W.Def);
         }
 
         // A arma brilha enquanto carrega/está carregada.
         void UpdateGlow()
         {
-            var w = player.Weapon;
+            var w = W;
             bool show = (charge.Charged || charge.RaiseProgress > 0.05f) && w && w.Visual;
             if (!show) { if (glow) glow.gameObject.SetActive(false); return; }
             if (!glow)

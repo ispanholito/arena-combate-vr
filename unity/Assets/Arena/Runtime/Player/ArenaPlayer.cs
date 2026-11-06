@@ -24,6 +24,8 @@ namespace Arena
         public ArenaInput Input { get; } = new ArenaInput();
         public PlayerWeapon Weapon { get; private set; }
         public PlayerWeapon WeaponL { get; private set; }   // arma na mão ESQUERDA (o escudo é o PlayerShield)
+        // As duas armas (direita, esquerda): rebater, aparar, desviar e pegar fogo valem para qualquer uma delas.
+        public PlayerWeapon[] Hands { get; private set; } = new PlayerWeapon[0];
         // Qual arma do jogador é este corpo físico (direita ou esquerda)? null = nenhuma.
         public PlayerWeapon WeaponOf(Rigidbody rb)
         {
@@ -110,11 +112,13 @@ namespace Arena
             Weapon.Init(this);
             WeaponL = new GameObject("ArmaDoJogadorEsquerda").AddComponent<PlayerWeapon>();
             WeaponL.Init(this, left: true);
+            Hands = new[] { Weapon, WeaponL };
             Shield = GetComponent<PlayerShield>();
             if (!GetComponent<Holsters>()) gameObject.AddComponent<Holsters>();
             if (!GetComponent<RedAura>()) gameObject.AddComponent<RedAura>();
             if (!GetComponent<ItemPull>()) gameObject.AddComponent<ItemPull>();   // mirar a arma no chão + grip + puxar = vem para a mão   // aura vermelha (habilidade do gatilho da Lâmina)   // coldres nos ombros e na cintura + mão esquerda
             if (!GetComponent<WeaponAbilityCaster>()) gameObject.AddComponent<WeaponAbilityCaster>();   // cenas antigas não têm
+            if (GetComponents<WeaponAbilityCaster>().Length < 2) gameObject.AddComponent<WeaponAbilityCaster>().Left = true;   // arma da mão esquerda
             pauseMenu = GetComponent<PauseMenu>();
             if (!pauseMenu) pauseMenu = gameObject.AddComponent<PauseMenu>();
             if (!GetComponent<DungeonMap>()) gameObject.AddComponent<DungeonMap>();
@@ -125,7 +129,9 @@ namespace Arena
             if (!GetComponent<HandPointer>()) gameObject.AddComponent<HandPointer>();   // ponteiro do dedo + pinça nos menus
             if (!GetComponent<SpellBook>()) gameObject.AddComponent<SpellBook>();
             if (!GetComponent<FlameBlade>()) gameObject.AddComponent<FlameBlade>();
+            if (GetComponents<FlameBlade>().Length < 2) gameObject.AddComponent<FlameBlade>().Left = true;   // arma da esquerda também pega fogo
             if (!GetComponent<GunController>()) gameObject.AddComponent<GunController>();   // pistola e bacamarte
+            if (GetComponents<GunController>().Length < 2) gameObject.AddComponent<GunController>().Left = true;   // arma de fogo na esquerda: gatilho esquerdo
             if (!GetComponent<PetCompanion>()) gameObject.AddComponent<PetCompanion>();   // fada da Domadora
             if (!GetComponent<ArmSwingRun>()) gameObject.AddComponent<ArmSwingRun>();   // sem controle: correr balançando os braços
             if (!GetComponent<HandInteract>()) gameObject.AddComponent<HandInteract>();

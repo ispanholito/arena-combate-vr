@@ -37,10 +37,10 @@ namespace Arena
             if (dt > 0f) { handVel = player.trackingSpace.TransformDirection((handLocal - handPrev) / dt); handPrev = handLocal; }
             if (player.TreeOpen) { CancelAims(); return; }
             // Grip perto de uma arma no chão: pega (em vez de arremessar a da mão).
-            if (I.PickupPressed && ((Holsters.Instance && Holsters.Instance.TryDrawRight()) || StuckSword.TryGrabRight(player, false) || (ArenaGame.Instance && ArenaGame.Instance.Sanctuary && ArenaGame.Instance.Sanctuary.TryInteract(player)) || TreasureChest.TryOpen(player) || RescueCage.TryOpen(player) || BlessingStatue.TryUse(player) || WeaponPickup.TryPickup(player) || (ItemPull.Instance && ItemPull.Instance.TryStart(1)))) { CancelAims(); return; }
+            if (I.PickupPressed && ((Holsters.Instance && Holsters.Instance.TryDrawRight()) || StuckSword.TryGrabRight(player, false) || (ArenaGame.Instance && ArenaGame.Instance.Sanctuary && ArenaGame.Instance.Sanctuary.TryInteract(player)) || TreasureChest.TryOpen(player) || RescueCage.TryOpen(player) || BlessingStatue.TryUse(player) || WeaponPickup.TryPickup(player, hand: player.IsVr ? 0 : -1) || (ItemPull.Instance && ItemPull.Instance.TryStart(1)))) { CancelAims(); return; }
             // VR: GATILHO com a mão perto também interage (2026-10-29): segurando a arma pelo grip não dava para apertar o
             // grip de novo sem largar a arma. Arma no chão/estante: só com a mão bem perto (0,45 m).
-            if (player.IsVr && I.TriggerPressed && (StuckSword.TryGrabRight(player, true) || (ArenaGame.Instance && ArenaGame.Instance.Sanctuary && ArenaGame.Instance.Sanctuary.TryInteract(player)) || TreasureChest.TryOpen(player) || RescueCage.TryOpen(player) || BlessingStatue.TryUse(player) || WeaponPickup.TryPickup(player, handOnly: true)))
+            if (player.IsVr && I.TriggerPressed && (StuckSword.TryGrabRight(player, true) || (ArenaGame.Instance && ArenaGame.Instance.Sanctuary && ArenaGame.Instance.Sanctuary.TryInteract(player)) || TreasureChest.TryOpen(player) || RescueCage.TryOpen(player) || BlessingStatue.TryUse(player) || WeaponPickup.TryPickup(player, handOnly: true, hand: 0)))
             { I.TriggerPressed = false; CancelAims(); return; }
             if (player.IsVr) GripHold();
             if (S.Class.Id == ClassId.Lamina) Lamina(); else Elementalista(dt);

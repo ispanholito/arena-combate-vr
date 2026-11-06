@@ -267,24 +267,26 @@ namespace Arena.Core
 
         // ---------- Habilidade da arma ----------
         public float WeaponAbilityCooldown => CooldownLeft(WeaponAbilities.CooldownId);
+        // Cada mão tem a sua arma e a sua recarga (2026-11-06: a mão esquerda segue as mesmas regras da direita).
+        public float WeaponAbilityCooldownOf(int hand) => CooldownLeft(WeaponAbilities.CooldownIdOf(hand));
 
-        public SkillCastResult CanUseWeaponAbility()
+        public SkillCastResult CanUseWeaponAbility(int hand = 0)
         {
-            var item = ActiveItem;
+            var item = Loadout[hand == 1 ? 1 : 0];
             if (item == null) return SkillCastResult.Unknown;
-            if (WeaponAbilityCooldown > 0f) return SkillCastResult.Cooldown;
+            if (WeaponAbilityCooldownOf(hand) > 0f) return SkillCastResult.Cooldown;
             var a = item.Ability;
             var pool = a.Resource == ResourceKind.Mana ? Mana : Stamina;
             return pool.Has(a.Cost) ? SkillCastResult.Ok : (a.Resource == ResourceKind.Mana ? SkillCastResult.NoMana : SkillCastResult.NoStamina);
         }
 
-        public SkillCastResult TryWeaponAbility()
+        public SkillCastResult TryWeaponAbility(int hand = 0)
         {
-            var r = CanUseWeaponAbility();
+            var r = CanUseWeaponAbility(hand);
             if (r != SkillCastResult.Ok) return r;
-            var item = ActiveItem;
+            var item = Loadout[hand == 1 ? 1 : 0];
             (item.Ability.Resource == ResourceKind.Mana ? Mana : Stamina).TrySpend(item.Ability.Cost, 0.6f);
-            cooldowns[WeaponAbilities.CooldownId] = WeaponAbilities.CooldownFor(item) * Blessings.CooldownMultiplier;
+            cooldowns[WeaponAbilities.CooldownIdOf(hand)] = WeaponAbilities.CooldownFor(item) * Blessings.CooldownMultiplier;
             return r;
         }
 

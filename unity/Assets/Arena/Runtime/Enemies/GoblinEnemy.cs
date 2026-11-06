@@ -94,9 +94,10 @@ namespace Arena
                 return true;
             }
             if (Heavy || dodgeCd > 0f || state != AiState.Approach || !State.CanAct || Player == null) return false;
-            var w = Player.Weapon;
-            if (w == null || !w.Held || w.TipSpeed < EnemyMotion.DodgeTipSpeed) return false;
-            if (Vector3.Distance(w.TipPoint, Center) > EnemyMotion.DodgeRange * k) return false;
+            bool threat = false;   // qualquer uma das duas armas vindo rápida perto do corpo
+            foreach (var hw in Player.Hands)
+                if (hw && hw.Held && hw.TipSpeed >= EnemyMotion.DodgeTipSpeed && Vector3.Distance(hw.TipPoint, Center) <= EnemyMotion.DodgeRange * k) threat = true;
+            if (!threat) return false;
             dodgeCd = EnemyMotion.DodgeCooldown;
             if (Random.value >= EnemyMotion.MeleeDodgeChance(SaveSystem.Options.Difficulty)) return false;
             var side = new Vector3(-dir.z, 0f, dir.x) * (Random.value < 0.5f ? -1f : 1f);
@@ -450,7 +451,6 @@ namespace Arena
             if (!clubPrevValid) { clubPrevA = a; clubPrevB = b; clubPrevValid = true; }
             float tol = 0.06f * Mathf.Sqrt(k);
             var shield = Player.Shield;
-            var w = Player.Weapon;
             bool wind = kk > 0.35f;   // o começo do arco é atrás da cabeça do goblin
 
             if (shield && (shield.Intercepts(clubPrevA, clubPrevB, a, b, tol) || (wind && shield.DesktopCovers(transform.position))))
@@ -459,8 +459,9 @@ namespace Arena
                 ResolveGuard(Guard.ResolveShield(shield.GuardSpeed, Player.State.CounterStance > 0f, Player.State.Stamina.Current), b);
                 return;
             }
-            if (w != null && w.Held)
+            foreach (var w in Player.Hands)   // as duas mãos aparam (2026-11-06)
             {
+                if (w == null || !w.Held) continue;
                 bool touched = Geometry.SweptSegmentsHit(w.BasePrev.ToN(), w.TipPrev.ToN(), w.BasePoint.ToN(), w.TipPoint.ToN(),
                                                          clubPrevA.ToN(), clubPrevB.ToN(), a.ToN(), b.ToN(), 0.1f + tol);
                 // Desktop sem escudo (Elementalista): botão direito olhando para o inimigo intercepta com a arma.

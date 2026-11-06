@@ -271,7 +271,7 @@ namespace Arena
         // Golpes seguidos sem quebrar a postura: em vez de travar no combo do jogador, ele ruge.
         protected override void ComboBreak()
         {
-            Player.Weapon.OnEnemyRemoved(this);
+            foreach (var w in Player.Hands) if (w) w.OnEnemyRemoved(this);
             ClearMarker();
             SpawnGrace = BossRules.RoarWindup + 0.25f;   // imune enquanto enche o peito
             StartAct(Act.Roar);

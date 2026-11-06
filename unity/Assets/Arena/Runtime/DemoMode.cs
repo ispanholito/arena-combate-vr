@@ -603,8 +603,8 @@ namespace Arena
             if (bossStage != 3) return;
             // Pega fogo com a espada em chamas encostando ou uma explosão de fogo perto.
             var pl = game.Player;
-            var w = pl.Weapon;
-            bool touch = FlameBlade.Burning && w && w.Held && SegmentNear(w.BasePoint, w.TipPoint, shelf.position + Vector3.up * 0.4f, 1.7f);
+            bool touch = false;   // qualquer uma das duas armas em chamas
+            foreach (var w in pl.Hands) if (w && w.Held && FlameBlade.IsBurning(w) && SegmentNear(w.BasePoint, w.TipPoint, shelf.position + Vector3.up * 0.4f, 1.7f)) touch = true;
             if (touch || lastFireBlast > Time.time - 0.1f && Vector3.Distance(lastFireBlastPos, shelf.position) < 3f)
             {
                 shelfFire = 0f;

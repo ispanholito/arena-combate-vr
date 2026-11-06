@@ -114,10 +114,12 @@ namespace Arena
             var mouth = Mouth;
             var pl = Player;
             var shield = pl.Shield;
-            var w = pl.Weapon;
             bool shieldHit = shield && shield.Equipped && shield.Intercepts(mouthPrev, mouthPrev + Vector3.up * 0.15f, mouth, mouth + Vector3.up * 0.15f, 0.08f);
-            bool weaponHit = w != null && w.Held && Geometry.SweptSegmentsHit(w.BasePrev.ToN(), w.TipPrev.ToN(), w.BasePoint.ToN(), w.TipPoint.ToN(),
-                                                                                mouthPrev.ToN(), (mouthPrev + Vector3.up * 0.15f).ToN(), mouth.ToN(), (mouth + Vector3.up * 0.15f).ToN(), 0.12f);
+            PlayerWeapon w = null;   // qualquer uma das duas armas apara
+            foreach (var hw in pl.Hands)
+                if (!w && hw && hw.Held && Geometry.SweptSegmentsHit(hw.BasePrev.ToN(), hw.TipPrev.ToN(), hw.BasePoint.ToN(), hw.TipPoint.ToN(),
+                                                                      mouthPrev.ToN(), (mouthPrev + Vector3.up * 0.15f).ToN(), mouth.ToN(), (mouth + Vector3.up * 0.15f).ToN(), 0.12f)) w = hw;
+            bool weaponHit = w != null;
             bool desktopGuard = !pl.IsVr && pl.Input.DesktopParry && Vector3.Dot(pl.HeadForward, (transform.position - pl.FeetPosition).Flat().normalized) > 0.5f;
             if (shieldHit || weaponHit || desktopGuard)
             {
