@@ -282,6 +282,9 @@ namespace Arena
                 modelMats[name] = mat;
             }
             if (!mat) return;
+            // Pele contínua (2026-11-06): se o importador gerou {name}_Skin, ela é o desenho; as peças rígidas por osso
+            // ficam escondidas e só aparecem no membro arrancado (RefreshSkin).
+            var skinSrc = Resources.Load<Mesh>($"Models/{name}/{name}_Skin");
             foreach (var b in boneList)
             {
                 var mesh = Resources.Load<Mesh>($"Models/{name}/{name}_{b.Id}");
@@ -292,8 +295,79 @@ namespace Arena
                 v.transform.SetPositionAndRotation(transform.position, transform.rotation);   // malha no espaço do corpo em repouso
                 v.transform.localScale = Vector3.one * k;
                 v.AddComponent<MeshFilter>().sharedMesh = mesh;
-                v.AddComponent<MeshRenderer>().sharedMaterial = mat;
+                var mr = v.AddComponent<MeshRenderer>();
+                mr.sharedMaterial = mat;
+                mr.enabled = !skinSrc;
+                rigidPieces[b.Id] = mr;
             }
+            if (!skinSrc || boneList.Count < 11) return;
+            // Bindpose do osso i = (osso em repouso)⁻¹ · (corpo em repouso, escala k) · F_i (pose T → repouso, do importador).
+            // Os ossos acabaram de nascer na pose de repouso, então dá para medir agora. Igual para todo goblin do mesmo k.
+            string key = name + "|" + k.ToString("F3");
+            if (!skinCache.TryGetValue(key, out skinBase) || !skinBase)
+            {
+                skinBase = Instantiate(skinSrc);
+                skinBase.name = skinSrc.name + "_" + k.ToString("F2");
+                var F = skinSrc.bindposes;
+                var body = Matrix4x4.TRS(transform.position, transform.rotation, Vector3.one * k);
+                var bp = new Matrix4x4[11];
+                for (int i = 0; i < 11; i++) bp[i] = bones[(RagBone)i].Rb.transform.worldToLocalMatrix * body * F[i];
+                skinBase.bindposes = bp;
+                skinCache[key] = skinBase;
+            }
+            var go = new GameObject("Pele");
+            go.transform.SetParent(transform, false);
+            skinR = go.AddComponent<SkinnedMeshRenderer>();
+            var bt = new Transform[11];
+            for (int i = 0; i < 11; i++) bt[i] = bones[(RagBone)i].Rb.transform;
+            skinR.bones = bt;
+            skinR.rootBone = bt[(int)RagBone.Bacia];
+            skinR.sharedMesh = skinBase;
+            var mats = new Material[11];
+            for (int i = 0; i < 11; i++) mats[i] = mat;
+            skinR.sharedMaterials = mats;
+            skinR.quality = SkinQuality.Bone2;
+            skinR.localBounds = new Bounds(Vector3.zero, Vector3.one * 3f * k);
+        }
+
+        static readonly Dictionary<string, Mesh> skinCache = new Dictionary<string, Mesh>();
+        readonly Dictionary<RagBone, MeshRenderer> rigidPieces = new Dictionary<RagBone, MeshRenderer>();
+        SkinnedMeshRenderer skinR;
+        Mesh skinBase, skinCut;
+
+        // Membro arrancado: some da pele (submalha vazia) e aparece a peça rígida dele, que voa com o osso. Os vértices da
+        // emenda passam a seguir só o osso que ficou (o toco não estica atrás do pedaço).
+        void RefreshSkin()
+        {
+            if (!skinR || !skinBase) return;
+            foreach (var kv in rigidPieces) if (kv.Value) kv.Value.enabled = bones[kv.Key].Severed && bones[kv.Key].Rb;
+            bool any = false;
+            foreach (var b in boneList) if (b.Severed) any = true;
+            if (skinCut) { Destroy(skinCut); skinCut = null; }
+            if (!any) { skinR.sharedMesh = skinBase; return; }
+            bool Sev(int i) => i >= 0 && i < 11 && bones[(RagBone)i].Severed;
+            skinCut = Instantiate(skinBase);
+            var bw = skinCut.boneWeights;
+            // Osso arrancado → o primeiro ancestral que ficou no corpo (braço e antebraço arrancados juntos = tronco).
+            int Keep(int i)
+            {
+                if (!Sev(i)) return i;
+                var b = bones[(RagBone)i];
+                while (b.Parent != null && b.Severed) b = b.Parent;
+                return (int)b.Id;
+            }
+            for (int i = 0; i < bw.Length; i++)
+            {
+                var w = bw[i];
+                bool s0 = Sev(w.boneIndex0), s1 = w.weight1 > 0f && Sev(w.boneIndex1);
+                if (!s0 && !s1) continue;
+                int b0 = Keep(w.boneIndex0), b1 = w.weight1 > 0f ? Keep(w.boneIndex1) : b0;
+                // O vértice segue só o osso que ficou (o toco não estica atrás do pedaço).
+                bw[i] = new BoneWeight { boneIndex0 = s0 && !s1 ? b1 : b0, weight0 = 1f };
+            }
+            skinCut.boneWeights = bw;
+            for (int i = 0; i < 11; i++) if (Sev(i)) skinCut.SetTriangles(System.Array.Empty<int>(), i);
+            skinR.sharedMesh = skinCut;
         }
 
         // Junta as peças filhas numa malha por material (as primitivas vêm legíveis da Unity).
@@ -1356,7 +1430,14 @@ namespace Arena
         {
             var head = bones[RagBone.Cabeca].Rb.transform;
             var b = new Bounds(head.position, Vector3.zero);
-            foreach (var r in head.GetComponentsInChildren<Renderer>()) b.Encapsulate(r.bounds);
+            // Pelas malhas (as peças do modelo ficam escondidas com a pele contínua; Renderer.bounds de escondido não vale).
+            foreach (var mf in head.GetComponentsInChildren<MeshFilter>())
+            {
+                if (!mf.sharedMesh || mf.name == "Elmo") continue;
+                var mb = mf.sharedMesh.bounds;
+                for (int c = 0; c < 8; c++)
+                    b.Encapsulate(mf.transform.TransformPoint(mb.center + Vector3.Scale(mb.extents, new Vector3((c & 1) == 0 ? -1 : 1, (c & 2) == 0 ? -1 : 1, (c & 4) == 0 ? -1 : 1))));
+            }
             // As orelhas do goblin alargam o x: usa a menor medida do crânio.
             float s = Mathf.Clamp(Mathf.Min(b.size.x, b.size.z) * 1.2f, 0.18f * k, 0.34f * k);
             var root = new GameObject("Elmo").transform;
@@ -1535,6 +1616,7 @@ namespace Arena
             Destroy(b.Joint);
             b.Joint = null;
             MarkSevered(b);
+            RefreshSkin();
             var at = b.Rb.position;
             b.Rb.AddForce(dir.normalized * 3f + Vector3.up * 2f, ForceMode.VelocityChange);
             ArenaFx.Burst(at, new Color(0.7f, 0.12f, 0.16f), 26, 3.5f, 1.4f);
@@ -1595,6 +1677,7 @@ namespace Arena
             j.enablePreprocessing = false;
             b.Joint = j;
             Unsever(b);
+            RefreshSkin();
             ArenaFx.FloatText("SE MONTOU", b.Rb.position + Vector3.up * 0.3f, new Color(0.9f, 0.9f, 0.8f), 0.9f);
             ArenaAudio.Play(Sfx.Rattle, b.Rb.position, 1f);
             if (!bones[RagBone.BracoD].Severed && !bones[RagBone.AntebracoD].Severed) canAttack = true;
@@ -1833,6 +1916,7 @@ namespace Arena
             if (shieldRb) Destroy(shieldRb.gameObject);
             foreach (var s in stabs) if (s.Joint) Destroy(s.Joint);   // o corpo some junto: não precisa religar colisão
             foreach (var b in boneList) if (b.Rb) Destroy(b.Rb.gameObject);
+            if (skinCut) Destroy(skinCut);
         }
     }
 
