@@ -146,46 +146,39 @@ stylized low-poly dark fantasy game prop, hand-painted texture with dirt and wea
 ## Depois de escolher as imagens
 Salve em `arte/goblin/`, `arte/rei-goblin/` e `arte/esqueleto/` e passe no TRELLIS.2 (passo 2). Mande as imagens para o Claude antes de gerar o 3D se quiser uma segunda opinião.
 
-## Prompts v3 (2026-11-05) — corrigidos depois da 1ª rodada no Gemini
-Problemas da v2: **contorno preto** de quadrinho nos personagens (vira risca pintada no 3D), **cabeção** no esqueleto (e "large head" no goblin), ossos finos (somem na lente e quebram no TRELLIS), porta-escudo que parecia caneca, pele do Rei grudando o braço no tronco. Regras novas em todo prompt: `3D game render, no black outlines, no ink lines`, proporção realista (cabeça de tamanho normal), axilas livres, nada fino e solto.
-Avaliação da v2: goblin, Rei, clava, cimitarra e espada do esqueleto aprovados (só o contorno); esqueleto e porta refeitos. Referências em `arte/*/*_ref_v2.*`.
-Os prompts estão na conversa de 2026-11-05 e abaixo, um por personagem/objeto.
+## Prompts FINAIS (v3.2, 2026-11-06) — completos, prontos para colar
+Lições: "rendered like a 3D video game model in Unity, smooth 3D shading, no line art" tira o contorno de quadrinho (vira risca no 3D); dar a cabeça em fração da altura ("one sixth") porque "cabeça menor" o Gemini ignora; braços na horizontal e axilas vazias (corte do braço limpo); nada fino e solto (tiras, pregos compridos). A cabeça ainda dá para reduzir no importador (`Proportions.HeadScale`).
+3D: Hunyuan3D 2.1 (Simplify desligado, Include Texture ligado, Transform → Download) ou TRELLIS.2 (1024 / 100000 / 2048, Extract GLB). Cota grátis do Hugging Face é diária e vale para os dois. **Licença**: TRELLIS = MIT; Hunyuan3D = licença da comunidade Tencent (exclui alguns países) — conferir antes de vender.
 
-Trecho fixo de personagem (v3):
-`stylized low-poly dark fantasy game character with a subtle anime influence, 3D game render, no black outlines, no ink lines, no comic style, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, full body, front view, T-pose, arms straight out horizontally to the sides, armpits clearly visible and empty, legs slightly apart, symmetrical, realistic proportions, normal-sized head, not chibi, no weapon in hands, no text.`
-
-Trecho fixo de objeto (v3):
-`stylized low-poly dark fantasy game prop, 3D game render, no black outlines, no ink lines, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, single object centered, no text.`
-
-### Goblin (v3)
+### Goblin — APROVADO (`arte/goblin/goblin_ref_v3_2.png`)
 ```
-<trecho de personagem> A small cruel goblin, about 1.2 meters tall, skinny with a slightly hunched back and long arms, head only slightly large for a goblin but realistic proportions, pointed ears swept backwards and upwards, hooked nose, wide sadistic grin full of sharp crooked teeth, small sunken glowing yellow eyes, furrowed brow, scars on the face and body, dirty olive green skin with dark grime. Wearing only a ragged dark leather loincloth with a rope belt, a necklace of small teeth and bones, tight dirty cloth wraps on the wrists with no loose strips, barefoot with long black toenails. Menacing and nasty, not comical, readable silhouette.
+stylized low-poly dark fantasy game character with a subtle anime influence, rendered like a 3D video game model in Unity, smooth 3D shading, no black outlines, no ink lines, no line art, no comic style, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, full body, front view, T-pose, arms straight out horizontally to the sides, armpits clearly visible and empty, legs slightly apart, symmetrical, no weapon in hands, no text. A small cruel goblin, about 1.2 meters tall, skinny with a slightly hunched back and long arms, small head with adult proportions, head about one sixth of the body height, not big-headed, not chibi, pointed ears swept backwards and upwards, hooked nose, wide sadistic grin full of sharp crooked teeth, small sunken glowing yellow eyes, furrowed brow, scars on the face and body, dirty olive green skin with dark grime. Wearing only a ragged dark leather loincloth with a rope belt, a necklace of small teeth and bones, tight cloth wraps on both wrists wrapped flat against the skin with no hanging ends, barefoot with long black toenails. Menacing and nasty, not comical, readable silhouette.
 ```
-### Clava do goblin (v3)
+### Clava do goblin — APROVADA (imagem de 2026-11-06; 3D pendente)
 ```
-<trecho de objeto> Side view: a crude crooked wooden club about 50 cm long, thick head studded with short thick rusty nails, dark stains, tight leather-wrapped handle with no loose strips.
+stylized low-poly dark fantasy game prop, rendered like a 3D video game model in Unity, smooth 3D shading, no black outlines, no ink lines, no line art, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, single object centered, no text. Side view: a crude crooked wooden club about 50 cm long, thick head studded with short thick rusty nails, dark stains, tight leather-wrapped handle with no loose strips.
 ```
-### Rei Goblin (v3)
+### Rei Goblin
 ```
-<trecho de personagem> A huge goblin king boss, about 2.8 meters tall, fat and very strong like a brutal sumo wrestler: enormous hard belly, broad chest and shoulders, very thick muscular arms, short thick legs, head in realistic proportion to the huge body. Goblin face with pointed ears swept backwards, hooked nose, wide jaw with lower tusks and sharp crooked teeth, a scar across one eye, glowing yellow eyes, cruel arrogant expression, darker olive green skin. Wearing a crooked worn gold crown with irregular spikes, a large dark leather loincloth with a wide belt and a skull buckle, dented iron shoulder plates, a short animal fur mantle resting only on top of the shoulders and upper back (nothing hanging under the arms), iron bracers, battle scars all over. Intimidating final boss, readable silhouette.
+stylized low-poly dark fantasy game character with a subtle anime influence, rendered like a 3D video game model in Unity, smooth 3D shading, no black outlines, no ink lines, no line art, no comic style, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, full body, front view, T-pose, arms straight out horizontally to the sides, armpits clearly visible and empty, legs slightly apart, symmetrical, no weapon in hands, no text. A huge goblin king boss, about 2.8 meters tall, fat and very strong like a brutal sumo wrestler: enormous hard belly, broad chest and shoulders, very thick muscular arms, short thick legs, head in realistic proportion to the huge body, not big-headed. Goblin face with pointed ears swept backwards, hooked nose, wide jaw with lower tusks and sharp crooked teeth, a scar across one eye, glowing yellow eyes, cruel arrogant expression, darker olive green skin. Wearing a crooked worn gold crown with irregular spikes, a large dark leather loincloth with a wide belt and a skull buckle, dented iron shoulder plates, a short animal fur mantle resting only on top of the shoulders and upper back (nothing hanging under the arms), iron bracers, battle scars all over. Intimidating final boss, readable silhouette.
 ```
-### Clava do Rei (v3)
+### Clava do Rei
 ```
-<trecho de objeto> Side view: a huge crude wooden club about 1.2 meters long, thick head with short thick iron spikes, iron band near the head, tight leather-wrapped handle.
+stylized low-poly dark fantasy game prop, rendered like a 3D video game model in Unity, smooth 3D shading, no black outlines, no ink lines, no line art, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, single object centered, no text. Side view: a huge crude wooden club about 1.2 meters long, thick head with short thick iron spikes, iron band near the head, tight leather-wrapped handle with no loose strips.
 ```
-### Porta-escudo do Rei (v3)
+### Porta-escudo do Rei
 ```
-<trecho de objeto> Straight front view: a tall rectangular old wooden door ripped off its hinges, about 2 meters tall and 1 meter wide, vertical planks, reinforced with dented iron plates, rivets and two horizontal iron bands, broken hinges on one side, splintered edges. The handle is on the back and not visible.
+stylized low-poly dark fantasy game prop, rendered like a 3D video game model in Unity, smooth 3D shading, no black outlines, no ink lines, no line art, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, single object centered, no text. Straight front view: a tall rectangular old wooden door ripped off its hinges, about 2 meters tall and 1 meter wide, vertical planks, reinforced with dented iron plates, rivets and two horizontal iron bands, broken hinges on one side, splintered edges. The handle is on the back and not visible.
 ```
-### Cimitarra do Rei (v3)
+### Cimitarra do Rei
 ```
-<trecho de objeto> Side view: a crude wide goblin scimitar about 1 meter long, thick chipped rusty blade, simple iron crossguard, bone handle with a tight leather wrap and no loose strips.
+stylized low-poly dark fantasy game prop, rendered like a 3D video game model in Unity, smooth 3D shading, no black outlines, no ink lines, no line art, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, single object centered, no text. Side view: a crude wide goblin scimitar about 1 meter long, thick chipped rusty blade, simple iron crossguard, bone handle with a tight leather wrap and no loose strips.
 ```
-### Esqueleto (v3)
+### Esqueleto
 ```
-<trecho de personagem> An undead skeleton warrior, about 1.8 meters tall, realistic human proportions with a normal-sized skull (NOT a big head, not chibi, not cartoonish), very thick chunky stylized bones, solid wide ribcage with the gaps between ribs filled with dark shadow, thick spine and pelvis, thick finger bones, deep eye sockets glowing with orange embers, crooked jaw with broken teeth, a crack across the forehead, slightly hunched undead posture, dirty yellowed bone with brown grime. Wearing remains of an ancient warrior: one rusty dented iron shoulder plate, torn rotten cloth rags around the waist, a rotten leather bracer. Grim, menacing and eerie, readable silhouette.
+stylized low-poly dark fantasy game character with a subtle anime influence, rendered like a 3D video game model in Unity, smooth 3D shading, no black outlines, no ink lines, no line art, no comic style, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, full body, front view, T-pose, arms straight out horizontally to the sides, armpits clearly visible and empty, legs slightly apart, symmetrical, no weapon in hands, no text. An undead skeleton warrior, about 1.8 meters tall, realistic human proportions with a normal-sized skull (NOT a big head, not chibi, not cartoonish), very thick chunky stylized bones, solid wide ribcage with the gaps between ribs filled with dark shadow, thick spine and pelvis, thick finger bones, deep eye sockets glowing with orange embers, crooked jaw with broken teeth, a crack across the forehead, slightly hunched undead posture, dirty yellowed bone with brown grime. Wearing remains of an ancient warrior: one rusty dented iron shoulder plate, torn rotten cloth rags around the waist, a rotten leather bracer. Grim, menacing and eerie, readable silhouette.
 ```
-### Espada do esqueleto (v3)
+### Espada do esqueleto
 ```
-<trecho de objeto> Side view: an old rusty longsword about 90 cm long, thick chipped notched blade covered in brown and orange rust (rust only, no blood), simple iron crossguard, round pommel, tight rotten leather grip with no loose strips.
+stylized low-poly dark fantasy game prop, rendered like a 3D video game model in Unity, smooth 3D shading, no black outlines, no ink lines, no line art, hand-painted texture with dirt and wear, flat neutral lighting, no cast shadows, plain white background, single object centered, no text. Side view: an old rusty longsword about 90 cm long, thick chipped notched blade covered in brown and orange rust (rust only, no blood), simple iron crossguard, round pommel, tight rotten leather grip with no loose strips.
 ```
