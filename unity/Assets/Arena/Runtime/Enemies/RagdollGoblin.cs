@@ -535,7 +535,8 @@ namespace Arena
             float breathe = Mathf.Sin(Time.time * 2.1f) * 2f * (1f - on);
             pose[RagBone.Tronco] = new Vector3(-6f - lean + breathe, -s * (5f + 4f * run) * on * dirF + Mathf.Sign(headYaw) * Mathf.Clamp(Mathf.Abs(headYaw) - 45f, 0f, 25f), c * 1.5f * on);
             // Cabeça estável: compensa a inclinação e o giro do tronco e olha (UpdateLook).
-            pose[RagBone.Cabeca] = new Vector3(8f + lean * 0.8f + headPitch, Mathf.Clamp(headYaw + s * (5f + 4f * run) * on * dirF, -55f, 55f), 0f);
+            pose[RagBone.Cabeca] = new Vector3(8f + lean * 0.8f - headPitch,   // x positivo abaixa a cabeça: olhar para cima = pitch negativo (estava invertido até 2026-11-06)
+                Mathf.Clamp(headYaw + s * (5f + 4f * run) * on * dirF, -55f, 55f), 0f);
             // Braço livre: oposto à perna do mesmo lado; cotovelo dobra mais correndo (mão passa do quadril ao peito).
             float elbow = GaitRules.ElbowDeg(v) * on + 10f * (1f - on);
             float swing = swingF;   // usado pelo braço da clava

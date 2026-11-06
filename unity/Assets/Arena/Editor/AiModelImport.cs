@@ -20,13 +20,19 @@ namespace Arena.EditorTools
         [MenuItem("Arena/5 - Importar goblin gerado por IA (arte/goblin)")]
         static void Menu() => Debug.Log(Goblin());
 
-        public static string Goblin() => Split("goblin", "Goblin", 1.32f);
+        // Goblin v3 (2026-11-06, Hunyuan3D a partir de arte/goblin/goblin_ref_v3_2.png): proporções medidas no próprio
+        // modelo (tools: largura por altura e coluna central). Cabeça ×0,85: o Gemini sempre faz cabeça de goblin grande.
+        public static string Goblin() => Split("goblin", "Goblin", 1.32f, GoblinV3);
 
-        // Proporções medidas na referência (fração da altura): pescoço, cintura, quadril, joelho, ombro, cotovelo, ponta da mão.
-        const float Neck = 0.745f, Waist = 0.535f, Hip = 0.40f, Knee = 0.19f, ShoulderX = 0.17f, ElbowX = 0.30f, HandTipX = 0.66f;
+        // Proporções (fração da altura): pescoço, cintura (cinto), quadril (virilha), joelho, ombro, cotovelo, ponta da mão,
+        // fim da tanga entre as pernas, escala da cabeça (em volta do pescoço).
+        public struct Proportions { public float Neck, Waist, Hip, Knee, ShoulderX, ElbowX, HandTipX, ClothBottom, HeadScale, JawY, JawZ; public bool HeadAnyX; }
+        public static readonly Proportions GoblinV1 = new Proportions { Neck = 0.745f, Waist = 0.535f, Hip = 0.40f, Knee = 0.19f, ShoulderX = 0.17f, ElbowX = 0.30f, HandTipX = 0.66f, ClothBottom = 0.28f, HeadScale = 1f };
+        public static readonly Proportions GoblinV3 = new Proportions { Neck = 0.795f, Waist = 0.49f, Hip = 0.37f, Knee = 0.19f, ShoulderX = 0.08f, ElbowX = 0.35f, HandTipX = 0.69f, ClothBottom = 0.26f, HeadScale = 0.85f, HeadAnyX = true, JawY = 0.69f, JawZ = 0.05f };
 
-        public static string Split(string folder, string name, float height)
+        public static string Split(string folder, string name, float height, Proportions pr)
         {
+            float Neck = pr.Neck, Waist = pr.Waist, Hip = pr.Hip, Knee = pr.Knee, ShoulderX = pr.ShoulderX, ElbowX = pr.ElbowX, HandTipX = pr.HandTipX;
             var root = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "arte", folder));
             var jsonPath = Path.Combine(root, folder + ".json");
             if (!File.Exists(jsonPath)) return "não achei " + jsonPath;
@@ -62,7 +68,7 @@ namespace Arena.EditorTools
             {
                 [RagBone.Bacia] = (new Vector3(0, Hip * H, 0), new Vector3(0, Waist * H, 0), new Vector3(0, 0.47f, 0), new Vector3(0, 0.63f, 0)),
                 [RagBone.Tronco] = (new Vector3(0, Waist * H, 0), new Vector3(0, Neck * H, 0), new Vector3(0, 0.63f, 0), new Vector3(0, 0.97f, 0)),
-                [RagBone.Cabeca] = (new Vector3(0, Neck * H, 0), new Vector3(0, H, 0), new Vector3(0, 0.97f, 0), new Vector3(0, 1.32f, 0)),
+                [RagBone.Cabeca] = (new Vector3(0, Neck * H, 0), new Vector3(0, H, 0), new Vector3(0, 0.97f, 0), new Vector3(0, 0.97f + (1f - Neck) * H, 0)),   // sem esticar: a cabeça mantém a altura do modelo
             };
             foreach (int sd in new[] { -1, 1 })
             {
@@ -77,10 +83,12 @@ namespace Arena.EditorTools
             RagBone Classify(Vector3 p)
             {
                 float ax = Mathf.Abs(p.x); bool right = p.x > 0f;
-                if (p.y > 0.8f * H || (p.y > Neck * H && ax < 0.08f * H)) return RagBone.Cabeca;
-                if (ax > ShoulderX * H && p.y > Waist * H) return ax < ElbowX * H ? (right ? RagBone.BracoD : RagBone.BracoE) : (right ? RagBone.AntebracoD : RagBone.AntebracoE);
+                if (p.y > Neck * H && (pr.HeadAnyX || ax < 0.08f * H || p.y > 0.8f * H)) return RagBone.Cabeca;   // HeadAnyX: braços bem abaixo do pescoço
+                // Goblin corcunda: o queixo desce na frente do peito, abaixo da linha do pescoço.
+                if (pr.JawY > 0f && p.y > pr.JawY * H && p.z > pr.JawZ * H && ax < 0.1f * H) return RagBone.Cabeca;
+                if (ax > ShoulderX * H && p.y > Waist * H && (ax > 0.2f * H || p.y < shoulderY + 0.055f * H)) return ax < ElbowX * H ? (right ? RagBone.BracoD : RagBone.BracoE) : (right ? RagBone.AntebracoD : RagBone.AntebracoE);
                 if (p.y > Waist * H) return RagBone.Tronco;
-                if (p.y > Hip * H || (ax < 0.035f * H && p.y > 0.28f * H)) return RagBone.Bacia;   // tanga entre as pernas fica na bacia
+                if (p.y > Hip * H || (ax < 0.035f * H && p.y > pr.ClothBottom * H)) return RagBone.Bacia;   // tanga entre as pernas fica na bacia
                 if (p.y > Knee * H) return right ? RagBone.CoxaD : RagBone.CoxaE;
                 return right ? RagBone.CanelaD : RagBone.CanelaE;
             }
@@ -96,7 +104,9 @@ namespace Arena.EditorTools
                 var m = maps[bone];
                 foreach (int i in new[] { i0, i1, i2 })
                 {
-                    part.v.Add(Fit(m.a, m.b, m.A, m.B, P[i], out var rot));
+                    var fitted = Fit(m.a, m.b, m.A, m.B, P[i], out var rot);
+                    if (bone == RagBone.Cabeca && pr.HeadScale != 1f) fitted = m.A + (fitted - m.A) * pr.HeadScale;   // cabeça menor, presa no pescoço
+                    part.v.Add(fitted);
                     part.n.Add((rot * N[i]).normalized);
                     part.u.Add(U[i]);
                     part.t.Add(part.v.Count - 1);
