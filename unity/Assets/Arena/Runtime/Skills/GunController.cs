@@ -17,6 +17,70 @@ namespace Arena
         Transform[] ammoDots;
         readonly RaycastHit[] hits = new RaycastHit[24];
 
+        // ---------- Bacamarte de pump (Pablo, 2026-11-10) ----------
+        // A outra mão (grip do controle ou mão livre fechada) perto do fuste puxa para trás ao longo do cano e empurra
+        // de volta; o fuste visual desliza junto. A cadência é a velocidade da bombeada (PumpRules).
+        bool pumped = true;          // pronto para atirar (começa pronta)
+        bool pumpHeld;               // a outra mão está no fuste
+        float pumpOffset, pumpPeak, pumpReadyT = -1f, pumpLoseT, pumpHandZ0;
+        PumpRules.Phase pumpPhase = PumpRules.Phase.Closed;
+        Transform foreGrip;          // fuste visual (desliza)
+        Vector3 foreGripRest;
+        const float ForeGripZ = 0.36f, PumpTravel = 0.11f;
+
+        bool IsPump(GunSpec spec) => spec != null && spec.Pellets > 1;   // só o bacamarte
+
+        // Mão oposta à que segura a arma: posição e se está "pegando" (grip do controle / mão livre fechada).
+        bool OtherHand(out Vector3 pos)
+        {
+            var I = player.Input;
+            bool otherIsLeft = !Left;
+            pos = otherIsLeft ? player.leftHand.position : player.rightHand.position;
+            if (otherIsLeft) return I.LeftHandFree ? HandPoses.Closed(player, 0) : I.LeftGripHeld;
+            return I.RightHandFree ? HandPoses.Closed(player, 1) : I.GripHeld;
+        }
+
+        void UpdatePump(PlayerWeapon w, float dt)
+        {
+            if (!foreGrip || foreGrip.parent != w.Visual) { foreGrip = w.Visual ? w.Visual.Find("Fuste") : null; if (foreGrip) foreGripRest = foreGrip.localPosition; }
+            if (pumpReadyT >= 0f) { pumpReadyT -= dt; if (pumpReadyT < 0f) { pumped = true; ArenaAudio.Play(Sfx.Click, w.TipPoint, 0.9f, 1.1f); } }
+            if (!player.IsVr) { pumped = true; return; }   // desktop: sem bombear
+            bool grab = OtherHand(out var hand);
+            // Posição da mão ao longo do cano (z local da arma).
+            var local = w.Visual ? w.Visual.InverseTransformPoint(hand) : Vector3.zero;
+            float radial = new Vector2(local.x, local.y).magnitude;
+            if (!pumpHeld)
+            {
+                if (grab && w.Visual && radial < PumpRules.GrabRadius && Mathf.Abs(local.z - (ForeGripZ - pumpOffset)) < PumpRules.GrabRadius)
+                { pumpHeld = true; pumpHandZ0 = local.z + pumpOffset; pumpPeak = 0f; pumpLoseT = 0f; ArenaInput.Haptic(0.3f, 0.03f, !Left); }
+            }
+            else
+            {
+                bool near = w.Visual && radial < PumpRules.GrabRadius * 1.6f;
+                if (!grab || !near) { pumpLoseT += dt; if (!grab || pumpLoseT > PumpRules.ReleaseSeconds) { pumpHeld = false; pumpLoseT = 0f; } }
+                else pumpLoseT = 0f;
+                if (pumpHeld)
+                {
+                    float prev = pumpOffset;
+                    pumpOffset = Mathf.Clamp(pumpHandZ0 - local.z, 0f, PumpTravel);
+                    float v = Mathf.Abs(pumpOffset - prev) / Mathf.Max(dt, 1e-4f);
+                    pumpPeak = Mathf.Max(pumpPeak, v);
+                    var before = pumpPhase;
+                    if (PumpRules.Step(ref pumpPhase, pumpOffset))
+                    {
+                        float delay = PumpRules.ReadyDelay(pumpPeak);
+                        if (delay <= 0f) { pumped = true; ArenaAudio.Play(Sfx.Click, w.TipPoint, 1f, 1.2f); }
+                        else { pumpReadyT = delay; ArenaAudio.Play(Sfx.Rattle, w.TipPoint, 0.6f, 1.4f); }
+                        ArenaInput.Haptic(0.6f, 0.06f, !Left);
+                        pumpPeak = 0f;
+                    }
+                    else if (before != pumpPhase && pumpPhase == PumpRules.Phase.Open) { ArenaAudio.Play(Sfx.Rattle, w.TipPoint, 0.8f, 1.1f); ArenaInput.Haptic(0.5f, 0.05f, !Left); }
+                }
+            }
+            if (!pumpHeld && pumpOffset > 0f) pumpOffset = Mathf.MoveTowards(pumpOffset, 0f, dt * 0.5f);   // soltou: o fuste volta
+            if (foreGrip) foreGrip.localPosition = foreGripRest - new Vector3(0f, 0f, pumpOffset);
+        }
+
         void Awake() => player = GetComponent<ArenaPlayer>();
 
         GunSpec Spec => W && W.Def != null && W.Held ? GunRules.For(W.Def.Look) : null;
@@ -53,10 +117,17 @@ namespace Arena
                 else if (ammo <= 0 && (desktopReloadT += dt) >= GunRules.DesktopReload) { desktopReloadT = 0f; StartReload(w); }
             }
 
+            if (IsPump(spec)) UpdatePump(w, dt);
             bool fire = Left ? player.IsVr && player.Input.ShieldToggle : player.IsVr ? player.Input.TriggerPressed : player.Input.DesktopSwing;
             if (fire && !player.TreeOpen && cd <= 0f)
             {
-                if (ammo <= 0 || reloadT >= 0f)
+                if (IsPump(spec) && !pumped)
+                {
+                    ArenaAudio.Play(Sfx.Click, w.TipPoint, 0.8f, 1.5f);
+                    ArenaInput.Haptic(0.3f, 0.04f, Left);
+                    if (pumpReadyT < 0f) ArenaGame.Instance?.Message("Bombeie o fuste com a outra mão", 1f);
+                }
+                else if (ammo <= 0 || reloadT >= 0f)
                 {
                     ArenaAudio.Play(Sfx.Click, w.TipPoint, 0.8f, 1.5f);
                     if (ammo <= 0 && player.IsVr) ArenaGame.Instance?.Message("Sem munição: aponte para cima e dê um tranco", 1.2f);
@@ -76,7 +147,8 @@ namespace Arena
         void Fire(PlayerWeapon w, GunSpec spec)
         {
             if (GunRules.NeedsReload) ammo--;
-            cd = spec.Cooldown;
+            cd = IsPump(spec) ? 0.1f : spec.Cooldown;   // pump: a cadência é a bombeada, não o relógio
+            if (IsPump(spec)) { pumped = false; pumpPhase = PumpRules.Phase.Closed; }
             Vector3 dir;
             if (!player.IsVr) { w.DesktopPoint(0.3f); dir = player.HeadForward; }
             else dir = w.BladeDir;

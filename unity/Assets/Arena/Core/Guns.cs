@@ -43,3 +43,54 @@ namespace Arena.Core
         public static bool IsReloadFlick(float tipUpSpeed, float barrelUpDot) => tipUpSpeed >= FlickSpeed && barrelUpDot >= FlickUpDot;
     }
 }
+
+namespace Arena.Core
+{
+    // Bacamarte de PUMP (Pablo, 2026-11-10): depois de cada tiro é preciso bombear o fuste com a outra mão — puxar
+    // para trás ao longo do cano e empurrar de volta. A cadência é a velocidade com que você bombeia: bombeada rápida
+    // (≥ FastSpeed) deixa pronto na hora; lenta, a arma "engasga" um pouco (ReadyDelay). Pistola e repetição não têm.
+    public static class PumpRules
+    {
+        public const float GrabRadius = 0.14f;      // mão a até 14 cm do fuste para pegar
+        public const float PullDistance = 0.09f;    // puxar ≥ 9 cm para trás (ao longo do cano) = abriu
+        public const float PushDistance = 0.06f;    // voltar ≥ 6 cm para frente = fechou (pronto)
+        public const float FastSpeed = 1.5f;        // m/s do fuste: bombeada rápida
+        public const float SlowSpeed = 0.35f;       // abaixo disso a bombeada "não conta" direito (só anda com o fuste)
+        public const float MaxReadyDelay = 0.45f;   // s de atraso para a bombeada mais lenta aceita
+        public const float ReleaseSeconds = 0.25f;  // mão longe do fuste por esse tempo = soltou (volta para onde estava)
+
+        public enum Phase { Closed, Pulling, Open, Pushing }
+
+        // Atraso até estar pronta, dado o pico de velocidade da bombeada (m/s). Rápida = 0.
+        public static float ReadyDelay(float peakSpeed)
+        {
+            if (peakSpeed >= FastSpeed) return 0f;
+            float t = (peakSpeed - SlowSpeed) / (FastSpeed - SlowSpeed);
+            if (t < 0f) t = 0f;
+            return MaxReadyDelay * (1f - t);
+        }
+
+        // Máquina de estados: offset = quanto o fuste está puxado para trás (m, ≥ 0), chamada toda vez que a mão move o
+        // fuste. Devolve true quando completou uma bombeada (abriu e fechou).
+        public static bool Step(ref Phase phase, float offset)
+        {
+            switch (phase)
+            {
+                case Phase.Closed:
+                    if (offset > 0.01f) phase = Phase.Pulling;
+                    return false;
+                case Phase.Pulling:
+                    if (offset >= PullDistance) phase = Phase.Open;
+                    else if (offset <= 0.005f) phase = Phase.Closed;
+                    return false;
+                case Phase.Open:
+                    if (offset <= PullDistance - PushDistance) phase = Phase.Pushing;
+                    return false;
+                default:   // Pushing
+                    if (offset <= 0.01f) { phase = Phase.Closed; return true; }
+                    if (offset >= PullDistance) phase = Phase.Open;   // voltou atrás
+                    return false;
+            }
+        }
+    }
+}

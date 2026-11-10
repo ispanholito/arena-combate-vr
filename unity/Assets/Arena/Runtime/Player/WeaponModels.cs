@@ -225,6 +225,12 @@ namespace Arena
                     ArenaUtil.Prim(PrimitiveType.Cube, t, new Vector3(0, 0.0f, 0.12f), new Vector3(0.045f, 0.045f, 0.3f), wood);
                     Handle(t, new Vector3(0, 0.03f, 0.36f), 0.26f, 0.04f, brass);
                     Handle(t, new Vector3(0, 0.03f, 0.63f), 0.04f, 0.085f, brass);   // boca de sino
+                    // Fuste de pump (desliza para trás ao bombear; GunController move pelo nome).
+                    var fore = new GameObject("Fuste").transform;
+                    fore.SetParent(t, false);
+                    fore.localPosition = new Vector3(0, -0.005f, 0.36f);
+                    ArenaUtil.Prim(PrimitiveType.Cube, fore, Vector3.zero, new Vector3(0.06f, 0.05f, 0.13f), wood);
+                    ArenaUtil.Prim(PrimitiveType.Cube, fore, new Vector3(0, -0.03f, 0f), new Vector3(0.065f, 0.012f, 0.14f), brass);
                     return new Vector3(0, 0.03f, -0.02f);
                 }
                 case WeaponLook.Vassoura:

@@ -37,6 +37,7 @@ namespace Arena
             ("Elementalista", "Bola de Fogo (cajado)", "Segure o gatilho, faça o movimento de arremesso e solte. Explode em área; mais forte em enraizados."),
             ("Elementalista", "Lança de Gelo", "Aponte o cajado e aperte A: perfura até 3 inimigos e deixa lento."),
             ("Elementalista", "Raízes (cajado)", "Segure B, mire no chão com o cajado e solte: prende os inimigos por 3 s."),
+            ("Qualquer arma", "Bacamarte de pump", "Gatilho atira. Depois de cada tiro, PEGUE O FUSTE com a outra mão (grip do controle ou mão livre fechada), puxe para trás ao longo do cano e empurre de volta. Quanto mais rápido bombear, mais rápido atira de novo; bombeada lenta deixa a arma engasgar um instante."),
             ("Qualquer arma", "Habilidade da arma", "Erga a arma acima da cabeça com a ponta para cima por meio segundo (vibra e brilha) e dê um golpe rápido em até 4 s. Cada tipo de arma tem a sua (espada, machado, maça, lança, adaga, cajado)."),
             ("Qualquer arma", "Arma em chamas", "Mergulhe a lâmina numa bola de fogo: a que está carregando na mão livre (ela é gasta) ou uma voando. A arma pega fogo por 12 s: +30% de dano e cada golpe faz o inimigo pegar fogo. Não vale para o cajado. Em chamas, a lâmina ATRAVESSA os inimigos em vez de parar neles."),
             ("Qualquer arma", "Aparo, bloqueio e perfurar", "Escudo parado bloqueia. Empurrar o escudo ou a arma contra o golpe no último instante apara e atordoa o inimigo. Estocada com a ponta crava; puxe a arma para trás para soltar."),
